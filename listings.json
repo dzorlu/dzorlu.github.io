@@ -1,5 +1,12 @@
 [
   {
+    "listing": "/index.html",
+    "items": [
+      "/posts/index.html",
+      "/posts/expert_parallel.html"
+    ]
+  },
+  {
     "listing": "/posts/index.html",
     "items": [
       "/posts/expert_parallel.html"

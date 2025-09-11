@@ -2,86 +2,9 @@
   {
     "objectID": "index.html",
     "href": "index.html",
-    "title": "Expert Parallel",
+    "title": "Explorations",
     "section": "",
-    "text": "Let’s distill how to run a Mixture-of-Experts (MoE) model on 8 GPUs using a 2-D device mesh with Expert Parallel (EP) and FSDP2 (fully_shard). It explains who stores which weights, where all-to-all happens, why we choose EP=2, and includes minimal code (meshes, wrapping, verification)."
-  },
-  {
-    "objectID": "index.html#tldr-mental-picture",
-    "href": "index.html#tldr-mental-picture",
-    "title": "Expert Parallel",
-    "section": "TL;DR (mental picture)",
-    "text": "TL;DR (mental picture)\n\nColumns move tokens. Rows share weights.\nCols (dp_shard_in_ep) = EP axis → which experts live where + token all-to-all.\nRows (dp_shard_mod_ep) = FSDP axis → how owned experts are sharded.\nNon-MoE: FSDP(8) across all ranks (no persistent replication).\nExperts: EP(2) across columns (ownership) × FSDP(4) across rows (shards).\nEP all-to-all is row-local pairs: (0↔︎1), (2↔︎3), (4↔︎5), (6↔︎7). Microbatches can differ (variable-size A2A handles it)."
-  },
-  {
-    "objectID": "index.html#device-mesh-rank-layout",
-    "href": "index.html#device-mesh-rank-layout",
-    "title": "Expert Parallel",
-    "section": "Device Mesh & Rank Layout",
-    "text": "Device Mesh & Rank Layout\nArrange 8 GPUs as a 4×2 grid:\n(rows, cols) → rank\n(0,0)→0   (0,1)→1\n(1,0)→2   (1,1)→3\n(2,0)→4   (2,1)→5\n(3,0)→6   (3,1)→7\n\nRows (dp_shard_mod_ep) size 4 → FSDP sharding axis for experts.\nCols (dp_shard_in_ep) size 2 → EP ownership + row-local all-to-all.\nFlattened dp view (rows×cols) size 8 → dataloader + FSDP for non-MoE."
-  },
-  {
-    "objectID": "index.html#who-stores-which-expert",
-    "href": "index.html#who-stores-which-expert",
-    "title": "Expert Parallel",
-    "section": "Who Stores Which Expert?",
-    "text": "Who Stores Which Expert?\nAssume 8 experts E0..E7. With EP=2: - Column 0 owns experts E0–E3 (no copy of E4–E7). - Column 1 owns experts E4–E7 (no copy of E0–E3). - Inside each column, FSDP(4) shards the owned experts across the 4 rows.\n\n\n\nRank\nColumn owns\nThis rank holds (expert weights)\n\n\n\n\n0 = (0,0)\nE0–E3\n1/4 shard of E0–E3\n\n\n2 = (1,0)\nE0–E3\n1/4 shard of E0–E3\n\n\n4 = (2,0)\nE0–E3\n1/4 shard of E0–E3\n\n\n6 = (3,0)\nE0–E3\n1/4 shard of E0–E3\n\n\n1 = (0,1)\nE4–E7\n1/4 shard of E4–E7\n\n\n3 = (1,1)\nE4–E7\n1/4 shard of E4–E7\n\n\n5 = (2,1)\nE4–E7\n1/4 shard of E4–E7\n\n\n7 = (3,1)\nE4–E7\n1/4 shard of E4–E7\n\n\n\nNon-MoE (embeddings, attention, MLP, norms) are FSDP-sharded 8-way across all ranks (flattened dp). There is no persistent replication."
-  },
-  {
-    "objectID": "index.html#where-does-all-to-all-happen",
-    "href": "index.html#where-does-all-to-all-happen",
-    "title": "Expert Parallel",
-    "section": "Where Does All-to-All Happen?",
-    "text": "Where Does All-to-All Happen?\nEP all-to-all is row-local: - Row 0: GPU0 ⇄ GPU1 - Row 1: GPU2 ⇄ GPU3 - Row 2: GPU4 ⇄ GPU5 - Row 3: GPU6 ⇄ GPU7\nEach rank runs the router on its own microbatch. Tokens are split by destination column (owner of the chosen expert), then a size-exchange + variable-size all-to-all exchanges exactly those slices between the two columns in the same row. Different microbatches are fine.\nAfter dispatch, each rank holds only tokens for experts it owns. Expert matmuls then use FSDP across the 4 rows in that column (all-gather → compute → reduce-scatter). Finally, the inverse all-to-all returns outputs to the source ranks."
-  },
-  {
-    "objectID": "index.html#the-three-boxes-in-the-forward",
-    "href": "index.html#the-three-boxes-in-the-forward",
-    "title": "Expert Parallel",
-    "section": "The Three “Boxes” in the Forward",
-    "text": "The Three “Boxes” in the Forward\n\nNon-experts: FSDP(8) across all ranks\nall_gather(8) → compute → reduce_scatter(8)\nEP dispatch/return: row-local all-to-all\nPairs: (0↔1), (2↔3), (4↔5), (6↔7). Size-exchange then A2A.\nExperts: FSDP(4) inside each column\nall_gather(4) → grouped GEMM → reduce_scatter(4)"
-  },
-  {
-    "objectID": "index.html#minimal-mesh-wrapping-pr-faithful-order",
-    "href": "index.html#minimal-mesh-wrapping-pr-faithful-order",
-    "title": "Expert Parallel",
-    "section": "Minimal Mesh & Wrapping (PR-faithful order)",
-    "text": "Minimal Mesh & Wrapping (PR-faithful order)\nfrom torch.distributed.tensor import init_device_mesh\nfrom torch.distributed.tensor.parallel import parallelize_module\nfrom torch.distributed.fsdp import fully_shard\n\n# 2-D mesh: rows (FSDP for experts), cols (EP ownership & A2A)\nworld = init_device_mesh(\"cuda\", (4, 2), mesh_dim_names=(\"rows\",\"cols\"))\nworld[(\"rows\",\"cols\")]._flatten(mesh_dim_name=\"dp\")   # dataloader + FSDP(non-MoE)\n\nrow_mesh = world[\"rows\"]   # size 4\ncol_mesh = world[\"cols\"]   # size 2\ndp_mesh  = world[\"dp\"]     # size 8\n\n# 0) EP: assign experts to columns + install dispatch/combine hooks\nparallelize_module(\n    model, device_mesh=col_mesh,\n    parallelize_plan={\"layers.*.moe.experts\": ExpertParallel()},\n)\n\n# 1) FSDP on experts (rows): shard column-local experts across rows\nfor tb in model.transformer_blocks:\n    if getattr(tb, \"moe_enabled\", False):\n        fully_shard(tb.moe.experts, mesh=row_mesh, reshard_after_forward=False)\n\n# 2) FSDP on each block (dp): shard non-MoE 8-way\nfor tb in model.transformer_blocks:\n    fully_shard(tb, mesh=dp_mesh, reshard_after_forward=False)   # experts already DTensors on rows\n\n# 3) FSDP on root (dp): embeddings / head / leftovers\nfully_shard(model, mesh=dp_mesh, reshard_after_forward=True)     # True/False per memory tradeoff"
-  },
-  {
-    "objectID": "index.html#pseudo-forward-annotated",
-    "href": "index.html#pseudo-forward-annotated",
-    "title": "Expert Parallel",
-    "section": "Pseudo-Forward (annotated)",
-    "text": "Pseudo-Forward (annotated)\ndef forward_on_rank(row, col, x_rc):\n    # A) Non-MoE on dp: AG(8) → compute → RS(8)\n    h = non_moE_stack(x_rc)\n\n    # Router: expert id per token (e.g., [2,2,5,1,6,...])\n    eids = router(h)\n\n    # B) EP dispatch within this row: send tokens to owner column\n    h_owned = ep_a2a_dispatch(h, eids, group={(row,0),(row,1)})\n\n    # C) Experts on owner column: FSDP(4) across rows of this column\n    y_local = experts_matmul(h_owned)           # AG(4) → GEMM → RS(4)\n\n    # D) EP combine within this row: inverse A2A back to source rank\n    y = ep_a2a_combine(y_local, eids, group={(row,0),(row,1)})\n\n    # E) Tail Non-MoE on dp: AG(8) → compute → RS(8)\n    out = non_moE_tail(y)\n    return out\nBackward (intuition): EP’s A2A autograd returns activation grads to sources; expert parameter grads are reduce-scattered across the row group (the 4 that shard that expert). Non-MoE grads reduce-scatter across all 8."
-  },
-  {
-    "objectID": "index.html#after-parallelization-expected-placements-and-how-to-print-them",
-    "href": "index.html#after-parallelization-expected-placements-and-how-to-print-them",
-    "title": "Expert Parallel",
-    "section": "After Parallelization: Expected Placements (and how to print them)",
-    "text": "After Parallelization: Expected Placements (and how to print them)\n\nLegend\n\n(Shard(dim=0),) → Non-MoE params sharded on a 1-D mesh (flattened dp → 8-way).\n(_StridedShard(dim=0, sf=2), Shard(dim=0)) → Experts are split on two mesh axes of the same tensor dim-0 (experts):\n\nShard(dim=0) on cols (EP ownership).\n_StridedShard(dim=0, sf=2) on rows (FSDP across 4 rows, after a prior split by 2 cols).\n\n\nNo replication — this is a 2-D partition of expert dim-0.\ndef show_placements(model, keys=(\"moe.experts\",\"attention\",\"router\",\"embeddings\",\"norm\",\"output\")):\n    for name, p in model.named_parameters():\n        if any(k in name for k in keys):\n            pl = getattr(p, \"placements\", None)\n            kind = \"DTensor\" if pl is not None else \"LOCAL\"\n            print(f\"{name:&lt;60} -&gt; {kind:7} {pl}\")\nExample lines you should see (shape may vary; this is pattern):\ntok_embeddings.weight                                   -&gt; DTensor (Shard(dim=0),)\nlayers.0.attention.wq.weight                            -&gt; DTensor (Shard(dim=0),)\nlayers.0.feed_forward.router.router.weight              -&gt; DTensor (Shard(dim=0),)\nlayers.0.feed_forward.experts.w1                        -&gt; DTensor (_StridedShard(dim=0, sf=2), Shard(dim=0))\nlayers.0.feed_forward.experts.w2                        -&gt; DTensor (_StridedShard(dim=0, sf=2), Shard(dim=0))\nlayers.0.feed_forward.experts.w3                        -&gt; DTensor (_StridedShard(dim=0, sf=2), Shard(dim=0))\n...\n\n\nMini visual for _StridedShard(dim=0, sf=2)\nexperts dim-0:  [ 0 1 2 3 | 4 5 6 7 ]\n                 ^^^^^^^^   ^^^^^^^^\n                 col 0       col 1     (EP: Shard dim-0 by columns)\n\nwithin each column (rows=4):\ncol 0 → row shards of [0 1 2 3]   → rows 0..3 each get 1 id\ncol 1 → row shards of [4 5 6 7]   → rows 0..3 each get 1 id\n\nDTensor encodes \"shard dim-0 again on rows\" as _StridedShard(dim=0, sf=2)\n(sf=2 because dim-0 was already split once by the 2 columns)."
-  },
-  {
-    "objectID": "index.html#why-ep2-and-not-ep8",
-    "href": "index.html#why-ep2-and-not-ep8",
-    "title": "Expert Parallel",
-    "section": "Why EP=2 and not EP=8?",
-    "text": "Why EP=2 and not EP=8?\n\nEP=2 + rows=4 (this README):\n\nMemory: experts are also sharded (rows).\nComms: A2A is 2-way (cheap).\nCompute: healthy per-expert batches per device → efficient grouped GEMM.\n\nEP=8 + rows=1:\n\nNo rows left → cannot FSDP-shard expert weights (higher memory).\nA2A is 8-way (heavier comms) and per-expert batches per GPU get tiny (worse efficiency).\nYou can still FSDP(8) non-MoE, but overall MoE trade-offs are usually worse."
-  },
-  {
-    "objectID": "index.html#sanity-checklist",
-    "href": "index.html#sanity-checklist",
-    "title": "Expert Parallel",
-    "section": "Sanity Checklist",
-    "text": "Sanity Checklist\n\nNon-MoE params print one placement → (Shard(dim=0),) (FSDP-8 on dp).\nExpert params print two placements → (_StridedShard(0,sf=2), Shard(0)) (rows×cols).\nNo Replicate() in placements → no persistent replication.\nEP A2A pairs (0↔︎1), (2↔︎3), (4↔︎5), (6↔︎7) — microbatches can differ (size-exchange + variable-size A2A)."
-  },
-  {
-    "objectID": "index.html#appendix-dataloader-on-flattened-dp",
-    "href": "index.html#appendix-dataloader-on-flattened-dp",
-    "title": "Expert Parallel",
-    "section": "Appendix: Dataloader on Flattened dp",
-    "text": "Appendix: Dataloader on Flattened dp\n# Use the flattened 8-way dp mesh for sampling\nglobal_dp_rank = dp_mesh.get_rank()\nnum_replicas   = dp_mesh.size()\n\nfrom torch.utils.data import DistributedSampler, DataLoader\nsampler = DistributedSampler(dataset, num_replicas=num_replicas, rank=global_dp_rank)\nloader  = DataLoader(dataset, batch_size=per_rank_bs, sampler=sampler, pin_memory=True)\nThis preserves 8 microbatches per step—one per rank—while placements and collectives follow the mesh rules above."
+    "text": "Welcome. Below are all posts, newest first.\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nExplorations\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nExpert Parallel\n\n\n\n\n\n\n\n\nSep 1, 2025\n\n\n\n\n\nNo matching items"
   },
   {
     "objectID": "posts/index.html",
