@@ -1,3 +1,5 @@
 /.quarto/
 **/*.quarto_ipynb
-_site/
+posts/_drafts/**
+posts/wip-*.qmd
+/

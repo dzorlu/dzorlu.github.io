@@ -1,6 +1,6 @@
 
 ---
-title: "Expert Parallel"
+title: "Expert Parallelism"
 date: "2025-09-01"
 categories: [distributed-training]
 image: images/ep.png
