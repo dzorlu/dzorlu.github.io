@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.8.24">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+<meta name="dcterms.date" content="2025-09-01">
+
+<title>Expert Parallel – Deniz Zorlu</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/axe/axe-check.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-dc55a5b9e770e841cd82e46aadbfb9b0.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-5b4ad623e5705c0698d39aec6f10cf02.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "navbar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "end",
+  "type": "overlay",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+
+</head>
+
+<body class="nav-fixed quarto-light">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a href="../index.html" class="navbar-brand navbar-brand-logo">
+    </a>
+    <a class="navbar-brand" href="../index.html">
+    <span class="navbar-title">Deniz Zorlu</span>
+    </a>
+  </div>
+            <div id="quarto-search" class="" title="Search"></div>
+          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+  <span class="navbar-toggler-icon"></span>
+</button>
+          <div class="collapse navbar-collapse" id="navbarCollapse">
+            <ul class="navbar-nav navbar-nav-scroll me-auto">
+  <li class="nav-item">
+    <a class="nav-link" href="../posts/"> 
+<span class="menu-text">Posts</span></a>
+  </li>  
+</ul>
+          </div> <!-- /navcollapse -->
+            <div class="quarto-navbar-tools">
+</div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<!-- sidebar -->
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">On this page</h2>
+   
+  <ul>
+  <li><a href="#tldr" id="toc-tldr" class="nav-link active" data-scroll-target="#tldr">TL;DR</a></li>
+  <li><a href="#device-mesh-rank-layout" id="toc-device-mesh-rank-layout" class="nav-link" data-scroll-target="#device-mesh-rank-layout">Device Mesh &amp; Rank Layout</a></li>
+  <li><a href="#who-stores-which-expert" id="toc-who-stores-which-expert" class="nav-link" data-scroll-target="#who-stores-which-expert">Who Stores Which Expert?</a></li>
+  <li><a href="#where-does-all-to-all-happen" id="toc-where-does-all-to-all-happen" class="nav-link" data-scroll-target="#where-does-all-to-all-happen">Where Does All-to-All Happen?</a></li>
+  <li><a href="#the-three-boxes-in-the-forward" id="toc-the-three-boxes-in-the-forward" class="nav-link" data-scroll-target="#the-three-boxes-in-the-forward">The Three “Boxes” in the Forward</a></li>
+  <li><a href="#minimal-mesh-wrapping-pr-faithful-order" id="toc-minimal-mesh-wrapping-pr-faithful-order" class="nav-link" data-scroll-target="#minimal-mesh-wrapping-pr-faithful-order">Minimal Mesh &amp; Wrapping (PR-faithful order)</a></li>
+  <li><a href="#pseudo-forward-annotated" id="toc-pseudo-forward-annotated" class="nav-link" data-scroll-target="#pseudo-forward-annotated">Pseudo-Forward (annotated)</a></li>
+  <li><a href="#after-parallelization-expected-placements-and-how-to-print-them" id="toc-after-parallelization-expected-placements-and-how-to-print-them" class="nav-link" data-scroll-target="#after-parallelization-expected-placements-and-how-to-print-them">After Parallelization: Expected Placements (and how to print them)</a>
+  <ul class="collapse">
+  <li><a href="#legend" id="toc-legend" class="nav-link" data-scroll-target="#legend">Legend</a></li>
+  <li><a href="#mini-visual-for-_stridedsharddim0-sf2" id="toc-mini-visual-for-_stridedsharddim0-sf2" class="nav-link" data-scroll-target="#mini-visual-for-_stridedsharddim0-sf2">Mini visual for <code>_StridedShard(dim=0, sf=2)</code></a></li>
+  </ul></li>
+  <li><a href="#why-ep2-and-not-ep8" id="toc-why-ep2-and-not-ep8" class="nav-link" data-scroll-target="#why-ep2-and-not-ep8">Why EP=2 and not EP=8?</a></li>
+  <li><a href="#sanity-checklist" id="toc-sanity-checklist" class="nav-link" data-scroll-target="#sanity-checklist">Sanity Checklist</a></li>
+  <li><a href="#appendix-dataloader-on-flattened-dp" id="toc-appendix-dataloader-on-flattened-dp" class="nav-link" data-scroll-target="#appendix-dataloader-on-flattened-dp">Appendix: Dataloader on Flattened dp</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title">Expert Parallel</h1>
+  <div class="quarto-categories">
+    <div class="quarto-category">distributed-training</div>
+  </div>
+  </div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">September 1, 2025</p>
+    </div>
+  </div>
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<p>Let’s distill how to run a Mixture-of-Experts (MoE) model on 8 GPUs using a 2-D device mesh with Expert Parallel (EP) and FSDP2 (fully_shard). This short post explains who stores which weights, where all-to-all happens, why we choose EP=2, and includes minimal code (meshes, wrapping, verification).</p>
+<hr>
+<section id="tldr" class="level2">
+<h2 class="anchored" data-anchor-id="tldr">TL;DR</h2>
+<ul>
+<li><strong>Columns move tokens. Rows share weights.</strong></li>
+<li><strong>Cols</strong> (dp_shard_in_ep) = EP axis → which experts live where + token all-to-all.</li>
+<li><strong>Rows</strong> (dp_shard_mod_ep) = FSDP axis → how owned experts are sharded.</li>
+<li><strong>Non-MoE</strong>: FSDP(8) across all ranks (no persistent replication).</li>
+<li><strong>Experts</strong>: EP(2) across columns (ownership) × FSDP(4) across rows (shards).</li>
+<li><strong>EP all-to-all</strong> is row-local pairs: (0↔︎1), (2↔︎3), (4↔︎5), (6↔︎7). Microbatches can differ (variable-size A2A handles it).</li>
+</ul>
+<hr>
+</section>
+<section id="device-mesh-rank-layout" class="level2">
+<h2 class="anchored" data-anchor-id="device-mesh-rank-layout">Device Mesh &amp; Rank Layout</h2>
+<p>Arrange 8 GPUs as a 4×2 grid:</p>
+<pre><code>(rows, cols) → rank
+(0,0)→0   (0,1)→1
+(1,0)→2   (1,1)→3
+(2,0)→4   (2,1)→5
+(3,0)→6   (3,1)→7</code></pre>
+<ul>
+<li><strong>Rows</strong> (dp_shard_mod_ep) size 4 → FSDP sharding axis for experts.</li>
+<li><strong>Cols</strong> (dp_shard_in_ep) size 2 → EP ownership + row-local all-to-all.</li>
+<li><strong>Flattened dp</strong> view (rows×cols) size 8 → dataloader + FSDP for non-MoE.</li>
+</ul>
+<hr>
+</section>
+<section id="who-stores-which-expert" class="level2">
+<h2 class="anchored" data-anchor-id="who-stores-which-expert">Who Stores Which Expert?</h2>
+<p>Assume 8 experts E0..E7. With EP=2: - <strong>Column 0</strong> owns experts E0–E3 (no copy of E4–E7). - <strong>Column 1</strong> owns experts E4–E7 (no copy of E0–E3). - Inside each column, FSDP(4) shards the owned experts across the 4 rows.</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Rank</th>
+<th>Column owns</th>
+<th>This rank holds (expert weights)</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>0 = (0,0)</td>
+<td>E0–E3</td>
+<td>1/4 shard of E0–E3</td>
+</tr>
+<tr class="even">
+<td>2 = (1,0)</td>
+<td>E0–E3</td>
+<td>1/4 shard of E0–E3</td>
+</tr>
+<tr class="odd">
+<td>4 = (2,0)</td>
+<td>E0–E3</td>
+<td>1/4 shard of E0–E3</td>
+</tr>
+<tr class="even">
+<td>6 = (3,0)</td>
+<td>E0–E3</td>
+<td>1/4 shard of E0–E3</td>
+</tr>
+<tr class="odd">
+<td>1 = (0,1)</td>
+<td>E4–E7</td>
+<td>1/4 shard of E4–E7</td>
+</tr>
+<tr class="even">
+<td>3 = (1,1)</td>
+<td>E4–E7</td>
+<td>1/4 shard of E4–E7</td>
+</tr>
+<tr class="odd">
+<td>5 = (2,1)</td>
+<td>E4–E7</td>
+<td>1/4 shard of E4–E7</td>
+</tr>
+<tr class="even">
+<td>7 = (3,1)</td>
+<td>E4–E7</td>
+<td>1/4 shard of E4–E7</td>
+</tr>
+</tbody>
+</table>
+<p>Non-MoE (embeddings, attention, MLP, norms) are FSDP-sharded 8-way across all ranks (flattened dp). There is no persistent replication.</p>
+<hr>
+</section>
+<section id="where-does-all-to-all-happen" class="level2">
+<h2 class="anchored" data-anchor-id="where-does-all-to-all-happen">Where Does All-to-All Happen?</h2>
+<p>EP all-to-all is <strong>row-local</strong>: - Row 0: GPU0 ⇄ GPU1 - Row 1: GPU2 ⇄ GPU3 - Row 2: GPU4 ⇄ GPU5 - Row 3: GPU6 ⇄ GPU7</p>
+<p>Each rank runs the router on its own microbatch. Tokens are split by destination column (owner of the chosen expert), then a size-exchange + variable-size all-to-all exchanges exactly those slices between the two columns in the same row. Different microbatches are fine.</p>
+<p>After dispatch, each rank holds only tokens for experts it owns. Expert matmuls then use FSDP across the 4 rows in that column (all-gather → compute → reduce-scatter). Finally, the inverse all-to-all returns outputs to the source ranks.</p>
+<hr>
+</section>
+<section id="the-three-boxes-in-the-forward" class="level2">
+<h2 class="anchored" data-anchor-id="the-three-boxes-in-the-forward">The Three “Boxes” in the Forward</h2>
+<ol type="1">
+<li><p><strong>Non-experts</strong>: FSDP(8) across all ranks</p>
+<pre><code>all_gather(8) → compute → reduce_scatter(8)</code></pre></li>
+<li><p><strong>EP dispatch/return</strong>: row-local all-to-all</p>
+<pre><code>Pairs: (0↔1), (2↔3), (4↔5), (6↔7). Size-exchange then A2A.</code></pre></li>
+<li><p><strong>Experts</strong>: FSDP(4) inside each column</p>
+<pre><code>all_gather(4) → grouped GEMM → reduce_scatter(4)</code></pre></li>
+</ol>
+<hr>
+</section>
+<section id="minimal-mesh-wrapping-pr-faithful-order" class="level2">
+<h2 class="anchored" data-anchor-id="minimal-mesh-wrapping-pr-faithful-order">Minimal Mesh &amp; Wrapping (PR-faithful order)</h2>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torch.distributed.tensor <span class="im">import</span> init_device_mesh</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torch.distributed.tensor.parallel <span class="im">import</span> parallelize_module</span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torch.distributed.fsdp <span class="im">import</span> fully_shard</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="co"># 2-D mesh: rows (FSDP for experts), cols (EP ownership &amp; A2A)</span></span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>world <span class="op">=</span> init_device_mesh(<span class="st">"cuda"</span>, (<span class="dv">4</span>, <span class="dv">2</span>), mesh_dim_names<span class="op">=</span>(<span class="st">"rows"</span>,<span class="st">"cols"</span>))</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>world[(<span class="st">"rows"</span>,<span class="st">"cols"</span>)]._flatten(mesh_dim_name<span class="op">=</span><span class="st">"dp"</span>)   <span class="co"># dataloader + FSDP(non-MoE)</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a>row_mesh <span class="op">=</span> world[<span class="st">"rows"</span>]   <span class="co"># size 4</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>col_mesh <span class="op">=</span> world[<span class="st">"cols"</span>]   <span class="co"># size 2</span></span>
+<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a>dp_mesh  <span class="op">=</span> world[<span class="st">"dp"</span>]     <span class="co"># size 8</span></span>
+<span id="cb5-12"><a href="#cb5-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-13"><a href="#cb5-13" aria-hidden="true" tabindex="-1"></a><span class="co"># 0) EP: assign experts to columns + install dispatch/combine hooks</span></span>
+<span id="cb5-14"><a href="#cb5-14" aria-hidden="true" tabindex="-1"></a>parallelize_module(</span>
+<span id="cb5-15"><a href="#cb5-15" aria-hidden="true" tabindex="-1"></a>    model, device_mesh<span class="op">=</span>col_mesh,</span>
+<span id="cb5-16"><a href="#cb5-16" aria-hidden="true" tabindex="-1"></a>    parallelize_plan<span class="op">=</span>{<span class="st">"layers.*.moe.experts"</span>: ExpertParallel()},</span>
+<span id="cb5-17"><a href="#cb5-17" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb5-18"><a href="#cb5-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-19"><a href="#cb5-19" aria-hidden="true" tabindex="-1"></a><span class="co"># 1) FSDP on experts (rows): shard column-local experts across rows</span></span>
+<span id="cb5-20"><a href="#cb5-20" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> tb <span class="kw">in</span> model.transformer_blocks:</span>
+<span id="cb5-21"><a href="#cb5-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="bu">getattr</span>(tb, <span class="st">"moe_enabled"</span>, <span class="va">False</span>):</span>
+<span id="cb5-22"><a href="#cb5-22" aria-hidden="true" tabindex="-1"></a>        fully_shard(tb.moe.experts, mesh<span class="op">=</span>row_mesh, reshard_after_forward<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb5-23"><a href="#cb5-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-24"><a href="#cb5-24" aria-hidden="true" tabindex="-1"></a><span class="co"># 2) FSDP on each block (dp): shard non-MoE 8-way</span></span>
+<span id="cb5-25"><a href="#cb5-25" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> tb <span class="kw">in</span> model.transformer_blocks:</span>
+<span id="cb5-26"><a href="#cb5-26" aria-hidden="true" tabindex="-1"></a>    fully_shard(tb, mesh<span class="op">=</span>dp_mesh, reshard_after_forward<span class="op">=</span><span class="va">False</span>)   <span class="co"># experts already DTensors on rows</span></span>
+<span id="cb5-27"><a href="#cb5-27" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-28"><a href="#cb5-28" aria-hidden="true" tabindex="-1"></a><span class="co"># 3) FSDP on root (dp): embeddings / head / leftovers</span></span>
+<span id="cb5-29"><a href="#cb5-29" aria-hidden="true" tabindex="-1"></a>fully_shard(model, mesh<span class="op">=</span>dp_mesh, reshard_after_forward<span class="op">=</span><span class="va">True</span>)     <span class="co"># True/False per memory tradeoff</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<hr>
+</section>
+<section id="pseudo-forward-annotated" class="level2">
+<h2 class="anchored" data-anchor-id="pseudo-forward-annotated">Pseudo-Forward (annotated)</h2>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> forward_on_rank(row, col, x_rc):</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>    <span class="co"># A) Non-MoE on dp: AG(8) → compute → RS(8)</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    h <span class="op">=</span> non_moE_stack(x_rc)</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Router: expert id per token (e.g., [2,2,5,1,6,...])</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    eids <span class="op">=</span> router(h)</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>    <span class="co"># B) EP dispatch within this row: send tokens to owner column</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    h_owned <span class="op">=</span> ep_a2a_dispatch(h, eids, group<span class="op">=</span>{(row,<span class="dv">0</span>),(row,<span class="dv">1</span>)})</span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-11"><a href="#cb6-11" aria-hidden="true" tabindex="-1"></a>    <span class="co"># C) Experts on owner column: FSDP(4) across rows of this column</span></span>
+<span id="cb6-12"><a href="#cb6-12" aria-hidden="true" tabindex="-1"></a>    y_local <span class="op">=</span> experts_matmul(h_owned)           <span class="co"># AG(4) → GEMM → RS(4)</span></span>
+<span id="cb6-13"><a href="#cb6-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-14"><a href="#cb6-14" aria-hidden="true" tabindex="-1"></a>    <span class="co"># D) EP combine within this row: inverse A2A back to source rank</span></span>
+<span id="cb6-15"><a href="#cb6-15" aria-hidden="true" tabindex="-1"></a>    y <span class="op">=</span> ep_a2a_combine(y_local, eids, group<span class="op">=</span>{(row,<span class="dv">0</span>),(row,<span class="dv">1</span>)})</span>
+<span id="cb6-16"><a href="#cb6-16" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-17"><a href="#cb6-17" aria-hidden="true" tabindex="-1"></a>    <span class="co"># E) Tail Non-MoE on dp: AG(8) → compute → RS(8)</span></span>
+<span id="cb6-18"><a href="#cb6-18" aria-hidden="true" tabindex="-1"></a>    out <span class="op">=</span> non_moE_tail(y)</span>
+<span id="cb6-19"><a href="#cb6-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> out</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Backward (intuition)</strong>: EP’s A2A autograd returns activation grads to sources; expert parameter grads are reduce-scattered across the row group (the 4 that shard that expert). Non-MoE grads reduce-scatter across all 8.</p>
+<hr>
+</section>
+<section id="after-parallelization-expected-placements-and-how-to-print-them" class="level2">
+<h2 class="anchored" data-anchor-id="after-parallelization-expected-placements-and-how-to-print-them">After Parallelization: Expected Placements (and how to print them)</h2>
+<section id="legend" class="level3">
+<h3 class="anchored" data-anchor-id="legend">Legend</h3>
+<ul>
+<li><code>(Shard(dim=0),)</code> → Non-MoE params sharded on a 1-D mesh (flattened dp → 8-way).</li>
+<li><code>(_StridedShard(dim=0, sf=2), Shard(dim=0))</code> → Experts are split on two mesh axes of the same tensor dim-0 (experts):
+<ul>
+<li><code>Shard(dim=0)</code> on cols (EP ownership).</li>
+<li><code>_StridedShard(dim=0, sf=2)</code> on rows (FSDP across 4 rows, after a prior split by 2 cols).</li>
+</ul></li>
+</ul>
+<p>No replication — this is a 2-D partition of expert dim-0.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> show_placements(model, keys<span class="op">=</span>(<span class="st">"moe.experts"</span>,<span class="st">"attention"</span>,<span class="st">"router"</span>,<span class="st">"embeddings"</span>,<span class="st">"norm"</span>,<span class="st">"output"</span>)):</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> name, p <span class="kw">in</span> model.named_parameters():</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="bu">any</span>(k <span class="kw">in</span> name <span class="cf">for</span> k <span class="kw">in</span> keys):</span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>            pl <span class="op">=</span> <span class="bu">getattr</span>(p, <span class="st">"placements"</span>, <span class="va">None</span>)</span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>            kind <span class="op">=</span> <span class="st">"DTensor"</span> <span class="cf">if</span> pl <span class="kw">is</span> <span class="kw">not</span> <span class="va">None</span> <span class="cf">else</span> <span class="st">"LOCAL"</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>            <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>name<span class="sc">:&lt;60}</span><span class="ss"> -&gt; </span><span class="sc">{</span>kind<span class="sc">:7}</span><span class="ss"> </span><span class="sc">{</span>pl<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Example lines you should see (shape may vary; this is pattern):</p>
+<pre><code>tok_embeddings.weight                                   -&gt; DTensor (Shard(dim=0),)
+layers.0.attention.wq.weight                            -&gt; DTensor (Shard(dim=0),)
+layers.0.feed_forward.router.router.weight              -&gt; DTensor (Shard(dim=0),)
+layers.0.feed_forward.experts.w1                        -&gt; DTensor (_StridedShard(dim=0, sf=2), Shard(dim=0))
+layers.0.feed_forward.experts.w2                        -&gt; DTensor (_StridedShard(dim=0, sf=2), Shard(dim=0))
+layers.0.feed_forward.experts.w3                        -&gt; DTensor (_StridedShard(dim=0, sf=2), Shard(dim=0))
+...</code></pre>
+</section>
+<section id="mini-visual-for-_stridedsharddim0-sf2" class="level3">
+<h3 class="anchored" data-anchor-id="mini-visual-for-_stridedsharddim0-sf2">Mini visual for <code>_StridedShard(dim=0, sf=2)</code></h3>
+<pre><code>experts dim-0:  [ 0 1 2 3 | 4 5 6 7 ]
+                 ^^^^^^^^   ^^^^^^^^
+                 col 0       col 1     (EP: Shard dim-0 by columns)
+
+within each column (rows=4):
+col 0 → row shards of [0 1 2 3]   → rows 0..3 each get 1 id
+col 1 → row shards of [4 5 6 7]   → rows 0..3 each get 1 id
+
+DTensor encodes "shard dim-0 again on rows" as _StridedShard(dim=0, sf=2)
+(sf=2 because dim-0 was already split once by the 2 columns).</code></pre>
+<hr>
+</section>
+</section>
+<section id="why-ep2-and-not-ep8" class="level2">
+<h2 class="anchored" data-anchor-id="why-ep2-and-not-ep8">Why EP=2 and not EP=8?</h2>
+<ul>
+<li><strong>EP=2 + rows=4</strong> (this README):
+<ul>
+<li><strong>Memory</strong>: experts are also sharded (rows).</li>
+<li><strong>Comms</strong>: A2A is 2-way (cheap).</li>
+<li><strong>Compute</strong>: healthy per-expert batches per device → efficient grouped GEMM.</li>
+</ul></li>
+<li><strong>EP=8 + rows=1</strong>:
+<ul>
+<li>No rows left → cannot FSDP-shard expert weights (higher memory).</li>
+<li>A2A is 8-way (heavier comms) and per-expert batches per GPU get tiny (worse efficiency).</li>
+<li>You can still FSDP(8) non-MoE, but overall MoE trade-offs are usually worse.</li>
+</ul></li>
+</ul>
+<hr>
+</section>
+<section id="sanity-checklist" class="level2">
+<h2 class="anchored" data-anchor-id="sanity-checklist">Sanity Checklist</h2>
+<ul>
+<li>Non-MoE params print one placement → <code>(Shard(dim=0),)</code> (FSDP-8 on dp).</li>
+<li>Expert params print two placements → <code>(_StridedShard(0,sf=2), Shard(0))</code> (rows×cols).</li>
+<li>No <code>Replicate()</code> in placements → no persistent replication.</li>
+<li>EP A2A pairs (0↔︎1), (2↔︎3), (4↔︎5), (6↔︎7) — microbatches can differ (size-exchange + variable-size A2A).</li>
+</ul>
+<hr>
+</section>
+<section id="appendix-dataloader-on-flattened-dp" class="level2">
+<h2 class="anchored" data-anchor-id="appendix-dataloader-on-flattened-dp">Appendix: Dataloader on Flattened dp</h2>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Use the flattened 8-way dp mesh for sampling</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>global_dp_rank <span class="op">=</span> dp_mesh.get_rank()</span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a>num_replicas   <span class="op">=</span> dp_mesh.size()</span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torch.utils.data <span class="im">import</span> DistributedSampler, DataLoader</span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a>sampler <span class="op">=</span> DistributedSampler(dataset, num_replicas<span class="op">=</span>num_replicas, rank<span class="op">=</span>global_dp_rank)</span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a>loader  <span class="op">=</span> DataLoader(dataset, batch_size<span class="op">=</span>per_rank_bs, sampler<span class="op">=</span>sampler, pin_memory<span class="op">=</span><span class="va">True</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>This preserves 8 microbatches per step—one per rank—while placements and collectives follow the mesh rules above.</p>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+  window.document.addEventListener("DOMContentLoaded", function (event) {
+    const icon = "";
+    const anchorJS = new window.AnchorJS();
+    anchorJS.options = {
+      placement: 'right',
+      icon: icon
+    };
+    anchorJS.add('.anchored');
+    const isCodeAnnotation = (el) => {
+      for (const clz of el.classList) {
+        if (clz.startsWith('code-annotation-')) {                     
+          return true;
+        }
+      }
+      return false;
+    }
+    const onCopySuccess = function(e) {
+      // button target
+      const button = e.trigger;
+      // don't keep focus
+      button.blur();
+      // flash "checked"
+      button.classList.add('code-copy-button-checked');
+      var currentTitle = button.getAttribute("title");
+      button.setAttribute("title", "Copied!");
+      let tooltip;
+      if (window.bootstrap) {
+        button.setAttribute("data-bs-toggle", "tooltip");
+        button.setAttribute("data-bs-placement", "left");
+        button.setAttribute("data-bs-title", "Copied!");
+        tooltip = new bootstrap.Tooltip(button, 
+          { trigger: "manual", 
+            customClass: "code-copy-button-tooltip",
+            offset: [0, -8]});
+        tooltip.show();    
+      }
+      setTimeout(function() {
+        if (tooltip) {
+          tooltip.hide();
+          button.removeAttribute("data-bs-title");
+          button.removeAttribute("data-bs-toggle");
+          button.removeAttribute("data-bs-placement");
+        }
+        button.setAttribute("title", currentTitle);
+        button.classList.remove('code-copy-button-checked');
+      }, 1000);
+      // clear code selection
+      e.clearSelection();
+    }
+    const getTextToCopy = function(trigger) {
+      const outerScaffold = trigger.parentElement.cloneNode(true);
+      const codeEl = outerScaffold.querySelector('code');
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+    }
+    const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+      text: getTextToCopy
+    });
+    clipboard.on('success', onCopySuccess);
+    if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+      const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+        text: getTextToCopy,
+        container: window.document.getElementById('quarto-embedded-source-code-modal')
+      });
+      clipboardModal.on('success', onCopySuccess);
+    }
+      var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+      var mailtoRegex = new RegExp(/^mailto:/);
+        var filterRegex = new RegExp('/' + window.location.host + '/');
+      var isInternal = (href) => {
+          return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+      }
+      // Inspect non-navigation links and adorn them if external
+     var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+      for (var i=0; i<links.length; i++) {
+        const link = links[i];
+        if (!isInternal(link.href)) {
+          // undo the damage that might have been done by quarto-nav.js in the case of
+          // links that we want to consider external
+          if (link.dataset.originalHref !== undefined) {
+            link.href = link.dataset.originalHref;
+          }
+        }
+      }
+    function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+      const config = {
+        allowHTML: true,
+        maxWidth: 500,
+        delay: 100,
+        arrow: false,
+        appendTo: function(el) {
+            return el.parentElement;
+        },
+        interactive: true,
+        interactiveBorder: 10,
+        theme: 'quarto',
+        placement: 'bottom-start',
+      };
+      if (contentFn) {
+        config.content = contentFn;
+      }
+      if (onTriggerFn) {
+        config.onTrigger = onTriggerFn;
+      }
+      if (onUntriggerFn) {
+        config.onUntrigger = onUntriggerFn;
+      }
+      window.tippy(el, config); 
+    }
+    const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+    for (var i=0; i<noterefs.length; i++) {
+      const ref = noterefs[i];
+      tippyHover(ref, function() {
+        // use id or data attribute instead here
+        let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+        try { href = new URL(href).hash; } catch {}
+        const id = href.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note) {
+          return note.innerHTML;
+        } else {
+          return "";
+        }
+      });
+    }
+    const xrefs = window.document.querySelectorAll('a.quarto-xref');
+    const processXRef = (id, note) => {
+      // Strip column container classes
+      const stripColumnClz = (el) => {
+        el.classList.remove("page-full", "page-columns");
+        if (el.children) {
+          for (const child of el.children) {
+            stripColumnClz(child);
+          }
+        }
+      }
+      stripColumnClz(note)
+      if (id === null || id.startsWith('sec-')) {
+        // Special case sections, only their first couple elements
+        const container = document.createElement("div");
+        if (note.children && note.children.length > 2) {
+          container.appendChild(note.children[0].cloneNode(true));
+          for (let i = 1; i < note.children.length; i++) {
+            const child = note.children[i];
+            if (child.tagName === "P" && child.innerText === "") {
+              continue;
+            } else {
+              container.appendChild(child.cloneNode(true));
+              break;
+            }
+          }
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(container);
+          }
+          return container.innerHTML
+        } else {
+          if (window.Quarto?.typesetMath) {
+            window.Quarto.typesetMath(note);
+          }
+          return note.innerHTML;
+        }
+      } else {
+        // Remove any anchor links if they are present
+        const anchorLink = note.querySelector('a.anchorjs-link');
+        if (anchorLink) {
+          anchorLink.remove();
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        if (note.classList.contains("callout")) {
+          return note.outerHTML;
+        } else {
+          return note.innerHTML;
+        }
+      }
+    }
+    for (var i=0; i<xrefs.length; i++) {
+      const xref = xrefs[i];
+      tippyHover(xref, undefined, function(instance) {
+        instance.disable();
+        let url = xref.getAttribute('href');
+        let hash = undefined; 
+        if (url.startsWith('#')) {
+          hash = url;
+        } else {
+          try { hash = new URL(url).hash; } catch {}
+        }
+        if (hash) {
+          const id = hash.replace(/^#\/?/, "");
+          const note = window.document.getElementById(id);
+          if (note !== null) {
+            try {
+              const html = processXRef(id, note.cloneNode(true));
+              instance.setContent(html);
+            } finally {
+              instance.enable();
+              instance.show();
+            }
+          } else {
+            // See if we can fetch this
+            fetch(url.split('#')[0])
+            .then(res => res.text())
+            .then(html => {
+              const parser = new DOMParser();
+              const htmlDoc = parser.parseFromString(html, "text/html");
+              const note = htmlDoc.getElementById(id);
+              if (note !== null) {
+                const html = processXRef(id, note);
+                instance.setContent(html);
+              } 
+            }).finally(() => {
+              instance.enable();
+              instance.show();
+            });
+          }
+        } else {
+          // See if we can fetch a full url (with no hash to target)
+          // This is a special case and we should probably do some content thinning / targeting
+          fetch(url)
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.querySelector('main.content');
+            if (note !== null) {
+              // This should only happen for chapter cross references
+              // (since there is no id in the URL)
+              // remove the first header
+              if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+                note.children[0].remove();
+              }
+              const html = processXRef(null, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      }, function(instance) {
+      });
+    }
+        let selectedAnnoteEl;
+        const selectorForAnnotation = ( cell, annotation) => {
+          let cellAttr = 'data-code-cell="' + cell + '"';
+          let lineAttr = 'data-code-annotation="' +  annotation + '"';
+          const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+          return selector;
+        }
+        const selectCodeLines = (annoteEl) => {
+          const doc = window.document;
+          const targetCell = annoteEl.getAttribute("data-target-cell");
+          const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+          const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+          const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+          const lineIds = lines.map((line) => {
+            return targetCell + "-" + line;
+          })
+          let top = null;
+          let height = null;
+          let parent = null;
+          if (lineIds.length > 0) {
+              //compute the position of the single el (top and bottom and make a div)
+              const el = window.document.getElementById(lineIds[0]);
+              top = el.offsetTop;
+              height = el.offsetHeight;
+              parent = el.parentElement.parentElement;
+            if (lineIds.length > 1) {
+              const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+              const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+              height = bottom - top;
+            }
+            if (top !== null && height !== null && parent !== null) {
+              // cook up a div (if necessary) and position it 
+              let div = window.document.getElementById("code-annotation-line-highlight");
+              if (div === null) {
+                div = window.document.createElement("div");
+                div.setAttribute("id", "code-annotation-line-highlight");
+                div.style.position = 'absolute';
+                parent.appendChild(div);
+              }
+              div.style.top = top - 2 + "px";
+              div.style.height = height + 4 + "px";
+              div.style.left = 0;
+              let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+              if (gutterDiv === null) {
+                gutterDiv = window.document.createElement("div");
+                gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+                gutterDiv.style.position = 'absolute';
+                const codeCell = window.document.getElementById(targetCell);
+                const gutter = codeCell.querySelector('.code-annotation-gutter');
+                gutter.appendChild(gutterDiv);
+              }
+              gutterDiv.style.top = top - 2 + "px";
+              gutterDiv.style.height = height + 4 + "px";
+            }
+            selectedAnnoteEl = annoteEl;
+          }
+        };
+        const unselectCodeLines = () => {
+          const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+          elementsIds.forEach((elId) => {
+            const div = window.document.getElementById(elId);
+            if (div) {
+              div.remove();
+            }
+          });
+          selectedAnnoteEl = undefined;
+        };
+          // Handle positioning of the toggle
+      window.addEventListener(
+        "resize",
+        throttle(() => {
+          elRect = undefined;
+          if (selectedAnnoteEl) {
+            selectCodeLines(selectedAnnoteEl);
+          }
+        }, 10)
+      );
+      function throttle(fn, ms) {
+      let throttle = false;
+      let timer;
+        return (...args) => {
+          if(!throttle) { // first call gets through
+              fn.apply(this, args);
+              throttle = true;
+          } else { // all the others get throttled
+              if(timer) clearTimeout(timer); // cancel #2
+              timer = setTimeout(() => {
+                fn.apply(this, args);
+                timer = throttle = false;
+              }, ms);
+          }
+        };
+      }
+        // Attach click handler to the DT
+        const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+        for (const annoteDlNode of annoteDls) {
+          annoteDlNode.addEventListener('click', (event) => {
+            const clickedEl = event.target;
+            if (clickedEl !== selectedAnnoteEl) {
+              unselectCodeLines();
+              const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+              if (activeEl) {
+                activeEl.classList.remove('code-annotation-active');
+              }
+              selectCodeLines(clickedEl);
+              clickedEl.classList.add('code-annotation-active');
+            } else {
+              // Unselect the line
+              unselectCodeLines();
+              clickedEl.classList.remove('code-annotation-active');
+            }
+          });
+        }
+    const findCites = (el) => {
+      const parentEl = el.parentElement;
+      if (parentEl) {
+        const cites = parentEl.dataset.cites;
+        if (cites) {
+          return {
+            el,
+            cites: cites.split(' ')
+          };
+        } else {
+          return findCites(el.parentElement)
+        }
+      } else {
+        return undefined;
+      }
+    };
+    var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+    for (var i=0; i<bibliorefs.length; i++) {
+      const ref = bibliorefs[i];
+      const citeInfo = findCites(ref);
+      if (citeInfo) {
+        tippyHover(citeInfo.el, function() {
+          var popup = window.document.createElement('div');
+          citeInfo.cites.forEach(function(cite) {
+            var citeDiv = window.document.createElement('div');
+            citeDiv.classList.add('hanging-indent');
+            citeDiv.classList.add('csl-entry');
+            var biblioDiv = window.document.getElementById('ref-' + cite);
+            if (biblioDiv) {
+              citeDiv.innerHTML = biblioDiv.innerHTML;
+            }
+            popup.appendChild(citeDiv);
+          });
+          return popup.innerHTML;
+        });
+      }
+    }
+  });
+  </script>
+</div> <!-- /content -->
+
+
+
+
+</body></html>
