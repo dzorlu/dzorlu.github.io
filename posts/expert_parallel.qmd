@@ -6,8 +6,9 @@ categories: [distributed-training]
 image: images/ep.png
 ---
 
-Let's distill how to run a Mixture-of-Experts (MoE) model on 8 GPUs using a 2-D device mesh with Expert Parallel (EP) and FSDP2 (fully_shard). 
-This short post explains who stores which weights, where all-to-all happens, and includes minimal code (meshes, wrapping, verification).
+Let's distill how to run a Mixture-of-Experts (MoE) model with expert parallelism with example.
+The setup is 8 GPUs using a 2-D device mesh with Expert Parallel (EP) and FSDP2 (fully_shard). 
+This short post explains who stores which weights, where all-to-all happens, and includes minimal code (meshes and wrapping).
 
 ---
 
@@ -64,10 +65,11 @@ Here is the pytorch code.
 
 ## Who Stores Which Expert?
 
-Assume 8 experts E0..E7. With EP=2:
+Assume 8 experts `E0..E7`. With EP=2:
 - **Column 0** owns experts E0–E3 (no copy of E4–E7).
 - **Column 1** owns experts E4–E7 (no copy of E0–E3).
 - Inside each column, FSDP(4) shards the owned experts across the 4 rows.
+- This makes expert-to-expert communication possible. `Rank 0` has `E0–E3` and `Rank 1` has `E4-E7`.
 
 | Rank | Column owns | This rank holds (expert weights) |
 |------|-------------|----------------------------------|
@@ -93,7 +95,7 @@ EP all-to-all is **row-local**:
 - Row 2: GPU4 ⇄ GPU5
 - Row 3: GPU6 ⇄ GPU7
 
-Each rank runs the router on its own microbatch. Tokens are split by destination column (owner of the chosen expert), then a size-exchange + variable-size all-to-all exchanges exactly those slices between the two columns in the same row. Different microbatches are fine.
+Each rank runs the router on its own microbatch. Tokens are split by destination column (owner of the chosen expert), then a size-exchange + variable-size all-to-all exchanges exactly those slices between the two columns in the same row.
 
 After dispatch, each rank holds only tokens for experts it owns. Expert matmuls then use FSDP across the 4 rows in that column (`all-gather` → `compute` → `reduce-scatter`). Finally, the inverse all-to-all returns outputs to the source ranks.
 
@@ -264,13 +266,13 @@ Let's illustrate the token dispatch operation with a well-annotated code snippet
 For visually initiated folks, here is how the placement looks:
 
 
-### Interactive Visualization
 
 [🎮 **View Interactive 3D Visualization**](https://tinkerings.dev/static/moe.html) - See how data flows through the Non-MoE, MoE FSDP, and Token Routing layers.
 
 ---
 
 ## Minimal Mesh & Wrapping
+
 
 ```python
 
