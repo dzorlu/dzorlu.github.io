@@ -174,7 +174,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<p>Let’s distill how to run a Mixture-of-Experts (MoE) model with expert parallelism with example. The setup is 8 GPUs using a 2-D device mesh with Expert Parallel (EP) and FSDP2 (fully_shard). This short post explains who stores which weights, where all-to-all happens, and includes minimal code (meshes and wrapping).</p>
+<p>Let’s distill how to run a Mixture-of-Experts (MoE) model with expert parallelism with example.</p>
+<p>The setup is 8 GPUs using a 2-D device mesh with Expert Parallel (EP) and FSDP2 (fully_shard).</p>
+<p>This short post explains who stores which weights, where all-to-all happens, and includes minimal code (meshes and wrapping).</p>
 <hr>
 <section id="tldr" class="level2">
 <h2 class="anchored" data-anchor-id="tldr">TL;DR</h2>
@@ -202,25 +204,23 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><strong>Flattened dp</strong> view (rows×cols) size 8 → dataloader + FSDP for non-MoE.</li>
 </ul>
 <p>Here is the pytorch code.</p>
-<pre><code>    dp_shard_in_ep = ep_size                # borrowed by EP (forms EP groups)
-    dp_shard_mod_ep = dp_shard // ep_size   # leftover for FSDP sharding. borrowing!
+<pre><code>dp_shard_in_ep = ep_size                # borrowed by EP (forms EP groups)
+dp_shard_mod_ep = dp_shard // ep_size   # leftover for FSDP sharding. borrowing!
 
+# Create the 2D mesh
+device_mesh = init_device_mesh(
+    "cuda",
+    (dp_shard_mod_ep, dp_shard_in_ep),
+    mesh_dim_names=("dp_shard", "ep"),
+)
 
+# Create aliases for DP
+# DP will be used for data loading
+device_mesh[("dp_shard", "ep")]._flatten(mesh_dim_name="dp")
 
-    # Create the 2D mesh
-    device_mesh = init_device_mesh(
-        "cuda",
-        (dp_shard_mod_ep, dp_shard_in_ep),
-        mesh_dim_names=("dp_shard", "ep"),
-    )
-
-    # Create aliases for DP
-    # DP will be used for data loading
-    device_mesh[("dp_shard", "ep")]._flatten(mesh_dim_name="dp")
-
-    dp_mesh  = device_mesh["dp"]     # size = R*C = 8  -&gt; used for non-MoE FSDP
-    row_mesh = device_mesh["dp_shard"]   # size = R   = 4  -&gt; used for expert FSDP (inside each column)
-    col_mesh = device_mesh["ep"]   # size = C   = 2  -&gt; used for EP ownership + a2a</code></pre>
+dp_mesh  = device_mesh["dp"]     # size = R*C = 8  -&gt; used for non-MoE FSDP
+row_mesh = device_mesh["dp_shard"]   # size = R   = 4  -&gt; used for expert FSDP (inside each column)
+col_mesh = device_mesh["ep"]   # size = C   = 2  -&gt; used for EP ownership + a2a</code></pre>
 <hr>
 </section>
 <section id="who-stores-which-expert" class="level2">
@@ -292,147 +292,147 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>Each rank runs the router on its own microbatch. Tokens are split by destination column (owner of the chosen expert), then a size-exchange + variable-size all-to-all exchanges exactly those slices between the two columns in the same row.</p>
 <p>After dispatch, each rank holds only tokens for experts it owns. Expert matmuls then use FSDP across the 4 rows in that column (<code>all-gather</code> → <code>compute</code> → <code>reduce-scatter</code>). Finally, the inverse all-to-all returns outputs to the source ranks.</p>
 <p>Let’s illustrate the token dispatch operation with a well-annotated code snippet.</p>
-<pre><code>    def _token_dispatch(self, model, inputs, device_mesh):
-        """
-            All-to-all communication
-            input_splits is different coming from each device (assuming some data parallelism)
-        """
-        ep_size = device_mesh.shape[0]
-        x_gathered, num_tokens_per_expert = inputs
-        num_tokens_per_expert_group = num_tokens_per_expert.new_empty(
-            num_tokens_per_expert.shape[0]
-        )
+<pre><code>def _token_dispatch(self, model, inputs, device_mesh):
+    """
+        All-to-all communication
+        input_splits is different coming from each device (assuming some data parallelism)
+    """
+    ep_size = device_mesh.shape[0]
+    x_gathered, num_tokens_per_expert = inputs
+    num_tokens_per_expert_group = num_tokens_per_expert.new_empty(
+        num_tokens_per_expert.shape[0]
+    )
 
-        # distributed transpose operation.
-        # 0th GPU gets all 0th row
+    # distributed transpose operation.
+    # 0th GPU gets all 0th row
 
-        # Preliminary all-to-all to exchange token counts. This is used to
-        # calculate the split sizes for the main token all-to-all dispatch.
-        #
-        # Before (on GPU 0):
-        #   `num_tokens_per_expert`: [10, 5, 12, 8, 11, 6, 13, 7]
-        #   (Counts of local tokens for all 8 global experts)
-        #
-        # After (on GPU 0, which hosts experts 0 and 1):
-        #   `num_tokens_per_expert_group` is filled with:
-        #   [10, 5, | 9, 4, | 14, 2, | 3, 11]
-        #   (Counts for my local experts [E0,E1] from GPU0, GPU1, GPU2, GPU3)
-        
-        dist.all_to_all_single(
-            num_tokens_per_expert_group, # output!
-            num_tokens_per_expert, # input
-            group=device_mesh.get_group(),
-        )
-
-
-        input_splits = num_tokens_per_expert.view(
-            ep_size, -1
-        ).sum(dim=1).to(torch.device("cpu"))
-
-        output_splits = num_tokens_per_expert_group.view(
-            ep_size, -1
-        ).sum(dim=1).to(torch.device("cpu"))
-
-        self.input_splits = input_splits.tolist()
-        self.output_splits = output_splits.tolist()
-
-        # this is an uneven communication (e.g. ragged), where each GPU receives an uneven amount of tokens.
-
-        # On GPU 0:
-        # - Total tokens before send (sum of num_tokens_per_expert): 72
-        # - input_splits (how to slice the 72 tokens for sending): [15, 20, 17, 20]
-        # - output_splits (how many tokens to expect from each GPU): [15, 13, 16, 14]
-
-        # Before all_to_all, each GPU has a different number of tokens and a different plan:
-        # GPU 0: tensor of size 72, sends chunks of [15, 20, 17, 20]
-        # GPU 1: (example) tensor of size 80, sends chunks of [13, 25, 22, 20]
-        # GPU 2: (example) tensor of size 75, sends chunks of [16, 18, 21, 20]
-        # GPU 3: (example) tensor of size 68, sends chunks of [14, 15, 19, 20]
-
-        # After all_to_all on GPU 0:
-        # - Receives: 15 from GPU0, 13 from GPU1, 16 from GPU2, 14 from GPU3
-        # - Output tensor size = sum(output_splits) = 15 + 13 + 16 + 14 = 58
-        # - This new tensor of 58 tokens contains data for GPU 0's local experts (E0, E1),
-        #   but is grouped by source GPU, not by expert ID. It needs a local shuffle.
-
-        # all_to_all_single_autograd allows differentiable data transfer
-        print(f"{self.output_splits=} {self.input_splits=}")
-
-        x_gathered = all_to_all_single_autograd(
-            x_gathered,
-            self.output_splits,
-            self.input_splits,
-            device_mesh.get_group(),
-        )
-
-        # num_tokens_per_expert_group
-        #   [10, 5, | 9, 4, | 14, 2, | 3, 11]
-        # 
-        #   x_gathered on GPU 0 (shape: [58, h])
-        #  +------------------------------------------------+
-        #  |                                                |
-        #  |  Block of 15 tokens RECEIVED from GPU 0        |
-        #  |  (Contains 10 tokens for MY E0, 5 for MY E1)   |
-        #  |                                                |
-        #  +------------------------------------------------+  &lt;-- Boundary at index 14
-        #  |                                                |
-        #  |  Block of 13 tokens RECEIVED from GPU 1        |
-        #  |  (Contains 9 tokens for MY E0, 4 for MY E1)    |
-        #  |                                                |
-        #  +------------------------------------------------+  &lt;-- Boundary at index 27 (14+13)
-        #  |                                                |
-        #  |  Block of 16 tokens RECEIVED from GPU 2        |
-        #  |  (Contains 14 tokens for MY E0, 2 for MY E1)   |
-        #  |                                                |
-        #  +------------------------------------------------+  &lt;-- Boundary at index 43 (27+16)
-        #  |                                                |
-        #  |  Block of 14 tokens RECEIVED from GPU 3        |
-        #  |  (Contains 3 tokens for MY E0, 11 for MY E1)   |
-        #  |                                                |
-        #  +------------------------------------------------+  &lt;-- Final boundary at index 57
-
-        #   Target layout for x_gathered (shape: [58, h])
-        #  +------------------------------------------------+
-        #  |                                                |
-        #  |  All 36 tokens for MY Expert 0                 |
-        #  |  (Gathered from the 4 blocks above)            |
-        #  |                                                |
-        #  +------------------------------------------------+  &lt;-- Boundary at index 35
-        #  |                                                |
-        #  |  All 22 tokens for MY Expert 1                 |
-        #  |  (Gathered from the 4 blocks above)            |
-        #  |                                                |
-        #  +------------------------------------------------+ 
-
-        # target for num_tokens_per_expert_group
-        #    [36, 22]
+    # Preliminary all-to-all to exchange token counts. This is used to
+    # calculate the split sizes for the main token all-to-all dispatch.
+    #
+    # Before (on GPU 0):
+    #   `num_tokens_per_expert`: [10, 5, 12, 8, 11, 6, 13, 7]
+    #   (Counts of local tokens for all 8 global experts)
+    #
+    # After (on GPU 0, which hosts experts 0 and 1):
+    #   `num_tokens_per_expert_group` is filled with:
+    #   [10, 5, | 9, 4, | 14, 2, | 3, 11]
+    #   (Counts for my local experts [E0,E1] from GPU0, GPU1, GPU2, GPU3)
+    
+    dist.all_to_all_single(
+        num_tokens_per_expert_group, # output!
+        num_tokens_per_expert, # input
+        group=device_mesh.get_group(),
+    )
 
 
-        # Reshape to see GPU-expert structure
-        tokens = num_tokens_per_expert_group.view(-1, ep_size)  
-        # Shape: [4, 2] where dim0=GPU, dim1=expert
-        # [[10,  5],  &lt;- GPU 0: 10 tokens for E0, 5 for E1
-        #  [ 9,  4],  &lt;- GPU 1: 9 tokens for E0, 4 for E1
-        #  [14,  2],  &lt;- GPU 2: 14 tokens for E0, 2 for E1
-        #  [ 3, 11]]  &lt;- GPU 3: 3 tokens for E0, 11 for E1
-        expert_per_device = num_tokens_per_expert_group.shape[0] // ep_size
-        expert_ids = torch.repeat_interleave(
-            torch.arange(expert_per_device).repeat(ep_size).to('cuda'),  # [0, 1, 0, 1, 0, 1, 0, 1] - expert pattern
-            num_tokens_per_expert_group  # [10,5,9,4,14,2,3,11] - repeat counts
-        )
-        
-        # index looks like
-        # tensor([ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 15, 16, 17, 18, 19, 20, 21, 22,
-        # 23, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 44, 45, 46,
-        # 10, 11, 12, 13, 14, 24, 25, 26, 27, 42, 43, 47, 48, 49, 50, 51, 52, 53,
-        # 54, 55, 56, 57])
-        self.index = torch.argsort(expert_ids, stable=True)
-        x_reorganized = x_gathered[self.index, :]
+    input_splits = num_tokens_per_expert.view(
+        ep_size, -1
+    ).sum(dim=1).to(torch.device("cpu"))
 
-        # per expert aggregation
-        num_tokens_per_expert_group_agg = tokens.sum(dim=1)
+    output_splits = num_tokens_per_expert_group.view(
+        ep_size, -1
+    ).sum(dim=1).to(torch.device("cpu"))
 
-        return x_reorganized, num_tokens_per_expert_group_agg</code></pre>
+    self.input_splits = input_splits.tolist()
+    self.output_splits = output_splits.tolist()
+
+    # this is an uneven communication (e.g. ragged), where each GPU receives an uneven amount of tokens.
+
+    # On GPU 0:
+    # - Total tokens before send (sum of num_tokens_per_expert): 72
+    # - input_splits (how to slice the 72 tokens for sending): [15, 20, 17, 20]
+    # - output_splits (how many tokens to expect from each GPU): [15, 13, 16, 14]
+
+    # Before all_to_all, each GPU has a different number of tokens and a different plan:
+    # GPU 0: tensor of size 72, sends chunks of [15, 20, 17, 20]
+    # GPU 1: (example) tensor of size 80, sends chunks of [13, 25, 22, 20]
+    # GPU 2: (example) tensor of size 75, sends chunks of [16, 18, 21, 20]
+    # GPU 3: (example) tensor of size 68, sends chunks of [14, 15, 19, 20]
+
+    # After all_to_all on GPU 0:
+    # - Receives: 15 from GPU0, 13 from GPU1, 16 from GPU2, 14 from GPU3
+    # - Output tensor size = sum(output_splits) = 15 + 13 + 16 + 14 = 58
+    # - This new tensor of 58 tokens contains data for GPU 0's local experts (E0, E1),
+    #   but is grouped by source GPU, not by expert ID. It needs a local shuffle.
+
+    # all_to_all_single_autograd allows differentiable data transfer
+    print(f"{self.output_splits=} {self.input_splits=}")
+
+    x_gathered = all_to_all_single_autograd(
+        x_gathered,
+        self.output_splits,
+        self.input_splits,
+        device_mesh.get_group(),
+    )
+
+    # num_tokens_per_expert_group
+    #   [10, 5, | 9, 4, | 14, 2, | 3, 11]
+    # 
+    #   x_gathered on GPU 0 (shape: [58, h])
+    #  +------------------------------------------------+
+    #  |                                                |
+    #  |  Block of 15 tokens RECEIVED from GPU 0        |
+    #  |  (Contains 10 tokens for MY E0, 5 for MY E1)   |
+    #  |                                                |
+    #  +------------------------------------------------+  &lt;-- Boundary at index 14
+    #  |                                                |
+    #  |  Block of 13 tokens RECEIVED from GPU 1        |
+    #  |  (Contains 9 tokens for MY E0, 4 for MY E1)    |
+    #  |                                                |
+    #  +------------------------------------------------+  &lt;-- Boundary at index 27 (14+13)
+    #  |                                                |
+    #  |  Block of 16 tokens RECEIVED from GPU 2        |
+    #  |  (Contains 14 tokens for MY E0, 2 for MY E1)   |
+    #  |                                                |
+    #  +------------------------------------------------+  &lt;-- Boundary at index 43 (27+16)
+    #  |                                                |
+    #  |  Block of 14 tokens RECEIVED from GPU 3        |
+    #  |  (Contains 3 tokens for MY E0, 11 for MY E1)   |
+    #  |                                                |
+    #  +------------------------------------------------+  &lt;-- Final boundary at index 57
+
+    #   Target layout for x_gathered (shape: [58, h])
+    #  +------------------------------------------------+
+    #  |                                                |
+    #  |  All 36 tokens for MY Expert 0                 |
+    #  |  (Gathered from the 4 blocks above)            |
+    #  |                                                |
+    #  +------------------------------------------------+  &lt;-- Boundary at index 35
+    #  |                                                |
+    #  |  All 22 tokens for MY Expert 1                 |
+    #  |  (Gathered from the 4 blocks above)            |
+    #  |                                                |
+    #  +------------------------------------------------+ 
+
+    # target for num_tokens_per_expert_group
+    #    [36, 22]
+
+
+    # Reshape to see GPU-expert structure
+    tokens = num_tokens_per_expert_group.view(-1, ep_size)  
+    # Shape: [4, 2] where dim0=GPU, dim1=expert
+    # [[10,  5],  &lt;- GPU 0: 10 tokens for E0, 5 for E1
+    #  [ 9,  4],  &lt;- GPU 1: 9 tokens for E0, 4 for E1
+    #  [14,  2],  &lt;- GPU 2: 14 tokens for E0, 2 for E1
+    #  [ 3, 11]]  &lt;- GPU 3: 3 tokens for E0, 11 for E1
+    expert_per_device = num_tokens_per_expert_group.shape[0] // ep_size
+    expert_ids = torch.repeat_interleave(
+        torch.arange(expert_per_device).repeat(ep_size).to('cuda'),  # [0, 1, 0, 1, 0, 1, 0, 1] - expert pattern
+        num_tokens_per_expert_group  # [10,5,9,4,14,2,3,11] - repeat counts
+    )
+    
+    # index looks like
+    # tensor([ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 15, 16, 17, 18, 19, 20, 21, 22,
+    # 23, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 44, 45, 46,
+    # 10, 11, 12, 13, 14, 24, 25, 26, 27, 42, 43, 47, 48, 49, 50, 51, 52, 53,
+    # 54, 55, 56, 57])
+    self.index = torch.argsort(expert_ids, stable=True)
+    x_reorganized = x_gathered[self.index, :]
+
+    # per expert aggregation
+    num_tokens_per_expert_group_agg = tokens.sum(dim=1)
+
+    return x_reorganized, num_tokens_per_expert_group_agg</code></pre>
 <hr>
 </section>
 <section id="the-three-boxes-in-the-forward" class="level2">
@@ -445,7 +445,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li><p><strong>Experts</strong>: FSDP(4) inside each column</p>
 <pre><code>all_gather(4) → grouped GEMM → reduce_scatter(4)</code></pre></li>
 </ol>
-<p>For visually initiated folks, here is how the placement looks:</p>
+<p>For visually initiated, here is how the placement looks:</p>
 <p><a href="https://tinkerings.dev/static/moe.html">🎮 <strong>View Interactive 3D Visualization</strong></a> - See how data flows through the Non-MoE, MoE FSDP, and Token Routing layers.</p>
 <hr>
 </section>
@@ -453,28 +453,64 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h2 class="anchored" data-anchor-id="minimal-mesh-wrapping">Minimal Mesh &amp; Wrapping</h2>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1"></a></span>
 <span id="cb7-2"><a href="#cb7-2"></a><span class="co"># 0) EP: assign experts to columns + install dispatch/combine hooks</span></span>
-<span id="cb7-3"><a href="#cb7-3"></a>parallelize_module(</span>
-<span id="cb7-4"><a href="#cb7-4"></a>    model, device_mesh<span class="op">=</span>col_mesh,</span>
-<span id="cb7-5"><a href="#cb7-5"></a>    parallelize_plan<span class="op">=</span>{<span class="st">"layers.*.moe.experts"</span>: ExpertParallel()},</span>
-<span id="cb7-6"><a href="#cb7-6"></a>)</span>
-<span id="cb7-7"><a href="#cb7-7"></a></span>
-<span id="cb7-8"><a href="#cb7-8"></a><span class="co"># 1) FSDP on experts (rows): shard column-local experts across rows</span></span>
-<span id="cb7-9"><a href="#cb7-9"></a><span class="cf">for</span> tb <span class="kw">in</span> model.transformer_blocks:</span>
-<span id="cb7-10"><a href="#cb7-10"></a>    <span class="cf">if</span> <span class="bu">getattr</span>(tb, <span class="st">"moe_enabled"</span>, <span class="va">False</span>):</span>
-<span id="cb7-11"><a href="#cb7-11"></a>        fully_shard(tb.moe.experts, mesh<span class="op">=</span>row_mesh, reshard_after_forward<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb7-3"><a href="#cb7-3"></a><span class="kw">class</span> ExpertParallel(ParallelStyle):</span>
+<span id="cb7-4"><a href="#cb7-4"></a>    <span class="kw">def</span> <span class="fu">__init__</span>(<span class="va">self</span>):</span>
+<span id="cb7-5"><a href="#cb7-5"></a>        <span class="bu">super</span>().<span class="fu">__init__</span>()</span>
+<span id="cb7-6"><a href="#cb7-6"></a>        <span class="va">self</span>.input_splits <span class="op">=</span> <span class="va">None</span></span>
+<span id="cb7-7"><a href="#cb7-7"></a>        <span class="va">self</span>.output_splits <span class="op">=</span> <span class="va">None</span></span>
+<span id="cb7-8"><a href="#cb7-8"></a></span>
+<span id="cb7-9"><a href="#cb7-9"></a>    <span class="co"># performing all-to-all dispatch on the input</span></span>
+<span id="cb7-10"><a href="#cb7-10"></a>    <span class="kw">def</span> _token_dispatch(<span class="va">self</span>, mod, inputs, device_mesh):</span>
+<span id="cb7-11"><a href="#cb7-11"></a>        ...</span>
 <span id="cb7-12"><a href="#cb7-12"></a></span>
-<span id="cb7-13"><a href="#cb7-13"></a><span class="co"># 2) FSDP on each block (dp): shard non-MoE 8-way</span></span>
-<span id="cb7-14"><a href="#cb7-14"></a><span class="cf">for</span> tb <span class="kw">in</span> model.transformer_blocks:</span>
-<span id="cb7-15"><a href="#cb7-15"></a>    fully_shard(tb, mesh<span class="op">=</span>dp_mesh, reshard_after_forward<span class="op">=</span><span class="va">False</span>)   <span class="co"># experts already DTensors on rows</span></span>
-<span id="cb7-16"><a href="#cb7-16"></a></span>
-<span id="cb7-17"><a href="#cb7-17"></a><span class="co"># 3) FSDP on root (dp): embeddings / head / leftovers</span></span>
-<span id="cb7-18"><a href="#cb7-18"></a>fully_shard(model, mesh<span class="op">=</span>dp_mesh, reshard_after_forward<span class="op">=</span><span class="va">True</span>)     <span class="co"># True/False per memory tradeoff</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb7-13"><a href="#cb7-13"></a>    <span class="at">@staticmethod</span></span>
+<span id="cb7-14"><a href="#cb7-14"></a>    <span class="kw">def</span> _partition_fn(name, mod, device_mesh):</span>
+<span id="cb7-15"><a href="#cb7-15"></a>        <span class="co"># shard on the expert dimension</span></span>
+<span id="cb7-16"><a href="#cb7-16"></a>        <span class="cf">for</span> name, param <span class="kw">in</span> mod.named_parameters(recurse<span class="op">=</span><span class="va">False</span>):</span>
+<span id="cb7-17"><a href="#cb7-17"></a>            dist_param <span class="op">=</span> nn.Parameter(distribute_tensor(param, device_mesh, [Shard(<span class="dv">0</span>)]))</span>
+<span id="cb7-18"><a href="#cb7-18"></a>            mod.register_parameter(name, dist_param)</span>
+<span id="cb7-19"><a href="#cb7-19"></a></span>
+<span id="cb7-20"><a href="#cb7-20"></a>    <span class="co"># performing all-to-all combine on the output</span></span>
+<span id="cb7-21"><a href="#cb7-21"></a>    <span class="kw">def</span> _token_combine(<span class="va">self</span>, mod, routed_output, device_mesh):</span>
+<span id="cb7-22"><a href="#cb7-22"></a>        routed_output <span class="op">=</span> all_to_all_single_autograd(</span>
+<span id="cb7-23"><a href="#cb7-23"></a>            routed_output,</span>
+<span id="cb7-24"><a href="#cb7-24"></a>            <span class="va">self</span>.input_splits,</span>
+<span id="cb7-25"><a href="#cb7-25"></a>            <span class="va">self</span>.output_splits,</span>
+<span id="cb7-26"><a href="#cb7-26"></a>            device_mesh.get_group(),</span>
+<span id="cb7-27"><a href="#cb7-27"></a>        )</span>
+<span id="cb7-28"><a href="#cb7-28"></a>        <span class="cf">return</span> routed_output</span>
+<span id="cb7-29"><a href="#cb7-29"></a></span>
+<span id="cb7-30"><a href="#cb7-30"></a>    <span class="kw">def</span> _apply(<span class="va">self</span>, module: nn.Module, device_mesh: DeviceMesh) <span class="op">-&gt;</span> nn.Module:</span>
+<span id="cb7-31"><a href="#cb7-31"></a>        <span class="cf">return</span> distribute_module(</span>
+<span id="cb7-32"><a href="#cb7-32"></a>            module,</span>
+<span id="cb7-33"><a href="#cb7-33"></a>            device_mesh,</span>
+<span id="cb7-34"><a href="#cb7-34"></a>            partition_fn<span class="op">=</span>ExpertParallel._partition_fn,</span>
+<span id="cb7-35"><a href="#cb7-35"></a>            input_fn<span class="op">=</span><span class="va">self</span>._token_dispatch,</span>
+<span id="cb7-36"><a href="#cb7-36"></a>            output_fn<span class="op">=</span><span class="va">self</span>._token_combine,</span>
+<span id="cb7-37"><a href="#cb7-37"></a>        )</span>
+<span id="cb7-38"><a href="#cb7-38"></a></span>
+<span id="cb7-39"><a href="#cb7-39"></a></span>
+<span id="cb7-40"><a href="#cb7-40"></a>parallelize_module(</span>
+<span id="cb7-41"><a href="#cb7-41"></a>    model, device_mesh<span class="op">=</span>col_mesh,</span>
+<span id="cb7-42"><a href="#cb7-42"></a>    parallelize_plan<span class="op">=</span>{<span class="st">"layers.*.moe.experts"</span>: ExpertParallel()},</span>
+<span id="cb7-43"><a href="#cb7-43"></a>)</span>
+<span id="cb7-44"><a href="#cb7-44"></a></span>
+<span id="cb7-45"><a href="#cb7-45"></a><span class="co"># 1) FSDP on experts (rows): shard column-local experts across rows</span></span>
+<span id="cb7-46"><a href="#cb7-46"></a><span class="cf">for</span> tb <span class="kw">in</span> model.transformer_blocks:</span>
+<span id="cb7-47"><a href="#cb7-47"></a>    fully_shard(tb.moe.experts, mesh<span class="op">=</span>row_mesh, reshard_after_forward<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb7-48"><a href="#cb7-48"></a></span>
+<span id="cb7-49"><a href="#cb7-49"></a><span class="co"># 2) FSDP on each block (dp): shard non-MoE 8-way</span></span>
+<span id="cb7-50"><a href="#cb7-50"></a><span class="cf">for</span> tb <span class="kw">in</span> model.transformer_blocks:</span>
+<span id="cb7-51"><a href="#cb7-51"></a>    fully_shard(tb, mesh<span class="op">=</span>dp_mesh, reshard_after_forward<span class="op">=</span><span class="va">False</span>)   <span class="co"># experts already DTensors on rows</span></span>
+<span id="cb7-52"><a href="#cb7-52"></a></span>
+<span id="cb7-53"><a href="#cb7-53"></a><span class="co"># 3) FSDP on root (dp): embeddings / head / leftovers</span></span>
+<span id="cb7-54"><a href="#cb7-54"></a>fully_shard(model, mesh<span class="op">=</span>dp_mesh, reshard_after_forward<span class="op">=</span><span class="va">True</span>)     <span class="co"># True/False per memory tradeoff</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <hr>
 </section>
-<section id="pseudo-forward-annotated" class="level2">
-<h2 class="anchored" data-anchor-id="pseudo-forward-annotated">Pseudo-Forward (annotated)</h2>
+<section id="pseudo-forward" class="level2">
+<h2 class="anchored" data-anchor-id="pseudo-forward">Pseudo-Forward</h2>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1"></a><span class="kw">def</span> forward_on_rank(row, col, x_rc):</span>
-<span id="cb8-2"><a href="#cb8-2"></a>    <span class="co"># A) Non-MoE on dp: AG(8) → compute → RS(8)</span></span>
+<span id="cb8-2"><a href="#cb8-2"></a>    <span class="co"># A) Non-MoE on FSDP: AG(8) → compute → RS(8)</span></span>
 <span id="cb8-3"><a href="#cb8-3"></a>    h <span class="op">=</span> non_moE_stack(x_rc)</span>
 <span id="cb8-4"><a href="#cb8-4"></a></span>
 <span id="cb8-5"><a href="#cb8-5"></a>    <span class="co"># Router: expert id per token (e.g., [2,2,5,1,6,...])</span></span>
@@ -495,26 +531,15 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p><strong>Backward (intuition)</strong>: EP’s A2A autograd returns activation grads to sources; expert parameter grads are reduce-scattered across the row group (the 4 that shard that expert). Non-MoE grads reduce-scatter across all 8.</p>
 <hr>
 </section>
-<section id="after-parallelization-expected-placements-and-how-to-print-them" class="level2">
-<h2 class="anchored" data-anchor-id="after-parallelization-expected-placements-and-how-to-print-them">After Parallelization: Expected Placements (and how to print them)</h2>
-<section id="legend" class="level3">
-<h3 class="anchored" data-anchor-id="legend">Legend</h3>
-<ul>
-<li><code>(Shard(dim=0),)</code> → Non-MoE params sharded on a 1-D mesh (flattened dp → 8-way).</li>
-<li><code>(_StridedShard(dim=0, sf=2), Shard(dim=0))</code> → Experts are split on two mesh axes of the same tensor dim-0 (experts):
-<ul>
-<li><code>Shard(dim=0)</code> on cols (EP ownership).</li>
-<li><code>_StridedShard(dim=0, sf=2)</code> on rows (FSDP across 4 rows, after a prior split by 2 cols).</li>
-</ul></li>
-</ul>
-<p>No replication — this is a 2-D partition of expert dim-0.</p>
+<section id="after-parallelization-expected-placements" class="level2">
+<h2 class="anchored" data-anchor-id="after-parallelization-expected-placements">After Parallelization: Expected Placements</h2>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1"></a><span class="kw">def</span> show_placements(model, keys<span class="op">=</span>(<span class="st">"moe.experts"</span>,<span class="st">"attention"</span>,<span class="st">"router"</span>,<span class="st">"embeddings"</span>,<span class="st">"norm"</span>,<span class="st">"output"</span>)):</span>
 <span id="cb9-2"><a href="#cb9-2"></a>    <span class="cf">for</span> name, p <span class="kw">in</span> model.named_parameters():</span>
 <span id="cb9-3"><a href="#cb9-3"></a>        <span class="cf">if</span> <span class="bu">any</span>(k <span class="kw">in</span> name <span class="cf">for</span> k <span class="kw">in</span> keys):</span>
 <span id="cb9-4"><a href="#cb9-4"></a>            pl <span class="op">=</span> <span class="bu">getattr</span>(p, <span class="st">"placements"</span>, <span class="va">None</span>)</span>
 <span id="cb9-5"><a href="#cb9-5"></a>            kind <span class="op">=</span> <span class="st">"DTensor"</span> <span class="cf">if</span> pl <span class="kw">is</span> <span class="kw">not</span> <span class="va">None</span> <span class="cf">else</span> <span class="st">"LOCAL"</span></span>
 <span id="cb9-6"><a href="#cb9-6"></a>            <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>name<span class="sc">:&lt;60}</span><span class="ss"> -&gt; </span><span class="sc">{</span>kind<span class="sc">:7}</span><span class="ss"> </span><span class="sc">{</span>pl<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Example lines you should see (shape may vary; this is pattern):</p>
+<p>Example lines you should see:</p>
 <pre><code>tok_embeddings.weight                                   -&gt; DTensor (Shard(dim=0),)
 layers.0.attention.wq.weight                            -&gt; DTensor (Shard(dim=0),)
 layers.0.feed_forward.router.router.weight              -&gt; DTensor (Shard(dim=0),)
@@ -522,59 +547,27 @@ layers.0.feed_forward.experts.w1                        -&gt; DTensor (_StridedS
 layers.0.feed_forward.experts.w2                        -&gt; DTensor (_StridedShard(dim=0, sf=2), Shard(dim=0))
 layers.0.feed_forward.experts.w3                        -&gt; DTensor (_StridedShard(dim=0, sf=2), Shard(dim=0))
 ...</code></pre>
-</section>
-<section id="mini-visual-for-_stridedsharddim0-sf2" class="level3">
-<h3 class="anchored" data-anchor-id="mini-visual-for-_stridedsharddim0-sf2">Mini visual for <code>_StridedShard(dim=0, sf=2)</code></h3>
-<pre><code>experts dim-0:  [ 0 1 2 3 | 4 5 6 7 ]
-                 ^^^^^^^^   ^^^^^^^^
-                 col 0       col 1     (EP: Shard dim-0 by columns)
-
-within each column (rows=4):
-col 0 → row shards of [0 1 2 3]   → rows 0..3 each get 1 id
-col 1 → row shards of [4 5 6 7]   → rows 0..3 each get 1 id
-
-DTensor encodes "shard dim-0 again on rows" as _StridedShard(dim=0, sf=2)
-(sf=2 because dim-0 was already split once by the 2 columns).</code></pre>
-<hr>
-</section>
-</section>
-<section id="why-ep2-and-not-ep8" class="level2">
-<h2 class="anchored" data-anchor-id="why-ep2-and-not-ep8">Why EP=2 and not EP=8?</h2>
+<section id="legend" class="level3">
+<h3 class="anchored" data-anchor-id="legend">Legend</h3>
 <ul>
-<li><strong>EP=2 + rows=4</strong> (this README):
+<li><code>(Shard(dim=0),)</code> → Non-MoE params sharded on a 1-D mesh (flattened dp → 8-way).</li>
+<li><code>(_StridedShard(dim=0, sf=2), Shard(dim=0))</code> → Experts are split on <strong>two separete mesh axes</strong> of the same tensor dim-0 (experts):
 <ul>
-<li><strong>Memory</strong>: experts are also sharded (rows).</li>
-<li><strong>Comms</strong>: A2A is 2-way (cheap).</li>
-<li><strong>Compute</strong>: healthy per-expert batches per device → efficient grouped GEMM.</li>
-</ul></li>
-<li><strong>EP=8 + rows=1</strong>:
-<ul>
-<li>No rows left → cannot FSDP-shard expert weights (higher memory).</li>
-<li>A2A is 8-way (heavier comms) and per-expert batches per GPU get tiny (worse efficiency).</li>
-<li>You can still FSDP(8) non-MoE, but overall MoE trade-offs are usually worse.</li>
+<li><code>Shard(dim=0)</code> on cols (EP ownership).</li>
+<li><code>_StridedShard(dim=0, sf=2)</code> on rows (FSDP across 4 rows, after a prior split by 2 cols). <code>sf=2</code> because dim-0 was already split once by the 2 columns</li>
 </ul></li>
 </ul>
-<hr>
 </section>
-<section id="sanity-checklist" class="level2">
-<h2 class="anchored" data-anchor-id="sanity-checklist">Sanity Checklist</h2>
-<ul>
-<li>Non-MoE params print one placement → <code>(Shard(dim=0),)</code> (FSDP-8 on dp).</li>
-<li>Expert params print two placements → <code>(_StridedShard(0,sf=2), Shard(0))</code> (rows×cols).</li>
-<li>No <code>Replicate()</code> in placements → no persistent replication.</li>
-<li>EP A2A pairs (0↔︎1), (2↔︎3), (4↔︎5), (6↔︎7) — microbatches can differ (size-exchange + variable-size A2A).</li>
-</ul>
-<hr>
 </section>
-<section id="appendix-dataloader-on-flattened-dp" class="level2">
-<h2 class="anchored" data-anchor-id="appendix-dataloader-on-flattened-dp">Appendix: Dataloader on Flattened dp</h2>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1"></a><span class="co"># Use the flattened 8-way dp mesh for sampling</span></span>
-<span id="cb12-2"><a href="#cb12-2"></a>global_dp_rank <span class="op">=</span> dp_mesh.get_rank()</span>
-<span id="cb12-3"><a href="#cb12-3"></a>num_replicas   <span class="op">=</span> dp_mesh.size()</span>
-<span id="cb12-4"><a href="#cb12-4"></a></span>
-<span id="cb12-5"><a href="#cb12-5"></a><span class="im">from</span> torch.utils.data <span class="im">import</span> DistributedSampler, DataLoader</span>
-<span id="cb12-6"><a href="#cb12-6"></a>sampler <span class="op">=</span> DistributedSampler(dataset, num_replicas<span class="op">=</span>num_replicas, rank<span class="op">=</span>global_dp_rank)</span>
-<span id="cb12-7"><a href="#cb12-7"></a>loader  <span class="op">=</span> DataLoader(dataset, batch_size<span class="op">=</span>per_rank_bs, sampler<span class="op">=</span>sampler, pin_memory<span class="op">=</span><span class="va">True</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<section id="appendix-dataloader-on-flattened-dp." class="level2">
+<h2 class="anchored" data-anchor-id="appendix-dataloader-on-flattened-dp.">Appendix: Dataloader on Flattened DP.</h2>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb11-1"><a href="#cb11-1"></a><span class="co"># Use the flattened 8-way dp mesh for sampling</span></span>
+<span id="cb11-2"><a href="#cb11-2"></a>global_dp_rank <span class="op">=</span> dp_mesh.get_rank()</span>
+<span id="cb11-3"><a href="#cb11-3"></a>num_replicas   <span class="op">=</span> dp_mesh.size()</span>
+<span id="cb11-4"><a href="#cb11-4"></a></span>
+<span id="cb11-5"><a href="#cb11-5"></a><span class="im">from</span> torch.utils.data <span class="im">import</span> DistributedSampler, DataLoader</span>
+<span id="cb11-6"><a href="#cb11-6"></a>sampler <span class="op">=</span> DistributedSampler(dataset, num_replicas<span class="op">=</span>num_replicas, rank<span class="op">=</span>global_dp_rank)</span>
+<span id="cb11-7"><a href="#cb11-7"></a>loader  <span class="op">=</span> DataLoader(dataset, batch_size<span class="op">=</span>per_rank_bsz, sampler<span class="op">=</span>sampler, pin_memory<span class="op">=</span><span class="va">True</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>This preserves 8 microbatches per step—one per rank—while placements and collectives follow the mesh rules above.</p>
 
 
