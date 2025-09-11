@@ -7,4 +7,4 @@ listing:
   type: default
 ---
 
-My notes to create mental models as to how things work.
+My notes to build mental models for how things work.

@@ -6,7 +6,8 @@ categories: [distributed-training]
 image: images/ep.png
 ---
 
-Let's distill how to run a Mixture-of-Experts (MoE) model on 8 GPUs using a 2-D device mesh with Expert Parallel (EP) and FSDP2 (fully_shard). This short post explains who stores which weights, where all-to-all happens, why we choose EP=2, and includes minimal code (meshes, wrapping, verification).
+Let's distill how to run a Mixture-of-Experts (MoE) model on 8 GPUs using a 2-D device mesh with Expert Parallel (EP) and FSDP2 (fully_shard). 
+This short post explains who stores which weights, where all-to-all happens, and includes minimal code (meshes, wrapping, verification).
 
 ---
 
@@ -35,6 +36,29 @@ Arrange 8 GPUs as a 4×2 grid:
 - **Rows** (dp_shard_mod_ep) size 4 → FSDP sharding axis for experts.
 - **Cols** (dp_shard_in_ep) size 2 → EP ownership + row-local all-to-all.
 - **Flattened dp** view (rows×cols) size 8 → dataloader + FSDP for non-MoE.
+
+Here is the pytorch code.
+```
+    dp_shard_in_ep = ep_size                # borrowed by EP (forms EP groups)
+    dp_shard_mod_ep = dp_shard // ep_size   # leftover for FSDP sharding. borrowing!
+
+
+
+    # Create the 2D mesh
+    device_mesh = init_device_mesh(
+        "cuda",
+        (dp_shard_mod_ep, dp_shard_in_ep),
+        mesh_dim_names=("dp_shard", "ep"),
+    )
+
+    # Create aliases for DP
+    # DP will be used for data loading
+    device_mesh[("dp_shard", "ep")]._flatten(mesh_dim_name="dp")
+
+    dp_mesh  = device_mesh["dp"]     # size = R*C = 8  -> used for non-MoE FSDP
+    row_mesh = device_mesh["dp_shard"]   # size = R   = 4  -> used for expert FSDP (inside each column)
+    col_mesh = device_mesh["ep"]   # size = C   = 2  -> used for EP ownership + a2a
+```
 
 ---
 
@@ -72,6 +96,151 @@ Each rank runs the router on its own microbatch. Tokens are split by destination
 
 After dispatch, each rank holds only tokens for experts it owns. Expert matmuls then use FSDP across the 4 rows in that column (all-gather → compute → reduce-scatter). Finally, the inverse all-to-all returns outputs to the source ranks.
 
+Let's illustrate the token dispatch operation with a well-annotated code snippet
+```
+    def _token_dispatch(self, model, inputs, device_mesh):
+        """
+            All-to-all communication
+            input_splits is different coming from each device (assuming some data parallelism)
+        """
+        ep_size = device_mesh.shape[0]
+        x_gathered, num_tokens_per_expert = inputs
+        num_tokens_per_expert_group = num_tokens_per_expert.new_empty(
+            num_tokens_per_expert.shape[0]
+        )
+
+        # distributed transpose operation.
+        # 0th GPU gets all 0th row
+
+        # Preliminary all-to-all to exchange token counts. This is used to
+        # calculate the split sizes for the main token all-to-all dispatch.
+        #
+        # Before (on GPU 0):
+        #   `num_tokens_per_expert`: [10, 5, 12, 8, 11, 6, 13, 7]
+        #   (Counts of local tokens for all 8 global experts)
+        #
+        # After (on GPU 0, which hosts experts 0 and 1):
+        #   `num_tokens_per_expert_group` is filled with:
+        #   [10, 5, | 9, 4, | 14, 2, | 3, 11]
+        #   (Counts for my local experts [E0,E1] from GPU0, GPU1, GPU2, GPU3)
+        
+        dist.all_to_all_single(
+            num_tokens_per_expert_group, # output!
+            num_tokens_per_expert, # input
+            group=device_mesh.get_group(),
+        )
+
+
+        input_splits = num_tokens_per_expert.view(
+            ep_size, -1
+        ).sum(dim=1).to(torch.device("cpu"))
+
+        output_splits = num_tokens_per_expert_group.view(
+            ep_size, -1
+        ).sum(dim=1).to(torch.device("cpu"))
+
+        self.input_splits = input_splits.tolist()
+        self.output_splits = output_splits.tolist()
+
+        # this is an uneven communication (e.g. ragged), where each GPU receives an uneven amount of tokens.
+
+        # On GPU 0:
+        # - Total tokens before send (sum of num_tokens_per_expert): 72
+        # - input_splits (how to slice the 72 tokens for sending): [15, 20, 17, 20]
+        # - output_splits (how many tokens to expect from each GPU): [15, 13, 16, 14]
+
+        # Before all_to_all, each GPU has a different number of tokens and a different plan:
+        # GPU 0: tensor of size 72, sends chunks of [15, 20, 17, 20]
+        # GPU 1: (example) tensor of size 80, sends chunks of [13, 25, 22, 20]
+        # GPU 2: (example) tensor of size 75, sends chunks of [16, 18, 21, 20]
+        # GPU 3: (example) tensor of size 68, sends chunks of [14, 15, 19, 20]
+
+        # After all_to_all on GPU 0:
+        # - Receives: 15 from GPU0, 13 from GPU1, 16 from GPU2, 14 from GPU3
+        # - Output tensor size = sum(output_splits) = 15 + 13 + 16 + 14 = 58
+        # - This new tensor of 58 tokens contains data for GPU 0's local experts (E0, E1),
+        #   but is grouped by source GPU, not by expert ID. It needs a local shuffle.
+
+        # all_to_all_single_autograd allows differentiable data transfer
+        print(f"{self.output_splits=} {self.input_splits=}")
+
+        x_gathered = all_to_all_single_autograd(
+            x_gathered,
+            self.output_splits,
+            self.input_splits,
+            device_mesh.get_group(),
+        )
+
+        # num_tokens_per_expert_group
+        #   [10, 5, | 9, 4, | 14, 2, | 3, 11]
+        # 
+        #   x_gathered on GPU 0 (shape: [58, h])
+        #  +------------------------------------------------+
+        #  |                                                |
+        #  |  Block of 15 tokens RECEIVED from GPU 0        |
+        #  |  (Contains 10 tokens for MY E0, 5 for MY E1)   |
+        #  |                                                |
+        #  +------------------------------------------------+  <-- Boundary at index 14
+        #  |                                                |
+        #  |  Block of 13 tokens RECEIVED from GPU 1        |
+        #  |  (Contains 9 tokens for MY E0, 4 for MY E1)    |
+        #  |                                                |
+        #  +------------------------------------------------+  <-- Boundary at index 27 (14+13)
+        #  |                                                |
+        #  |  Block of 16 tokens RECEIVED from GPU 2        |
+        #  |  (Contains 14 tokens for MY E0, 2 for MY E1)   |
+        #  |                                                |
+        #  +------------------------------------------------+  <-- Boundary at index 43 (27+16)
+        #  |                                                |
+        #  |  Block of 14 tokens RECEIVED from GPU 3        |
+        #  |  (Contains 3 tokens for MY E0, 11 for MY E1)   |
+        #  |                                                |
+        #  +------------------------------------------------+  <-- Final boundary at index 57
+
+        #   Target layout for x_gathered (shape: [58, h])
+        #  +------------------------------------------------+
+        #  |                                                |
+        #  |  All 36 tokens for MY Expert 0                 |
+        #  |  (Gathered from the 4 blocks above)            |
+        #  |                                                |
+        #  +------------------------------------------------+  <-- Boundary at index 35
+        #  |                                                |
+        #  |  All 22 tokens for MY Expert 1                 |
+        #  |  (Gathered from the 4 blocks above)            |
+        #  |                                                |
+        #  +------------------------------------------------+ 
+
+        # target for num_tokens_per_expert_group
+        #    [36, 22]
+
+
+        # Reshape to see GPU-expert structure
+        tokens = num_tokens_per_expert_group.view(-1, ep_size)  
+        # Shape: [4, 2] where dim0=GPU, dim1=expert
+        # [[10,  5],  <- GPU 0: 10 tokens for E0, 5 for E1
+        #  [ 9,  4],  <- GPU 1: 9 tokens for E0, 4 for E1
+        #  [14,  2],  <- GPU 2: 14 tokens for E0, 2 for E1
+        #  [ 3, 11]]  <- GPU 3: 3 tokens for E0, 11 for E1
+        expert_per_device = num_tokens_per_expert_group.shape[0] // ep_size
+        expert_ids = torch.repeat_interleave(
+            torch.arange(expert_per_device).repeat(ep_size).to('cuda'),  # [0, 1, 0, 1, 0, 1, 0, 1] - expert pattern
+            num_tokens_per_expert_group  # [10,5,9,4,14,2,3,11] - repeat counts
+        )
+        
+        # index looks like
+        # tensor([ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9, 15, 16, 17, 18, 19, 20, 21, 22,
+        # 23, 28, 29, 30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41, 44, 45, 46,
+        # 10, 11, 12, 13, 14, 24, 25, 26, 27, 42, 43, 47, 48, 49, 50, 51, 52, 53,
+        # 54, 55, 56, 57])
+        self.index = torch.argsort(expert_ids, stable=True)
+        x_reorganized = x_gathered[self.index, :]
+
+        # per expert aggregation
+        num_tokens_per_expert_group_agg = tokens.sum(dim=1)
+
+        return x_reorganized, num_tokens_per_expert_group_agg
+```
+
 ---
 
 ## The Three "Boxes" in the Forward
@@ -91,22 +260,14 @@ After dispatch, each rank holds only tokens for experts it owns. Expert matmuls 
    all_gather(4) → grouped GEMM → reduce_scatter(4)
    ```
 
+For visually initiatied folks, here is how the placement [![MoE 3D Visualization](https://tinkerings.dev/docs/moe-preview.png)](tinkerings.dev/moe.html)
+looks.
+
 ---
 
-## Minimal Mesh & Wrapping (PR-faithful order)
+## Minimal Mesh & Wrapping
 
 ```python
-from torch.distributed.tensor import init_device_mesh
-from torch.distributed.tensor.parallel import parallelize_module
-from torch.distributed.fsdp import fully_shard
-
-# 2-D mesh: rows (FSDP for experts), cols (EP ownership & A2A)
-world = init_device_mesh("cuda", (4, 2), mesh_dim_names=("rows","cols"))
-world[("rows","cols")]._flatten(mesh_dim_name="dp")   # dataloader + FSDP(non-MoE)
-
-row_mesh = world["rows"]   # size 4
-col_mesh = world["cols"]   # size 2
-dp_mesh  = world["dp"]     # size 8
 
 # 0) EP: assign experts to columns + install dispatch/combine hooks
 parallelize_module(
