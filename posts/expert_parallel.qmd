@@ -7,7 +7,9 @@ image: images/ep.png
 ---
 
 Let's distill how to run a Mixture-of-Experts (MoE) model with expert parallelism with example.
+
 The setup is 8 GPUs using a 2-D device mesh with Expert Parallel (EP) and FSDP2 (fully_shard). 
+
 This short post explains who stores which weights, where all-to-all happens, and includes minimal code (meshes and wrapping).
 
 ---
@@ -40,25 +42,23 @@ Arrange 8 GPUs as a 4×2 grid:
 
 Here is the pytorch code.
 ```
-    dp_shard_in_ep = ep_size                # borrowed by EP (forms EP groups)
-    dp_shard_mod_ep = dp_shard // ep_size   # leftover for FSDP sharding. borrowing!
+dp_shard_in_ep = ep_size                # borrowed by EP (forms EP groups)
+dp_shard_mod_ep = dp_shard // ep_size   # leftover for FSDP sharding. borrowing!
 
+# Create the 2D mesh
+device_mesh = init_device_mesh(
+    "cuda",
+    (dp_shard_mod_ep, dp_shard_in_ep),
+    mesh_dim_names=("dp_shard", "ep"),
+)
 
+# Create aliases for DP
+# DP will be used for data loading
+device_mesh[("dp_shard", "ep")]._flatten(mesh_dim_name="dp")
 
-    # Create the 2D mesh
-    device_mesh = init_device_mesh(
-        "cuda",
-        (dp_shard_mod_ep, dp_shard_in_ep),
-        mesh_dim_names=("dp_shard", "ep"),
-    )
-
-    # Create aliases for DP
-    # DP will be used for data loading
-    device_mesh[("dp_shard", "ep")]._flatten(mesh_dim_name="dp")
-
-    dp_mesh  = device_mesh["dp"]     # size = R*C = 8  -> used for non-MoE FSDP
-    row_mesh = device_mesh["dp_shard"]   # size = R   = 4  -> used for expert FSDP (inside each column)
-    col_mesh = device_mesh["ep"]   # size = C   = 2  -> used for EP ownership + a2a
+dp_mesh  = device_mesh["dp"]     # size = R*C = 8  -> used for non-MoE FSDP
+row_mesh = device_mesh["dp_shard"]   # size = R   = 4  -> used for expert FSDP (inside each column)
+col_mesh = device_mesh["ep"]   # size = C   = 2  -> used for EP ownership + a2a
 ```
 
 ---
@@ -263,8 +263,7 @@ def _token_dispatch(self, model, inputs, device_mesh):
    all_gather(4) → grouped GEMM → reduce_scatter(4)
    ```
 
-For visually initiated folks, here is how the placement looks:
-
+For visually initiated, here is how the placement looks:
 
 
 [🎮 **View Interactive 3D Visualization**](https://tinkerings.dev/static/moe.html) - See how data flows through the Non-MoE, MoE FSDP, and Token Routing layers.
@@ -277,6 +276,43 @@ For visually initiated folks, here is how the placement looks:
 ```python
 
 # 0) EP: assign experts to columns + install dispatch/combine hooks
+class ExpertParallel(ParallelStyle):
+    def __init__(self):
+        super().__init__()
+        self.input_splits = None
+        self.output_splits = None
+
+    # performing all-to-all dispatch on the input
+    def _token_dispatch(self, mod, inputs, device_mesh):
+        ...
+
+    @staticmethod
+    def _partition_fn(name, mod, device_mesh):
+        # shard on the expert dimension
+        for name, param in mod.named_parameters(recurse=False):
+            dist_param = nn.Parameter(distribute_tensor(param, device_mesh, [Shard(0)]))
+            mod.register_parameter(name, dist_param)
+
+    # performing all-to-all combine on the output
+    def _token_combine(self, mod, routed_output, device_mesh):
+        routed_output = all_to_all_single_autograd(
+            routed_output,
+            self.input_splits,
+            self.output_splits,
+            device_mesh.get_group(),
+        )
+        return routed_output
+
+    def _apply(self, module: nn.Module, device_mesh: DeviceMesh) -> nn.Module:
+        return distribute_module(
+            module,
+            device_mesh,
+            partition_fn=ExpertParallel._partition_fn,
+            input_fn=self._token_dispatch,
+            output_fn=self._token_combine,
+        )
+
+
 parallelize_module(
     model, device_mesh=col_mesh,
     parallelize_plan={"layers.*.moe.experts": ExpertParallel()},
@@ -284,8 +320,7 @@ parallelize_module(
 
 # 1) FSDP on experts (rows): shard column-local experts across rows
 for tb in model.transformer_blocks:
-    if getattr(tb, "moe_enabled", False):
-        fully_shard(tb.moe.experts, mesh=row_mesh, reshard_after_forward=False)
+    fully_shard(tb.moe.experts, mesh=row_mesh, reshard_after_forward=False)
 
 # 2) FSDP on each block (dp): shard non-MoE 8-way
 for tb in model.transformer_blocks:
@@ -297,11 +332,11 @@ fully_shard(model, mesh=dp_mesh, reshard_after_forward=True)     # True/False pe
 
 ---
 
-## Pseudo-Forward (annotated)
+## Pseudo-Forward
 
 ```python
 def forward_on_rank(row, col, x_rc):
-    # A) Non-MoE on dp: AG(8) → compute → RS(8)
+    # A) Non-MoE on FSDP: AG(8) → compute → RS(8)
     h = non_moE_stack(x_rc)
 
     # Router: expert id per token (e.g., [2,2,5,1,6,...])
@@ -325,15 +360,7 @@ def forward_on_rank(row, col, x_rc):
 
 ---
 
-## After Parallelization: Expected Placements (and how to print them)
-
-### Legend
-- `(Shard(dim=0),)` → Non-MoE params sharded on a 1-D mesh (flattened dp → 8-way).
-- `(_StridedShard(dim=0, sf=2), Shard(dim=0))` → Experts are split on two mesh axes of the same tensor dim-0 (experts):
-  - `Shard(dim=0)` on cols (EP ownership).
-  - `_StridedShard(dim=0, sf=2)` on rows (FSDP across 4 rows, after a prior split by 2 cols).
-  
-No replication — this is a 2-D partition of expert dim-0.
+## After Parallelization: Expected Placements
 
 ```python
 def show_placements(model, keys=("moe.experts","attention","router","embeddings","norm","output")):
@@ -344,7 +371,7 @@ def show_placements(model, keys=("moe.experts","attention","router","embeddings"
             print(f"{name:<60} -> {kind:7} {pl}")
 ```
 
-Example lines you should see (shape may vary; this is pattern):
+Example lines you should see:
 
 ```
 tok_embeddings.weight                                   -> DTensor (Shard(dim=0),)
@@ -355,48 +382,15 @@ layers.0.feed_forward.experts.w2                        -> DTensor (_StridedShar
 layers.0.feed_forward.experts.w3                        -> DTensor (_StridedShard(dim=0, sf=2), Shard(dim=0))
 ...
 ```
+### Legend
+- `(Shard(dim=0),)` → Non-MoE params sharded on a 1-D mesh (flattened dp → 8-way).
+- `(_StridedShard(dim=0, sf=2), Shard(dim=0))` → Experts are split on **two separete mesh axes** of the same tensor dim-0 (experts):
+  - `Shard(dim=0)` on cols (EP ownership).
+  - `_StridedShard(dim=0, sf=2)` on rows (FSDP across 4 rows, after a prior split by 2 cols). `sf=2` because dim-0 was already split once by the 2 columns
+  
 
-### Mini visual for `_StridedShard(dim=0, sf=2)`
 
-```
-experts dim-0:  [ 0 1 2 3 | 4 5 6 7 ]
-                 ^^^^^^^^   ^^^^^^^^
-                 col 0       col 1     (EP: Shard dim-0 by columns)
-
-within each column (rows=4):
-col 0 → row shards of [0 1 2 3]   → rows 0..3 each get 1 id
-col 1 → row shards of [4 5 6 7]   → rows 0..3 each get 1 id
-
-DTensor encodes "shard dim-0 again on rows" as _StridedShard(dim=0, sf=2)
-(sf=2 because dim-0 was already split once by the 2 columns).
-```
-
----
-
-## Why EP=2 and not EP=8?
-
-- **EP=2 + rows=4** (this README):
-  - **Memory**: experts are also sharded (rows).
-  - **Comms**: A2A is 2-way (cheap).
-  - **Compute**: healthy per-expert batches per device → efficient grouped GEMM.
-
-- **EP=8 + rows=1**:
-  - No rows left → cannot FSDP-shard expert weights (higher memory).
-  - A2A is 8-way (heavier comms) and per-expert batches per GPU get tiny (worse efficiency).
-  - You can still FSDP(8) non-MoE, but overall MoE trade-offs are usually worse.
-
----
-
-## Sanity Checklist
-
-- Non-MoE params print one placement → `(Shard(dim=0),)` (FSDP-8 on dp).
-- Expert params print two placements → `(_StridedShard(0,sf=2), Shard(0))` (rows×cols).
-- No `Replicate()` in placements → no persistent replication.
-- EP A2A pairs (0↔1), (2↔3), (4↔5), (6↔7) — microbatches can differ (size-exchange + variable-size A2A).
-
----
-
-## Appendix: Dataloader on Flattened dp
+## Appendix: Dataloader on Flattened DP.
 
 ```python
 # Use the flattened 8-way dp mesh for sampling
@@ -405,7 +399,7 @@ num_replicas   = dp_mesh.size()
 
 from torch.utils.data import DistributedSampler, DataLoader
 sampler = DistributedSampler(dataset, num_replicas=num_replicas, rank=global_dp_rank)
-loader  = DataLoader(dataset, batch_size=per_rank_bs, sampler=sampler, pin_memory=True)
+loader  = DataLoader(dataset, batch_size=per_rank_bsz, sampler=sampler, pin_memory=True)
 ```
 
 This preserves 8 microbatches per step—one per rank—while placements and collectives follow the mesh rules above.
