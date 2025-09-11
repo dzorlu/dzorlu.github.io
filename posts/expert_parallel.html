@@ -151,7 +151,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#device-mesh-rank-layout" id="toc-device-mesh-rank-layout" class="nav-link" data-scroll-target="#device-mesh-rank-layout">Device Mesh &amp; Rank Layout</a></li>
   <li><a href="#who-stores-which-expert" id="toc-who-stores-which-expert" class="nav-link" data-scroll-target="#who-stores-which-expert">Who Stores Which Expert?</a></li>
   <li><a href="#where-does-all-to-all-happen" id="toc-where-does-all-to-all-happen" class="nav-link" data-scroll-target="#where-does-all-to-all-happen">Where Does All-to-All Happen?</a></li>
-  <li><a href="#the-three-boxes-in-the-forward" id="toc-the-three-boxes-in-the-forward" class="nav-link" data-scroll-target="#the-three-boxes-in-the-forward">The Three “Boxes” in the Forward</a></li>
+  <li><a href="#the-three-boxes-in-the-forward" id="toc-the-three-boxes-in-the-forward" class="nav-link" data-scroll-target="#the-three-boxes-in-the-forward">The Three “Boxes” in the Forward</a>
+  <ul class="collapse">
+  <li><a href="#interactive-visualization" id="toc-interactive-visualization" class="nav-link" data-scroll-target="#interactive-visualization">Interactive Visualization</a></li>
+  </ul></li>
   <li><a href="#minimal-mesh-wrapping" id="toc-minimal-mesh-wrapping" class="nav-link" data-scroll-target="#minimal-mesh-wrapping">Minimal Mesh &amp; Wrapping</a></li>
   <li><a href="#pseudo-forward-annotated" id="toc-pseudo-forward-annotated" class="nav-link" data-scroll-target="#pseudo-forward-annotated">Pseudo-Forward (annotated)</a></li>
   <li><a href="#after-parallelization-expected-placements-and-how-to-print-them" id="toc-after-parallelization-expected-placements-and-how-to-print-them" class="nav-link" data-scroll-target="#after-parallelization-expected-placements-and-how-to-print-them">After Parallelization: Expected Placements (and how to print them)</a>
@@ -468,8 +471,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <pre><code>all_gather(4) → grouped GEMM → reduce_scatter(4)</code></pre></li>
 </ol>
 <p>For visually initiated folks, here is how the placement looks:</p>
-<p><a href="https://tinkerings.dev/static/moe.html"><img src="https://tinkerings.dev/static/moe-preview.png" class="img-fluid" width="50" alt="MoE 3D Visualization"></a> <em>Click for interactive 3D visualization</em></p>
+<section id="interactive-visualization" class="level3">
+<h3 class="anchored" data-anchor-id="interactive-visualization">Interactive Visualization</h3>
+<p><a href="https://tinkerings.dev/static/moe.html">🎮 <strong>View Interactive 3D Visualization</strong></a> - See how data flows through the Non-MoE, MoE FSDP, and Token Routing layers.</p>
 <hr>
+</section>
 </section>
 <section id="minimal-mesh-wrapping" class="level2">
 <h2 class="anchored" data-anchor-id="minimal-mesh-wrapping">Minimal Mesh &amp; Wrapping</h2>
