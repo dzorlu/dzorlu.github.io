@@ -3,6 +3,7 @@
 title: "Expert Parallel"
 date: "2025-09-01"
 categories: [distributed-training]
+image: images/ep.png
 ---
 
 Let's distill how to run a Mixture-of-Experts (MoE) model on 8 GPUs using a 2-D device mesh with Expert Parallel (EP) and FSDP2 (fully_shard). This short post explains who stores which weights, where all-to-all happens, why we choose EP=2, and includes minimal code (meshes, wrapping, verification).
