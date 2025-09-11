@@ -1,0 +1,10 @@
+---
+title: Welcome
+page-layout: article
+---
+
+# Welcome
+
+This is my blog.
+
+- See the Posts listing: [posts/](/posts/)
