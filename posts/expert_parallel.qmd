@@ -41,7 +41,7 @@ Arrange 8 GPUs as a 4×2 grid:
 - **Flattened dp** view (rows×cols) size 8 → dataloader + FSDP for non-MoE.
 
 Here is the pytorch code.
-```
+```python
 dp_shard_in_ep = ep_size                # borrowed by EP (forms EP groups)
 dp_shard_mod_ep = dp_shard // ep_size   # leftover for FSDP sharding. borrowing!
 
@@ -100,7 +100,7 @@ Each rank runs the router on its own microbatch. Tokens are split by destination
 After dispatch, each rank holds only tokens for experts it owns. Expert matmuls then use FSDP across the 4 rows in that column (`all-gather` → `compute` → `reduce-scatter`). Finally, the inverse all-to-all returns outputs to the source ranks.
 
 Let's illustrate the token dispatch operation with a well-annotated code snippet.
-```
+```python
 def _token_dispatch(self, model, inputs, device_mesh):
     """
         All-to-all communication
