@@ -1,5 +1,0 @@
----
-title: "Explorations"
-listing:
-    sort: "date desc"
----
