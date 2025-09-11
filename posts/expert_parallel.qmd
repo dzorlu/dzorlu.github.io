@@ -261,8 +261,11 @@ Let's illustrate the token dispatch operation with a well-annotated code snippet
    all_gather(4) → grouped GEMM → reduce_scatter(4)
    ```
 
-For visually initiatied folks, here is how the placement [![MoE 3D Visualization](https://tinkerings.dev/docs/moe-preview.png)](https://tinkerings.dev/moe.html)
-looks.
+For visually initiated folks, here is how the placement looks:
+
+
+[![MoE 3D Visualization](https://tinkerings.dev/moe-preview.png)](https://tinkerings.dev/moe.html)
+*Click for interactive 3D visualization*
 
 ---
 
