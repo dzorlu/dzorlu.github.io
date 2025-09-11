@@ -3,6 +3,7 @@ project:
 
 website:
   title: "Tinkerings"
+  site-url: https://tinkerings.dev
   navbar:
     left:
       - text: Posts
