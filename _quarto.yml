@@ -9,6 +9,10 @@ website:
       - text: Posts
         href: posts/
 
+resources:
+  - static/moe.html
+  - static/moe-preview.png
+
 format:
   html:
     theme: cosmo
