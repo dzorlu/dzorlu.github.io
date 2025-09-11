@@ -2,4 +2,4 @@
 **/*.quarto_ipynb
 posts/_drafts/**
 posts/wip-*.qmd
-/
+_site/
