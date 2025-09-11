@@ -87,6 +87,7 @@ Non-MoE (embeddings, attention, MLP, norms) are FSDP-sharded 8-way across all ra
 ## Where Does All-to-All Happen?
 
 EP all-to-all is **row-local**:
+
 - Row 0: GPU0 ⇄ GPU1
 - Row 1: GPU2 ⇄ GPU3
 - Row 2: GPU4 ⇄ GPU5
@@ -94,9 +95,9 @@ EP all-to-all is **row-local**:
 
 Each rank runs the router on its own microbatch. Tokens are split by destination column (owner of the chosen expert), then a size-exchange + variable-size all-to-all exchanges exactly those slices between the two columns in the same row. Different microbatches are fine.
 
-After dispatch, each rank holds only tokens for experts it owns. Expert matmuls then use FSDP across the 4 rows in that column (all-gather → compute → reduce-scatter). Finally, the inverse all-to-all returns outputs to the source ranks.
+After dispatch, each rank holds only tokens for experts it owns. Expert matmuls then use FSDP across the 4 rows in that column (`all-gather` → `compute` → `reduce-scatter`). Finally, the inverse all-to-all returns outputs to the source ranks.
 
-Let's illustrate the token dispatch operation with a well-annotated code snippet
+Let's illustrate the token dispatch operation with a well-annotated code snippet.
 ```
     def _token_dispatch(self, model, inputs, device_mesh):
         """
@@ -260,7 +261,7 @@ Let's illustrate the token dispatch operation with a well-annotated code snippet
    all_gather(4) → grouped GEMM → reduce_scatter(4)
    ```
 
-For visually initiatied folks, here is how the placement [![MoE 3D Visualization](https://tinkerings.dev/docs/moe-preview.png)](tinkerings.dev/moe.html)
+For visually initiatied folks, here is how the placement [![MoE 3D Visualization](https://tinkerings.dev/docs/moe-preview.png)](https://tinkerings.dev/moe.html)
 looks.
 
 ---
