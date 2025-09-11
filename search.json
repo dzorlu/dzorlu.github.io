@@ -46,7 +46,7 @@
     "href": "posts/expert_parallel.html#the-three-boxes-in-the-forward",
     "title": "Expert Parallel",
     "section": "The Three “Boxes” in the Forward",
-    "text": "The Three “Boxes” in the Forward\n\nNon-experts: FSDP(8) across all ranks\nall_gather(8) → compute → reduce_scatter(8)\nEP dispatch/return: row-local all-to-all\nPairs: (0↔1), (2↔3), (4↔5), (6↔7). Size-exchange then A2A.\nExperts: FSDP(4) inside each column\nall_gather(4) → grouped GEMM → reduce_scatter(4)\n\nFor visually initiatied folks, here is how the placement  looks."
+    "text": "The Three “Boxes” in the Forward\n\nNon-experts: FSDP(8) across all ranks\nall_gather(8) → compute → reduce_scatter(8)\nEP dispatch/return: row-local all-to-all\nPairs: (0↔1), (2↔3), (4↔5), (6↔7). Size-exchange then A2A.\nExperts: FSDP(4) inside each column\nall_gather(4) → grouped GEMM → reduce_scatter(4)\n\nFor visually initiated folks, here is how the placement looks:\n Click for interactive 3D visualization"
   },
   {
     "objectID": "posts/expert_parallel.html#minimal-mesh-wrapping",
