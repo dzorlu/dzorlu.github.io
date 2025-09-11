@@ -73,10 +73,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="../site_libs/quarto-html/anchor.min.js"></script>
 <link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-dc55a5b9e770e841cd82e46aadbfb9b0.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-a6e161b2431e1f94a14e0f5d32135a3c.css" rel="stylesheet" class="quarto-color-scheme" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-dark-45e8e462cd760eca75dbd85b13f1b7a2.css" rel="stylesheet" class="quarto-color-scheme quarto-color-alternate" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-a6e161b2431e1f94a14e0f5d32135a3c.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-5b4ad623e5705c0698d39aec6f10cf02.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-25688cfc92b0d8bc74d3664311df739b.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-dark-2a27ec7538e68809fa2de2390dba7afd.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="../site_libs/bootstrap/bootstrap-25688cfc92b0d8bc74d3664311df739b.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -108,7 +112,169 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 </head>
 
-<body class="nav-fixed quarto-light">
+<body class="nav-fixed fullcontent quarto-light"><script id="quarto-html-before-body" type="application/javascript">
+    const toggleBodyColorMode = (bsSheetEl) => {
+      const mode = bsSheetEl.getAttribute("data-mode");
+      const bodyEl = window.document.querySelector("body");
+      if (mode === "dark") {
+        bodyEl.classList.add("quarto-dark");
+        bodyEl.classList.remove("quarto-light");
+      } else {
+        bodyEl.classList.add("quarto-light");
+        bodyEl.classList.remove("quarto-dark");
+      }
+    }
+    const toggleBodyColorPrimary = () => {
+      const bsSheetEl = window.document.querySelector("link#quarto-bootstrap:not([rel=disabled-stylesheet])");
+      if (bsSheetEl) {
+        toggleBodyColorMode(bsSheetEl);
+      }
+    }
+    const setColorSchemeToggle = (alternate) => {
+      const toggles = window.document.querySelectorAll('.quarto-color-scheme-toggle');
+      for (let i=0; i < toggles.length; i++) {
+        const toggle = toggles[i];
+        if (toggle) {
+          if (alternate) {
+            toggle.classList.add("alternate");
+          } else {
+            toggle.classList.remove("alternate");
+          }
+        }
+      }
+    };
+    const toggleColorMode = (alternate) => {
+      // Switch the stylesheets
+      const primaryStylesheets = window.document.querySelectorAll('link.quarto-color-scheme:not(.quarto-color-alternate)');
+      const alternateStylesheets = window.document.querySelectorAll('link.quarto-color-scheme.quarto-color-alternate');
+      manageTransitions('#quarto-margin-sidebar .nav-link', false);
+      if (alternate) {
+        // note: dark is layered on light, we don't disable primary!
+        enableStylesheet(alternateStylesheets);
+        for (const sheetNode of alternateStylesheets) {
+          if (sheetNode.id === "quarto-bootstrap") {
+            toggleBodyColorMode(sheetNode);
+          }
+        }
+      } else {
+        disableStylesheet(alternateStylesheets);
+        enableStylesheet(primaryStylesheets)
+        toggleBodyColorPrimary();
+      }
+      manageTransitions('#quarto-margin-sidebar .nav-link', true);
+      // Switch the toggles
+      setColorSchemeToggle(alternate)
+      // Hack to workaround the fact that safari doesn't
+      // properly recolor the scrollbar when toggling (#1455)
+      if (navigator.userAgent.indexOf('Safari') > 0 && navigator.userAgent.indexOf('Chrome') == -1) {
+        manageTransitions("body", false);
+        window.scrollTo(0, 1);
+        setTimeout(() => {
+          window.scrollTo(0, 0);
+          manageTransitions("body", true);
+        }, 40);
+      }
+    }
+    const disableStylesheet = (stylesheets) => {
+      for (let i=0; i < stylesheets.length; i++) {
+        const stylesheet = stylesheets[i];
+        stylesheet.rel = 'disabled-stylesheet';
+      }
+    }
+    const enableStylesheet = (stylesheets) => {
+      for (let i=0; i < stylesheets.length; i++) {
+        const stylesheet = stylesheets[i];
+        if(stylesheet.rel !== 'stylesheet') { // for Chrome, which will still FOUC without this check
+          stylesheet.rel = 'stylesheet';
+        }
+      }
+    }
+    const manageTransitions = (selector, allowTransitions) => {
+      const els = window.document.querySelectorAll(selector);
+      for (let i=0; i < els.length; i++) {
+        const el = els[i];
+        if (allowTransitions) {
+          el.classList.remove('notransition');
+        } else {
+          el.classList.add('notransition');
+        }
+      }
+    }
+    const isFileUrl = () => {
+      return window.location.protocol === 'file:';
+    }
+    const hasAlternateSentinel = () => {
+      let styleSentinel = getColorSchemeSentinel();
+      if (styleSentinel !== null) {
+        return styleSentinel === "alternate";
+      } else {
+        return false;
+      }
+    }
+    const setStyleSentinel = (alternate) => {
+      const value = alternate ? "alternate" : "default";
+      if (!isFileUrl()) {
+        window.localStorage.setItem("quarto-color-scheme", value);
+      } else {
+        localAlternateSentinel = value;
+      }
+    }
+    const getColorSchemeSentinel = () => {
+      if (!isFileUrl()) {
+        const storageValue = window.localStorage.getItem("quarto-color-scheme");
+        return storageValue != null ? storageValue : localAlternateSentinel;
+      } else {
+        return localAlternateSentinel;
+      }
+    }
+    const toggleGiscusIfUsed = (isAlternate, darkModeDefault) => {
+      const baseTheme = document.querySelector('#giscus-base-theme')?.value ?? 'light';
+      const alternateTheme = document.querySelector('#giscus-alt-theme')?.value ?? 'dark';
+      let newTheme = '';
+      if(authorPrefersDark) {
+        newTheme = isAlternate ? baseTheme : alternateTheme;
+      } else {
+        newTheme = isAlternate ? alternateTheme : baseTheme;
+      }
+      const changeGiscusTheme = () => {
+        // From: https://github.com/giscus/giscus/issues/336
+        const sendMessage = (message) => {
+          const iframe = document.querySelector('iframe.giscus-frame');
+          if (!iframe) return;
+          iframe.contentWindow.postMessage({ giscus: message }, 'https://giscus.app');
+        }
+        sendMessage({
+          setConfig: {
+            theme: newTheme
+          }
+        });
+      }
+      const isGiscussLoaded = window.document.querySelector('iframe.giscus-frame') !== null;
+      if (isGiscussLoaded) {
+        changeGiscusTheme();
+      }
+    };
+    const authorPrefersDark = false;
+    const darkModeDefault = authorPrefersDark;
+      document.querySelector('link#quarto-text-highlighting-styles.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
+      document.querySelector('link#quarto-bootstrap.quarto-color-scheme-extra').rel = 'disabled-stylesheet';
+    let localAlternateSentinel = darkModeDefault ? 'alternate' : 'default';
+    // Dark / light mode switch
+    window.quartoToggleColorScheme = () => {
+      // Read the current dark / light value
+      let toAlternate = !hasAlternateSentinel();
+      toggleColorMode(toAlternate);
+      setStyleSentinel(toAlternate);
+      toggleGiscusIfUsed(toAlternate, darkModeDefault);
+      window.dispatchEvent(new Event('resize'));
+    };
+    // Switch to dark mode if need be
+    if (hasAlternateSentinel()) {
+      toggleColorMode(true);
+    } else {
+      toggleColorMode(false);
+    }
+  </script>
 
 <div id="quarto-search-results"></div>
   <header id="quarto-header" class="headroom fixed-top">
@@ -134,6 +300,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul>
           </div> <!-- /navcollapse -->
             <div class="quarto-navbar-tools">
+  <a href="" class="quarto-color-scheme-toggle quarto-navigation-tool  px-1" onclick="window.quartoToggleColorScheme(); return false;" title="Toggle dark mode"><i class="bi"></i></a>
 </div>
       </div> <!-- /container-fluid -->
     </nav>
@@ -142,34 +309,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
 <!-- margin-sidebar -->
-    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
-        <nav id="TOC" role="doc-toc" class="toc-active">
-    <h2 id="toc-title">On this page</h2>
-   
-  <ul>
-  <li><a href="#tldr" id="toc-tldr" class="nav-link active" data-scroll-target="#tldr">TL;DR</a></li>
-  <li><a href="#device-mesh-rank-layout" id="toc-device-mesh-rank-layout" class="nav-link" data-scroll-target="#device-mesh-rank-layout">Device Mesh &amp; Rank Layout</a></li>
-  <li><a href="#who-stores-which-expert" id="toc-who-stores-which-expert" class="nav-link" data-scroll-target="#who-stores-which-expert">Who Stores Which Expert?</a></li>
-  <li><a href="#where-does-all-to-all-happen" id="toc-where-does-all-to-all-happen" class="nav-link" data-scroll-target="#where-does-all-to-all-happen">Where Does All-to-All Happen?</a></li>
-  <li><a href="#the-three-boxes-in-the-forward" id="toc-the-three-boxes-in-the-forward" class="nav-link" data-scroll-target="#the-three-boxes-in-the-forward">The Three “Boxes” in the Forward</a>
-  <ul class="collapse">
-  <li><a href="#interactive-visualization" id="toc-interactive-visualization" class="nav-link" data-scroll-target="#interactive-visualization">Interactive Visualization</a></li>
-  </ul></li>
-  <li><a href="#minimal-mesh-wrapping" id="toc-minimal-mesh-wrapping" class="nav-link" data-scroll-target="#minimal-mesh-wrapping">Minimal Mesh &amp; Wrapping</a></li>
-  <li><a href="#pseudo-forward-annotated" id="toc-pseudo-forward-annotated" class="nav-link" data-scroll-target="#pseudo-forward-annotated">Pseudo-Forward (annotated)</a></li>
-  <li><a href="#after-parallelization-expected-placements-and-how-to-print-them" id="toc-after-parallelization-expected-placements-and-how-to-print-them" class="nav-link" data-scroll-target="#after-parallelization-expected-placements-and-how-to-print-them">After Parallelization: Expected Placements (and how to print them)</a>
-  <ul class="collapse">
-  <li><a href="#legend" id="toc-legend" class="nav-link" data-scroll-target="#legend">Legend</a></li>
-  <li><a href="#mini-visual-for-_stridedsharddim0-sf2" id="toc-mini-visual-for-_stridedsharddim0-sf2" class="nav-link" data-scroll-target="#mini-visual-for-_stridedsharddim0-sf2">Mini visual for <code>_StridedShard(dim=0, sf=2)</code></a></li>
-  </ul></li>
-  <li><a href="#why-ep2-and-not-ep8" id="toc-why-ep2-and-not-ep8" class="nav-link" data-scroll-target="#why-ep2-and-not-ep8">Why EP=2 and not EP=8?</a></li>
-  <li><a href="#sanity-checklist" id="toc-sanity-checklist" class="nav-link" data-scroll-target="#sanity-checklist">Sanity Checklist</a></li>
-  <li><a href="#appendix-dataloader-on-flattened-dp" id="toc-appendix-dataloader-on-flattened-dp" class="nav-link" data-scroll-target="#appendix-dataloader-on-flattened-dp">Appendix: Dataloader on Flattened dp</a></li>
-  </ul>
-</nav>
-    </div>
+    
 <!-- main -->
 <main class="content" id="quarto-document-content">
+
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
@@ -199,7 +342,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<p>Let’s distill how to run a Mixture-of-Experts (MoE) model on 8 GPUs using a 2-D device mesh with Expert Parallel (EP) and FSDP2 (fully_shard). This short post explains who stores which weights, where all-to-all happens, and includes minimal code (meshes, wrapping, verification).</p>
+<p>Let’s distill how to run a Mixture-of-Experts (MoE) model on 8 GPUs using a 2-D device mesh with Expert Parallel (EP) and FSDP2 (fully_shard). This short post explains who stores which weights, where all-to-all happens, and includes minimal code (meshes and wrapping).</p>
 <hr>
 <section id="tldr" class="level2">
 <h2 class="anchored" data-anchor-id="tldr">TL;DR</h2>
@@ -250,7 +393,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="who-stores-which-expert" class="level2">
 <h2 class="anchored" data-anchor-id="who-stores-which-expert">Who Stores Which Expert?</h2>
-<p>Assume 8 experts E0..E7. With EP=2: - <strong>Column 0</strong> owns experts E0–E3 (no copy of E4–E7). - <strong>Column 1</strong> owns experts E4–E7 (no copy of E0–E3). - Inside each column, FSDP(4) shards the owned experts across the 4 rows.</p>
+<p>Assume 8 experts <code>E0..E7</code>. With EP=2: - <strong>Column 0</strong> owns experts E0–E3 (no copy of E4–E7). - <strong>Column 1</strong> owns experts E4–E7 (no copy of E0–E3). - Inside each column, FSDP(4) shards the owned experts across the 4 rows. - This makes expert-to-expert communication possible. <code>Rank 0</code> has <code>E0–E3</code> and <code>Rank 1</code> has <code>E4-E7</code>.</p>
 <table class="caption-top table">
 <thead>
 <tr class="header">
@@ -471,55 +614,52 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <pre><code>all_gather(4) → grouped GEMM → reduce_scatter(4)</code></pre></li>
 </ol>
 <p>For visually initiated folks, here is how the placement looks:</p>
-<section id="interactive-visualization" class="level3">
-<h3 class="anchored" data-anchor-id="interactive-visualization">Interactive Visualization</h3>
 <p><a href="https://tinkerings.dev/static/moe.html">🎮 <strong>View Interactive 3D Visualization</strong></a> - See how data flows through the Non-MoE, MoE FSDP, and Token Routing layers.</p>
 <hr>
 </section>
-</section>
 <section id="minimal-mesh-wrapping" class="level2">
 <h2 class="anchored" data-anchor-id="minimal-mesh-wrapping">Minimal Mesh &amp; Wrapping</h2>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="co"># 0) EP: assign experts to columns + install dispatch/combine hooks</span></span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>parallelize_module(</span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    model, device_mesh<span class="op">=</span>col_mesh,</span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>    parallelize_plan<span class="op">=</span>{<span class="st">"layers.*.moe.experts"</span>: ExpertParallel()},</span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="co"># 1) FSDP on experts (rows): shard column-local experts across rows</span></span>
-<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> tb <span class="kw">in</span> model.transformer_blocks:</span>
-<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> <span class="bu">getattr</span>(tb, <span class="st">"moe_enabled"</span>, <span class="va">False</span>):</span>
-<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>        fully_shard(tb.moe.experts, mesh<span class="op">=</span>row_mesh, reshard_after_forward<span class="op">=</span><span class="va">False</span>)</span>
-<span id="cb7-12"><a href="#cb7-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-13"><a href="#cb7-13" aria-hidden="true" tabindex="-1"></a><span class="co"># 2) FSDP on each block (dp): shard non-MoE 8-way</span></span>
-<span id="cb7-14"><a href="#cb7-14" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> tb <span class="kw">in</span> model.transformer_blocks:</span>
-<span id="cb7-15"><a href="#cb7-15" aria-hidden="true" tabindex="-1"></a>    fully_shard(tb, mesh<span class="op">=</span>dp_mesh, reshard_after_forward<span class="op">=</span><span class="va">False</span>)   <span class="co"># experts already DTensors on rows</span></span>
-<span id="cb7-16"><a href="#cb7-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-17"><a href="#cb7-17" aria-hidden="true" tabindex="-1"></a><span class="co"># 3) FSDP on root (dp): embeddings / head / leftovers</span></span>
-<span id="cb7-18"><a href="#cb7-18" aria-hidden="true" tabindex="-1"></a>fully_shard(model, mesh<span class="op">=</span>dp_mesh, reshard_after_forward<span class="op">=</span><span class="va">True</span>)     <span class="co"># True/False per memory tradeoff</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1"></a></span>
+<span id="cb7-2"><a href="#cb7-2"></a><span class="co"># 0) EP: assign experts to columns + install dispatch/combine hooks</span></span>
+<span id="cb7-3"><a href="#cb7-3"></a>parallelize_module(</span>
+<span id="cb7-4"><a href="#cb7-4"></a>    model, device_mesh<span class="op">=</span>col_mesh,</span>
+<span id="cb7-5"><a href="#cb7-5"></a>    parallelize_plan<span class="op">=</span>{<span class="st">"layers.*.moe.experts"</span>: ExpertParallel()},</span>
+<span id="cb7-6"><a href="#cb7-6"></a>)</span>
+<span id="cb7-7"><a href="#cb7-7"></a></span>
+<span id="cb7-8"><a href="#cb7-8"></a><span class="co"># 1) FSDP on experts (rows): shard column-local experts across rows</span></span>
+<span id="cb7-9"><a href="#cb7-9"></a><span class="cf">for</span> tb <span class="kw">in</span> model.transformer_blocks:</span>
+<span id="cb7-10"><a href="#cb7-10"></a>    <span class="cf">if</span> <span class="bu">getattr</span>(tb, <span class="st">"moe_enabled"</span>, <span class="va">False</span>):</span>
+<span id="cb7-11"><a href="#cb7-11"></a>        fully_shard(tb.moe.experts, mesh<span class="op">=</span>row_mesh, reshard_after_forward<span class="op">=</span><span class="va">False</span>)</span>
+<span id="cb7-12"><a href="#cb7-12"></a></span>
+<span id="cb7-13"><a href="#cb7-13"></a><span class="co"># 2) FSDP on each block (dp): shard non-MoE 8-way</span></span>
+<span id="cb7-14"><a href="#cb7-14"></a><span class="cf">for</span> tb <span class="kw">in</span> model.transformer_blocks:</span>
+<span id="cb7-15"><a href="#cb7-15"></a>    fully_shard(tb, mesh<span class="op">=</span>dp_mesh, reshard_after_forward<span class="op">=</span><span class="va">False</span>)   <span class="co"># experts already DTensors on rows</span></span>
+<span id="cb7-16"><a href="#cb7-16"></a></span>
+<span id="cb7-17"><a href="#cb7-17"></a><span class="co"># 3) FSDP on root (dp): embeddings / head / leftovers</span></span>
+<span id="cb7-18"><a href="#cb7-18"></a>fully_shard(model, mesh<span class="op">=</span>dp_mesh, reshard_after_forward<span class="op">=</span><span class="va">True</span>)     <span class="co"># True/False per memory tradeoff</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <hr>
 </section>
 <section id="pseudo-forward-annotated" class="level2">
 <h2 class="anchored" data-anchor-id="pseudo-forward-annotated">Pseudo-Forward (annotated)</h2>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> forward_on_rank(row, col, x_rc):</span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>    <span class="co"># A) Non-MoE on dp: AG(8) → compute → RS(8)</span></span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a>    h <span class="op">=</span> non_moE_stack(x_rc)</span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Router: expert id per token (e.g., [2,2,5,1,6,...])</span></span>
-<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a>    eids <span class="op">=</span> router(h)</span>
-<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>    <span class="co"># B) EP dispatch within this row: send tokens to owner column</span></span>
-<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a>    h_owned <span class="op">=</span> ep_a2a_dispatch(h, eids, group<span class="op">=</span>{(row,<span class="dv">0</span>),(row,<span class="dv">1</span>)})</span>
-<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a>    <span class="co"># C) Experts on owner column: FSDP(4) across rows of this column</span></span>
-<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a>    y_local <span class="op">=</span> experts_matmul(h_owned)           <span class="co"># AG(4) → GEMM → RS(4)</span></span>
-<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a>    <span class="co"># D) EP combine within this row: inverse A2A back to source rank</span></span>
-<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a>    y <span class="op">=</span> ep_a2a_combine(y_local, eids, group<span class="op">=</span>{(row,<span class="dv">0</span>),(row,<span class="dv">1</span>)})</span>
-<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a>    <span class="co"># E) Tail Non-MoE on dp: AG(8) → compute → RS(8)</span></span>
-<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a>    out <span class="op">=</span> non_moE_tail(y)</span>
-<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> out</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb8-1"><a href="#cb8-1"></a><span class="kw">def</span> forward_on_rank(row, col, x_rc):</span>
+<span id="cb8-2"><a href="#cb8-2"></a>    <span class="co"># A) Non-MoE on dp: AG(8) → compute → RS(8)</span></span>
+<span id="cb8-3"><a href="#cb8-3"></a>    h <span class="op">=</span> non_moE_stack(x_rc)</span>
+<span id="cb8-4"><a href="#cb8-4"></a></span>
+<span id="cb8-5"><a href="#cb8-5"></a>    <span class="co"># Router: expert id per token (e.g., [2,2,5,1,6,...])</span></span>
+<span id="cb8-6"><a href="#cb8-6"></a>    eids <span class="op">=</span> router(h)</span>
+<span id="cb8-7"><a href="#cb8-7"></a></span>
+<span id="cb8-8"><a href="#cb8-8"></a>    <span class="co"># B) EP dispatch within this row: send tokens to owner column</span></span>
+<span id="cb8-9"><a href="#cb8-9"></a>    h_owned <span class="op">=</span> ep_a2a_dispatch(h, eids, group<span class="op">=</span>{(row,<span class="dv">0</span>),(row,<span class="dv">1</span>)})</span>
+<span id="cb8-10"><a href="#cb8-10"></a></span>
+<span id="cb8-11"><a href="#cb8-11"></a>    <span class="co"># C) Experts on owner column: FSDP(4) across rows of this column</span></span>
+<span id="cb8-12"><a href="#cb8-12"></a>    y_local <span class="op">=</span> experts_matmul(h_owned)           <span class="co"># AG(4) → GEMM → RS(4)</span></span>
+<span id="cb8-13"><a href="#cb8-13"></a></span>
+<span id="cb8-14"><a href="#cb8-14"></a>    <span class="co"># D) EP combine within this row: inverse A2A back to source rank</span></span>
+<span id="cb8-15"><a href="#cb8-15"></a>    y <span class="op">=</span> ep_a2a_combine(y_local, eids, group<span class="op">=</span>{(row,<span class="dv">0</span>),(row,<span class="dv">1</span>)})</span>
+<span id="cb8-16"><a href="#cb8-16"></a></span>
+<span id="cb8-17"><a href="#cb8-17"></a>    <span class="co"># E) Tail Non-MoE on dp: AG(8) → compute → RS(8)</span></span>
+<span id="cb8-18"><a href="#cb8-18"></a>    out <span class="op">=</span> non_moE_tail(y)</span>
+<span id="cb8-19"><a href="#cb8-19"></a>    <span class="cf">return</span> out</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p><strong>Backward (intuition)</strong>: EP’s A2A autograd returns activation grads to sources; expert parameter grads are reduce-scattered across the row group (the 4 that shard that expert). Non-MoE grads reduce-scatter across all 8.</p>
 <hr>
 </section>
@@ -536,12 +676,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </ul></li>
 </ul>
 <p>No replication — this is a 2-D partition of expert dim-0.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> show_placements(model, keys<span class="op">=</span>(<span class="st">"moe.experts"</span>,<span class="st">"attention"</span>,<span class="st">"router"</span>,<span class="st">"embeddings"</span>,<span class="st">"norm"</span>,<span class="st">"output"</span>)):</span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> name, p <span class="kw">in</span> model.named_parameters():</span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> <span class="bu">any</span>(k <span class="kw">in</span> name <span class="cf">for</span> k <span class="kw">in</span> keys):</span>
-<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a>            pl <span class="op">=</span> <span class="bu">getattr</span>(p, <span class="st">"placements"</span>, <span class="va">None</span>)</span>
-<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>            kind <span class="op">=</span> <span class="st">"DTensor"</span> <span class="cf">if</span> pl <span class="kw">is</span> <span class="kw">not</span> <span class="va">None</span> <span class="cf">else</span> <span class="st">"LOCAL"</span></span>
-<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>            <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>name<span class="sc">:&lt;60}</span><span class="ss"> -&gt; </span><span class="sc">{</span>kind<span class="sc">:7}</span><span class="ss"> </span><span class="sc">{</span>pl<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb9-1"><a href="#cb9-1"></a><span class="kw">def</span> show_placements(model, keys<span class="op">=</span>(<span class="st">"moe.experts"</span>,<span class="st">"attention"</span>,<span class="st">"router"</span>,<span class="st">"embeddings"</span>,<span class="st">"norm"</span>,<span class="st">"output"</span>)):</span>
+<span id="cb9-2"><a href="#cb9-2"></a>    <span class="cf">for</span> name, p <span class="kw">in</span> model.named_parameters():</span>
+<span id="cb9-3"><a href="#cb9-3"></a>        <span class="cf">if</span> <span class="bu">any</span>(k <span class="kw">in</span> name <span class="cf">for</span> k <span class="kw">in</span> keys):</span>
+<span id="cb9-4"><a href="#cb9-4"></a>            pl <span class="op">=</span> <span class="bu">getattr</span>(p, <span class="st">"placements"</span>, <span class="va">None</span>)</span>
+<span id="cb9-5"><a href="#cb9-5"></a>            kind <span class="op">=</span> <span class="st">"DTensor"</span> <span class="cf">if</span> pl <span class="kw">is</span> <span class="kw">not</span> <span class="va">None</span> <span class="cf">else</span> <span class="st">"LOCAL"</span></span>
+<span id="cb9-6"><a href="#cb9-6"></a>            <span class="bu">print</span>(<span class="ss">f"</span><span class="sc">{</span>name<span class="sc">:&lt;60}</span><span class="ss"> -&gt; </span><span class="sc">{</span>kind<span class="sc">:7}</span><span class="ss"> </span><span class="sc">{</span>pl<span class="sc">}</span><span class="ss">"</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Example lines you should see (shape may vary; this is pattern):</p>
 <pre><code>tok_embeddings.weight                                   -&gt; DTensor (Shard(dim=0),)
 layers.0.attention.wq.weight                            -&gt; DTensor (Shard(dim=0),)
@@ -596,13 +736,13 @@ DTensor encodes "shard dim-0 again on rows" as _StridedShard(dim=0, sf=2)
 </section>
 <section id="appendix-dataloader-on-flattened-dp" class="level2">
 <h2 class="anchored" data-anchor-id="appendix-dataloader-on-flattened-dp">Appendix: Dataloader on Flattened dp</h2>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Use the flattened 8-way dp mesh for sampling</span></span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>global_dp_rank <span class="op">=</span> dp_mesh.get_rank()</span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a>num_replicas   <span class="op">=</span> dp_mesh.size()</span>
-<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> torch.utils.data <span class="im">import</span> DistributedSampler, DataLoader</span>
-<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a>sampler <span class="op">=</span> DistributedSampler(dataset, num_replicas<span class="op">=</span>num_replicas, rank<span class="op">=</span>global_dp_rank)</span>
-<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a>loader  <span class="op">=</span> DataLoader(dataset, batch_size<span class="op">=</span>per_rank_bs, sampler<span class="op">=</span>sampler, pin_memory<span class="op">=</span><span class="va">True</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1"></a><span class="co"># Use the flattened 8-way dp mesh for sampling</span></span>
+<span id="cb12-2"><a href="#cb12-2"></a>global_dp_rank <span class="op">=</span> dp_mesh.get_rank()</span>
+<span id="cb12-3"><a href="#cb12-3"></a>num_replicas   <span class="op">=</span> dp_mesh.size()</span>
+<span id="cb12-4"><a href="#cb12-4"></a></span>
+<span id="cb12-5"><a href="#cb12-5"></a><span class="im">from</span> torch.utils.data <span class="im">import</span> DistributedSampler, DataLoader</span>
+<span id="cb12-6"><a href="#cb12-6"></a>sampler <span class="op">=</span> DistributedSampler(dataset, num_replicas<span class="op">=</span>num_replicas, rank<span class="op">=</span>global_dp_rank)</span>
+<span id="cb12-7"><a href="#cb12-7"></a>loader  <span class="op">=</span> DataLoader(dataset, batch_size<span class="op">=</span>per_rank_bs, sampler<span class="op">=</span>sampler, pin_memory<span class="op">=</span><span class="va">True</span>)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>This preserves 8 microbatches per step—one per rank—while placements and collectives follow the mesh rules above.</p>
 
 
@@ -611,6 +751,19 @@ DTensor encodes "shard dim-0 again on rows" as _StridedShard(dim=0, sf=2)
 </main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
   window.document.addEventListener("DOMContentLoaded", function (event) {
+    // Ensure there is a toggle, if there isn't float one in the top right
+    if (window.document.querySelector('.quarto-color-scheme-toggle') === null) {
+      const a = window.document.createElement('a');
+      a.classList.add('top-right');
+      a.classList.add('quarto-color-scheme-toggle');
+      a.href = "";
+      a.onclick = function() { try { window.quartoToggleColorScheme(); } catch {} return false; };
+      const i = window.document.createElement("i");
+      i.classList.add('bi');
+      a.appendChild(i);
+      window.document.body.appendChild(a);
+    }
+    setColorSchemeToggle(hasAlternateSentinel())
     const icon = "";
     const anchorJS = new window.AnchorJS();
     anchorJS.options = {

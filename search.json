@@ -11,7 +11,7 @@
     "href": "posts/expert_parallel.html",
     "title": "Expert Parallel",
     "section": "",
-    "text": "Let’s distill how to run a Mixture-of-Experts (MoE) model on 8 GPUs using a 2-D device mesh with Expert Parallel (EP) and FSDP2 (fully_shard). This short post explains who stores which weights, where all-to-all happens, and includes minimal code (meshes, wrapping, verification)."
+    "text": "Let’s distill how to run a Mixture-of-Experts (MoE) model on 8 GPUs using a 2-D device mesh with Expert Parallel (EP) and FSDP2 (fully_shard). This short post explains who stores which weights, where all-to-all happens, and includes minimal code (meshes and wrapping)."
   },
   {
     "objectID": "posts/expert_parallel.html#tldr",
@@ -32,7 +32,7 @@
     "href": "posts/expert_parallel.html#who-stores-which-expert",
     "title": "Expert Parallel",
     "section": "Who Stores Which Expert?",
-    "text": "Who Stores Which Expert?\nAssume 8 experts E0..E7. With EP=2: - Column 0 owns experts E0–E3 (no copy of E4–E7). - Column 1 owns experts E4–E7 (no copy of E0–E3). - Inside each column, FSDP(4) shards the owned experts across the 4 rows.\n\n\n\nRank\nColumn owns\nThis rank holds (expert weights)\n\n\n\n\n0 = (0,0)\nE0–E3\n1/4 shard of E0–E3\n\n\n2 = (1,0)\nE0–E3\n1/4 shard of E0–E3\n\n\n4 = (2,0)\nE0–E3\n1/4 shard of E0–E3\n\n\n6 = (3,0)\nE0–E3\n1/4 shard of E0–E3\n\n\n1 = (0,1)\nE4–E7\n1/4 shard of E4–E7\n\n\n3 = (1,1)\nE4–E7\n1/4 shard of E4–E7\n\n\n5 = (2,1)\nE4–E7\n1/4 shard of E4–E7\n\n\n7 = (3,1)\nE4–E7\n1/4 shard of E4–E7\n\n\n\nNon-MoE (embeddings, attention, MLP, norms) are FSDP-sharded 8-way across all ranks (flattened dp). There is no persistent replication."
+    "text": "Who Stores Which Expert?\nAssume 8 experts E0..E7. With EP=2: - Column 0 owns experts E0–E3 (no copy of E4–E7). - Column 1 owns experts E4–E7 (no copy of E0–E3). - Inside each column, FSDP(4) shards the owned experts across the 4 rows. - This makes expert-to-expert communication possible. Rank 0 has E0–E3 and Rank 1 has E4-E7.\n\n\n\nRank\nColumn owns\nThis rank holds (expert weights)\n\n\n\n\n0 = (0,0)\nE0–E3\n1/4 shard of E0–E3\n\n\n2 = (1,0)\nE0–E3\n1/4 shard of E0–E3\n\n\n4 = (2,0)\nE0–E3\n1/4 shard of E0–E3\n\n\n6 = (3,0)\nE0–E3\n1/4 shard of E0–E3\n\n\n1 = (0,1)\nE4–E7\n1/4 shard of E4–E7\n\n\n3 = (1,1)\nE4–E7\n1/4 shard of E4–E7\n\n\n5 = (2,1)\nE4–E7\n1/4 shard of E4–E7\n\n\n7 = (3,1)\nE4–E7\n1/4 shard of E4–E7\n\n\n\nNon-MoE (embeddings, attention, MLP, norms) are FSDP-sharded 8-way across all ranks (flattened dp). There is no persistent replication."
   },
   {
     "objectID": "posts/expert_parallel.html#where-does-all-to-all-happen",
@@ -46,7 +46,7 @@
     "href": "posts/expert_parallel.html#the-three-boxes-in-the-forward",
     "title": "Expert Parallel",
     "section": "The Three “Boxes” in the Forward",
-    "text": "The Three “Boxes” in the Forward\n\nNon-experts: FSDP(8) across all ranks\nall_gather(8) → compute → reduce_scatter(8)\nEP dispatch/return: row-local all-to-all\nPairs: (0↔1), (2↔3), (4↔5), (6↔7). Size-exchange then A2A.\nExperts: FSDP(4) inside each column\nall_gather(4) → grouped GEMM → reduce_scatter(4)\n\nFor visually initiated folks, here is how the placement looks:\n\nInteractive Visualization\n🎮 View Interactive 3D Visualization - See how data flows through the Non-MoE, MoE FSDP, and Token Routing layers."
+    "text": "The Three “Boxes” in the Forward\n\nNon-experts: FSDP(8) across all ranks\nall_gather(8) → compute → reduce_scatter(8)\nEP dispatch/return: row-local all-to-all\nPairs: (0↔1), (2↔3), (4↔5), (6↔7). Size-exchange then A2A.\nExperts: FSDP(4) inside each column\nall_gather(4) → grouped GEMM → reduce_scatter(4)\n\nFor visually initiated folks, here is how the placement looks:\n🎮 View Interactive 3D Visualization - See how data flows through the Non-MoE, MoE FSDP, and Token Routing layers."
   },
   {
     "objectID": "posts/expert_parallel.html#minimal-mesh-wrapping",
