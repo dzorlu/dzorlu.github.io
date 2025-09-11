@@ -1,5 +1,5 @@
 ---
-title: "Explorations"
+title: "Tinkerings"
 page-layout: full
 listing:
   contents: posts
@@ -7,4 +7,4 @@ listing:
   type: default
 ---
 
-Welcome. Below are all posts, newest first.
+My notes to create mental models as to how things work.
