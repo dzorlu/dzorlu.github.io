@@ -264,7 +264,7 @@ Let's illustrate the token dispatch operation with a well-annotated code snippet
 For visually initiated folks, here is how the placement looks:
 
 
-[![MoE 3D Visualization](https://tinkerings.dev/static/moe-preview.png)](https://tinkerings.dev/static/moe.html)
+[![MoE 3D Visualization](https://tinkerings.dev/static/moe-preview.png){width=50px}](https://tinkerings.dev/static/moe.html)
 *Click for interactive 3D visualization*
 
 ---
