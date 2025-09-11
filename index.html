@@ -24,7 +24,6 @@ ul.task-list li input[type="checkbox"] {
 
 
 <script src="site_libs/quarto-nav/quarto-nav.js"></script>
-<script src="site_libs/quarto-nav/headroom.min.js"></script>
 <script src="site_libs/clipboard/clipboard.min.js"></script>
 <script src="site_libs/quarto-search/autocomplete.umd.js"></script>
 <script src="site_libs/quarto-search/fuse.min.js"></script>
@@ -44,11 +43,11 @@ ul.task-list li input[type="checkbox"] {
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
 <link href="site_libs/bootstrap/bootstrap-2a27ec7538e68809fa2de2390dba7afd.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="dark">
 <script id="quarto-search-options" type="application/json">{
-  "location": "navbar",
+  "location": "sidebar",
   "copy-button": false,
   "collapse-after": 3,
-  "panel-placement": "end",
-  "type": "overlay",
+  "panel-placement": "start",
+  "type": "textbox",
   "limit": 50,
   "keyboard-shortcut": [
     "f",
@@ -132,38 +131,11 @@ window.Quarto = {
 
 </head>
 
-<body class="nav-fixed quarto-light">
+<body class="quarto-light">
 
 <div id="quarto-search-results"></div>
-  <header id="quarto-header" class="headroom fixed-top">
-    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
-      <div class="navbar-container container-fluid">
-      <div class="navbar-brand-container mx-auto">
-    <a href="./index.html" class="navbar-brand navbar-brand-logo">
-    </a>
-    <a class="navbar-brand" href="./index.html">
-    <span class="navbar-title">Tinkerings</span>
-    </a>
-  </div>
-            <div id="quarto-search" class="" title="Search"></div>
-          <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse" aria-controls="navbarCollapse" role="menu" aria-expanded="false" aria-label="Toggle navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
-  <span class="navbar-toggler-icon"></span>
-</button>
-          <div class="collapse navbar-collapse" id="navbarCollapse">
-            <ul class="navbar-nav navbar-nav-scroll me-auto">
-  <li class="nav-item">
-    <a class="nav-link" href="./posts/"> 
-<span class="menu-text">Posts</span></a>
-  </li>  
-</ul>
-          </div> <!-- /navcollapse -->
-            <div class="quarto-navbar-tools">
-</div>
-      </div> <!-- /container-fluid -->
-    </nav>
-</header>
 <!-- content -->
-<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-full page-navbar">
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-full">
 <!-- sidebar -->
 <!-- margin-sidebar -->
     
@@ -196,33 +168,7 @@ window.Quarto = {
 
 <div class="quarto-listing quarto-listing-container-default" id="listing-listing">
 <div class="list quarto-listing-default">
-<div class="quarto-post image-right" data-index="0" data-listing-file-modified-sort="1757628313096" data-listing-reading-time-sort="1" data-listing-word-count-sort="122">
-<div class="thumbnail"><a href="./posts/expert_parallel_cont.html" class="no-external">
-
-<div class="listing-item-img-placeholder card-img-top" >&nbsp;</div>
-
-</a></div>
-<div class="body">
-<h3 class="no-anchor listing-title">
-<a href="./posts/expert_parallel_cont.html" class="no-external">Why EP=2 and not EP=8?</a>
-</h3>
-<div class="delink listing-description"><a href="./posts/expert_parallel_cont.html" class="no-external">
-
-
-<ul>
-<li><strong>EP=2 + rows=4</strong> (this README):
-<ul>
-<li><strong>Memory</strong>: experts are also sharded (rows).</li>
-<li><strong>Comms</strong>: A2A is 2-way (cheap).</li>
-<li><strong>Compute</strong>: healthy per-expert batches per device → efficient grouped GEMM.</li>…</ul></li><li><strong></strong><ul><li></li><li></li><li></li></ul></li></ul><hr>
-</a></div>
-</div>
-<div class="metadata">
-<a href="./posts/expert_parallel_cont.html" class="no-external">
-</a>
-</div>
-</div>
-<div class="quarto-post image-right" data-index="1" data-categories="ZGlzdHJpYnV0ZWQtdHJhaW5pbmc=" data-listing-date-sort="1756710000000" data-listing-file-modified-sort="1757628361143" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="19" data-listing-word-count-sort="3602">
+<div class="quarto-post image-right" data-index="0" data-categories="ZGlzdHJpYnV0ZWQtdHJhaW5pbmc=" data-listing-date-sort="1756710000000" data-listing-file-modified-sort="1757628460502" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="19" data-listing-word-count-sort="3602">
 <div class="thumbnail"><a href="./posts/expert_parallel.html" class="no-external">
 
 <img loading="lazy" src="./posts/images/ep.png" class="thumbnail-image">
@@ -230,7 +176,7 @@ window.Quarto = {
 </a></div>
 <div class="body">
 <h3 class="no-anchor listing-title">
-<a href="./posts/expert_parallel.html" class="no-external">Expert Parallel</a>
+<a href="./posts/expert_parallel.html" class="no-external">Expert Parallelism</a>
 </h3>
 <div class="delink listing-description"><a href="./posts/expert_parallel.html" class="no-external">
 Let’s distill how to run a Mixture-of-Experts (MoE) model with expert parallelism with example.
