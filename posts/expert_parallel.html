@@ -342,7 +342,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<p>Let’s distill how to run a Mixture-of-Experts (MoE) model on 8 GPUs using a 2-D device mesh with Expert Parallel (EP) and FSDP2 (fully_shard). This short post explains who stores which weights, where all-to-all happens, and includes minimal code (meshes and wrapping).</p>
+<p>Let’s distill how to run a Mixture-of-Experts (MoE) model with expert parallelism with example. The setup is 8 GPUs using a 2-D device mesh with Expert Parallel (EP) and FSDP2 (fully_shard). This short post explains who stores which weights, where all-to-all happens, and includes minimal code (meshes and wrapping).</p>
 <hr>
 <section id="tldr" class="level2">
 <h2 class="anchored" data-anchor-id="tldr">TL;DR</h2>
@@ -457,7 +457,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>Row 2: GPU4 ⇄ GPU5</li>
 <li>Row 3: GPU6 ⇄ GPU7</li>
 </ul>
-<p>Each rank runs the router on its own microbatch. Tokens are split by destination column (owner of the chosen expert), then a size-exchange + variable-size all-to-all exchanges exactly those slices between the two columns in the same row. Different microbatches are fine.</p>
+<p>Each rank runs the router on its own microbatch. Tokens are split by destination column (owner of the chosen expert), then a size-exchange + variable-size all-to-all exchanges exactly those slices between the two columns in the same row.</p>
 <p>After dispatch, each rank holds only tokens for experts it owns. Expert matmuls then use FSDP across the 4 rows in that column (<code>all-gather</code> → <code>compute</code> → <code>reduce-scatter</code>). Finally, the inverse all-to-all returns outputs to the source ranks.</p>
 <p>Let’s illustrate the token dispatch operation with a well-annotated code snippet.</p>
 <pre><code>    def _token_dispatch(self, model, inputs, device_mesh):
