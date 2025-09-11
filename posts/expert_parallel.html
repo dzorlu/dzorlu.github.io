@@ -304,10 +304,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="where-does-all-to-all-happen" class="level2">
 <h2 class="anchored" data-anchor-id="where-does-all-to-all-happen">Where Does All-to-All Happen?</h2>
-<p>EP all-to-all is <strong>row-local</strong>: - Row 0: GPU0 ⇄ GPU1 - Row 1: GPU2 ⇄ GPU3 - Row 2: GPU4 ⇄ GPU5 - Row 3: GPU6 ⇄ GPU7</p>
+<p>EP all-to-all is <strong>row-local</strong>:</p>
+<ul>
+<li>Row 0: GPU0 ⇄ GPU1</li>
+<li>Row 1: GPU2 ⇄ GPU3</li>
+<li>Row 2: GPU4 ⇄ GPU5</li>
+<li>Row 3: GPU6 ⇄ GPU7</li>
+</ul>
 <p>Each rank runs the router on its own microbatch. Tokens are split by destination column (owner of the chosen expert), then a size-exchange + variable-size all-to-all exchanges exactly those slices between the two columns in the same row. Different microbatches are fine.</p>
-<p>After dispatch, each rank holds only tokens for experts it owns. Expert matmuls then use FSDP across the 4 rows in that column (all-gather → compute → reduce-scatter). Finally, the inverse all-to-all returns outputs to the source ranks.</p>
-<p>Let’s illustrate the token dispatch operation with a well-annotated code snippet</p>
+<p>After dispatch, each rank holds only tokens for experts it owns. Expert matmuls then use FSDP across the 4 rows in that column (<code>all-gather</code> → <code>compute</code> → <code>reduce-scatter</code>). Finally, the inverse all-to-all returns outputs to the source ranks.</p>
+<p>Let’s illustrate the token dispatch operation with a well-annotated code snippet.</p>
 <pre><code>    def _token_dispatch(self, model, inputs, device_mesh):
         """
             All-to-all communication
