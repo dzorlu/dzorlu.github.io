@@ -8,6 +8,7 @@ website:
 resources:
   - static/moe.html
   - static/moe-preview.png
+  - images/**
 
 format:
   html:

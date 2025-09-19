@@ -6,7 +6,7 @@ categories: [distributed-training]
 image: images/ep.png
 ---
 
-Let's distill how to run a Mixture-of-Experts (MoE) model with expert parallelism with example.
+Let's distill how to run a Mixture-of-Experts (MoE) model with expert parallelism with an example.
 
 The setup is 8 GPUs using a 2-D device mesh with Expert Parallel (EP) and FSDP2 (fully_shard). 
 
@@ -65,11 +65,11 @@ col_mesh = device_mesh["ep"]   # size = C   = 2  -> used for EP ownership + a2a
 
 ## Who Stores Which Expert?
 
-Assume 8 experts `E0..E7`. With EP=2:
+Assume 8 experts `E0..E7`. With `EP=2`:
 
-- **Column 0** owns experts E0–E3 (no copy of E4–E7).
-- **Column 1** owns experts E4–E7 (no copy of E0–E3).
-- Inside each column, FSDP(4) shards the owned experts across the 4 rows.
+- **Column 0** owns experts `E0–E3` (no copy of `E4–E7`).
+- **Column 1** owns experts `E4–E7` (no copy of `E0–E3`).
+- Inside each column, `FSDP(4)` shards the owned experts across the 4 rows.
 - This makes expert-to-expert communication possible. `Rank 0` has `E0–E3` and `Rank 1` has `E4-E7`.
 
 | Rank | Column owns | This rank holds (expert weights) |
