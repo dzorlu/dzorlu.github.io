@@ -146,7 +146,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<p>Let’s distill how to run a Mixture-of-Experts (MoE) model with expert parallelism with example.</p>
+<p>Let’s distill how to run a Mixture-of-Experts (MoE) model with expert parallelism with an example.</p>
 <p>The setup is 8 GPUs using a 2-D device mesh with Expert Parallel (EP) and FSDP2 (fully_shard).</p>
 <p>This short post explains who stores which weights, where all-to-all happens, and includes minimal code (meshes and wrapping).</p>
 <hr>
@@ -197,11 +197,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="who-stores-which-expert" class="level2">
 <h2 class="anchored" data-anchor-id="who-stores-which-expert">Who Stores Which Expert?</h2>
-<p>Assume 8 experts <code>E0..E7</code>. With EP=2:</p>
+<p>Assume 8 experts <code>E0..E7</code>. With <code>EP=2</code>:</p>
 <ul>
-<li><strong>Column 0</strong> owns experts E0–E3 (no copy of E4–E7).</li>
-<li><strong>Column 1</strong> owns experts E4–E7 (no copy of E0–E3).</li>
-<li>Inside each column, FSDP(4) shards the owned experts across the 4 rows.</li>
+<li><strong>Column 0</strong> owns experts <code>E0–E3</code> (no copy of <code>E4–E7</code>).</li>
+<li><strong>Column 1</strong> owns experts <code>E4–E7</code> (no copy of <code>E0–E3</code>).</li>
+<li>Inside each column, <code>FSDP(4)</code> shards the owned experts across the 4 rows.</li>
 <li>This makes expert-to-expert communication possible. <code>Rank 0</code> has <code>E0–E3</code> and <code>Rank 1</code> has <code>E4-E7</code>.</li>
 </ul>
 <table class="caption-top table">

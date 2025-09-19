@@ -2,6 +2,7 @@
   {
     "listing": "/index.html",
     "items": [
+      "/posts/context_parallel.html",
       "/posts/expert_parallel.html"
     ]
   }

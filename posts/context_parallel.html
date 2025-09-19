@@ -6,8 +6,9 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
+<meta name="dcterms.date" content="2025-09-07">
 
-<title>Tinkerings</title>
+<title>Context Parallelism – Tinkerings</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -20,28 +21,61 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
 </style>
 
 
-<script src="site_libs/quarto-nav/quarto-nav.js"></script>
-<script src="site_libs/clipboard/clipboard.min.js"></script>
-<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
-<script src="site_libs/quarto-search/fuse.min.js"></script>
-<script src="site_libs/quarto-search/quarto-search.js"></script>
-<meta name="quarto:offset" content="./">
-<script src="site_libs/quarto-listing/list.min.js"></script>
-<script src="site_libs/quarto-listing/quarto-listing.js"></script>
-<script src="site_libs/quarto-html/quarto.js" type="module"></script>
-<script src="site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
-<script src="site_libs/quarto-html/axe/axe-check.js" type="module"></script>
-<script src="site_libs/quarto-html/popper.min.js"></script>
-<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
-<script src="site_libs/quarto-html/anchor.min.js"></script>
-<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting-dark-45e8e462cd760eca75dbd85b13f1b7a2.css" rel="stylesheet" id="quarto-text-highlighting-styles">
-<script src="site_libs/bootstrap/bootstrap.min.js"></script>
-<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-2a27ec7538e68809fa2de2390dba7afd.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="dark">
+<script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/clipboard/clipboard.min.js"></script>
+<script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="../site_libs/quarto-search/fuse.min.js"></script>
+<script src="../site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="../">
+<script src="../site_libs/quarto-html/quarto.js" type="module"></script>
+<script src="../site_libs/quarto-html/tabsets/tabsets.js" type="module"></script>
+<script src="../site_libs/quarto-html/axe/axe-check.js" type="module"></script>
+<script src="../site_libs/quarto-html/popper.min.js"></script>
+<script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="../site_libs/quarto-html/anchor.min.js"></script>
+<link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-dark-45e8e462cd760eca75dbd85b13f1b7a2.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="../site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="../site_libs/bootstrap/bootstrap-2a27ec7538e68809fa2de2390dba7afd.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="dark">
 <script id="quarto-search-options" type="application/json">{
   "location": "sidebar",
   "copy-button": false,
@@ -69,89 +103,40 @@ ul.task-list li input[type="checkbox"] {
     "search-label": "Search"
   }
 }</script>
-<script>
 
-  window.document.addEventListener("DOMContentLoaded", function (_event) {
-    const listingTargetEl = window.document.querySelector('#listing-listing .list');
-    if (!listingTargetEl) {
-      // No listing discovered, do not attach.
-      return; 
-    }
-
-    const options = {
-      valueNames: ['listing-date','listing-title','listing-author','listing-image','listing-description',{ data: ['index'] },{ data: ['categories'] },{ data: ['listing-date-sort'] },{ data: ['listing-file-modified-sort'] }],
-      
-      searchColumns: ["listing-date","listing-title","listing-author","listing-image","listing-description"],
-    };
-
-    window['quarto-listings'] = window['quarto-listings'] || {};
-    window['quarto-listings']['listing-listing'] = new List('listing-listing', options);
-
-    if (window['quarto-listing-loaded']) {
-      window['quarto-listing-loaded']();
-    }
-  });
-
-  window.addEventListener('hashchange',() => {
-    if (window['quarto-listing-loaded']) {
-      window['quarto-listing-loaded']();
-    }
-  })
-  </script>
-
-  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
-  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
-
-<script type="text/javascript">
-const typesetMath = (el) => {
-  if (window.MathJax) {
-    // MathJax Typeset
-    window.MathJax.typeset([el]);
-  } else if (window.katex) {
-    // KaTeX Render
-    var mathElements = el.getElementsByClassName("math");
-    var macros = [];
-    for (var i = 0; i < mathElements.length; i++) {
-      var texText = mathElements[i].firstChild;
-      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
-        window.katex.render(texText.data, mathElements[i], {
-          displayMode: mathElements[i].classList.contains('display'),
-          throwOnError: false,
-          macros: macros,
-          fleqn: false
-        });
-      }
-    }
-  }
-}
-window.Quarto = {
-  typesetMath
-};
-</script>
 
 </head>
 
-<body class="quarto-light">
+<body class="fullcontent quarto-light">
 
 <div id="quarto-search-results"></div>
 <!-- content -->
-<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-full">
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
 <!-- sidebar -->
 <!-- margin-sidebar -->
     
 <!-- main -->
-<main class="content column-page" id="quarto-document-content">
+<main class="content" id="quarto-document-content">
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">Tinkerings</h1>
-</div>
+<h1 class="title">Context Parallelism</h1>
+  <div class="quarto-categories">
+    <div class="quarto-category">distributed-training</div>
+  </div>
+  </div>
 
 
 
-<div class="quarto-title-meta column-page">
+<div class="quarto-title-meta">
 
     
+    <div>
+    <div class="quarto-title-meta-heading">Published</div>
+    <div class="quarto-title-meta-contents">
+      <p class="date">September 7, 2025</p>
+    </div>
+  </div>
   
     
   </div>
@@ -161,60 +146,125 @@ window.Quarto = {
 </header>
 
 
-<p>My notes to build mental models for how things work.</p>
+<p>Context Parallelism (CP) is a distributed training technique that enables training of LLMs with extremely long sequences (up to 1M tokens) by sharding the sequence dimension across multiple GPUs. This post traces the implementation from device mesh setup through the actual parallelization mechanics.</p>
+<section id="device-mesh-rank-layout" class="level2">
+<h2 class="anchored" data-anchor-id="device-mesh-rank-layout">Device Mesh &amp; Rank Layout</h2>
+<p>The key insight about CP is that it <strong>reduces your effective data parallelism</strong>. Why? Because the same batch of data needs to be processed by all GPUs in the CP group - they each handle a different sequence chunk of that same data. For an 8 GPU setup with CP=2, your effective DP becomes 4 - you’re processing 4 unique batches, not 8.</p>
+<section id="visualizing-cp-vs-pure-data-parallelism" class="level3">
+<h3 class="anchored" data-anchor-id="visualizing-cp-vs-pure-data-parallelism">Visualizing CP vs Pure Data Parallelism</h3>
+<pre><code>Pure Data Parallel (8 GPUs):
+GPU 0: Batch_0 [B, seq_len, D] → Linear → Output_0
+GPU 1: Batch_1 [B, seq_len, D] → Linear → Output_1
+...
+GPU 7: Batch_7 [B, seq_len, D] → Linear → Output_7
+Total: 8 different batches processed simultaneously
+
+With CP=2, DP=4 (8 GPUs):
+GPU 0: Batch_0 [B, seq/2 (first half), D]  → Linear → Output_0_partial
+GPU 1: Batch_0 [B, seq/2 (second half), D] → Linear → Output_0_partial
+GPU 2: Batch_1 [B, seq/2 (first half), D]  → Linear → Output_1_partial  
+GPU 3: Batch_1 [B, seq/2 (second half), D] → Linear → Output_1_partial
+...
+Total: Only 4 different batches processed (each split across 2 GPUs)</code></pre>
+</section>
+<section id="the-mesh-setup" class="level3">
+<h3 class="anchored" data-anchor-id="the-mesh-setup">The Mesh Setup</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1"></a>device_mesh <span class="op">=</span> init_device_mesh(</span>
+<span id="cb2-2"><a href="#cb2-2"></a>    <span class="st">"cuda"</span>,</span>
+<span id="cb2-3"><a href="#cb2-3"></a>    (args.dp_size, args.cp_size),  <span class="co"># (4, 2) for 8 GPUs</span></span>
+<span id="cb2-4"><a href="#cb2-4"></a>    mesh_dim_names<span class="op">=</span>(<span class="st">"dp_shard"</span>, <span class="st">"cp"</span>),</span>
+<span id="cb2-5"><a href="#cb2-5"></a>)</span>
+<span id="cb2-6"><a href="#cb2-6"></a></span>
+<span id="cb2-7"><a href="#cb2-7"></a><span class="co"># Flatten to create FSDP mesh - this is critical</span></span>
+<span id="cb2-8"><a href="#cb2-8"></a>device_mesh[(<span class="st">"dp_shard"</span>, <span class="st">"cp"</span>)]._flatten(mesh_dim_name<span class="op">=</span><span class="st">"dp"</span>)</span>
+<span id="cb2-9"><a href="#cb2-9"></a></span>
+<span id="cb2-10"><a href="#cb2-10"></a>dp_mesh <span class="op">=</span> device_mesh[<span class="st">"dp_shard"</span>]   <span class="co"># size = 4 -&gt; for data loading</span></span>
+<span id="cb2-11"><a href="#cb2-11"></a>row_mesh <span class="op">=</span> device_mesh[<span class="st">"dp"</span>]        <span class="co"># size = 8 -&gt; for FSDP all-reduce</span></span>
+<span id="cb2-12"><a href="#cb2-12"></a>col_mesh <span class="op">=</span> device_mesh[<span class="st">"cp"</span>]        <span class="co"># size = 2 -&gt; for CP operations</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The crucial point: FSDP still needs to operate across all 8 ranks for gradient synchronization. Even though CP splits sequences within groups of 2, the model weights need to be synchronized across all 8 GPUs. That’s why we create the flattened “dp” mesh with size 8.</p>
+<p>Without FSDP operating on all ranks, you’d essentially train 4 independent model replicas (one per DP group), which would never converge properly. In other words, in CP the weights are replicated across the CP group (similar to DP). Each rank computes gradients for the same weights but using different sequence positions, hence needing gradient synchronization.</p>
+</section>
+</section>
+<section id="context-parallel-in-practice" class="level2">
+<h2 class="anchored" data-anchor-id="context-parallel-in-practice">Context Parallel in Practice</h2>
+<p>The <code>context_parallel</code> context applies Ring Attention to all attention layers. <code>freqs_cis</code> is sharded along the position axis.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1"></a><span class="at">@monitor</span></span>
+<span id="cb3-2"><a href="#cb3-2"></a><span class="kw">def</span> training_step(x, y, i):</span>
+<span id="cb3-3"><a href="#cb3-3"></a>    ctx <span class="op">=</span> nullcontext()</span>
+<span id="cb3-4"><a href="#cb3-4"></a>    <span class="cf">if</span> args.use_cp:</span>
+<span id="cb3-5"><a href="#cb3-5"></a>        ctx <span class="op">=</span> context_parallel(</span>
+<span id="cb3-6"><a href="#cb3-6"></a>            col_mesh,</span>
+<span id="cb3-7"><a href="#cb3-7"></a>            buffers<span class="op">=</span>[x, y, model.freqs_cis],  <span class="co"># Shard these tensors</span></span>
+<span id="cb3-8"><a href="#cb3-8"></a>            buffer_seq_dims<span class="op">=</span>[<span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">0</span>],         <span class="co"># Along sequence dimension</span></span>
+<span id="cb3-9"><a href="#cb3-9"></a>            no_restore_buffers<span class="op">=</span>{x, y},         <span class="co"># Don't unshard after forward</span></span>
+<span id="cb3-10"><a href="#cb3-10"></a>        )</span>
+<span id="cb3-11"><a href="#cb3-11"></a>    <span class="cf">with</span> ctx:</span>
+<span id="cb3-12"><a href="#cb3-12"></a>        logits <span class="op">=</span> model(x)</span>
+<span id="cb3-13"><a href="#cb3-13"></a>        <span class="co"># All SDPA calls now use Ring Attention</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="how-context-parallel-works-under-the-hood" class="level2">
+<h2 class="anchored" data-anchor-id="how-context-parallel-works-under-the-hood">How Context Parallel Works Under the Hood</h2>
+<section id="two-level-replacement" class="level3">
+<h3 class="anchored" data-anchor-id="two-level-replacement">Two-Level Replacement</h3>
+<p><strong>Level 1: Python Function Wrapper</strong></p>
+<p><code>distribute_function</code> is singleton-based. Once called, ALL SDPA calls use Ring Attention:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1"></a><span class="co"># Input: tensors → DTensors with Shard(seq_dim)</span></span>
+<span id="cb4-2"><a href="#cb4-2"></a><span class="kw">def</span> attention_input_fn(mesh, <span class="op">*</span>args, <span class="op">**</span>kwargs):</span>
+<span id="cb4-3"><a href="#cb4-3"></a>    placement <span class="op">=</span> [Shard(seq_dim)]</span>
+<span id="cb4-4"><a href="#cb4-4"></a>    <span class="co"># Convert all tensor args to DTensors</span></span>
+<span id="cb4-5"><a href="#cb4-5"></a>    </span>
+<span id="cb4-6"><a href="#cb4-6"></a><span class="co"># Output: DTensors → local tensors  </span></span>
+<span id="cb4-7"><a href="#cb4-7"></a><span class="kw">def</span> attention_output_fn(mesh, outputs):</span>
+<span id="cb4-8"><a href="#cb4-8"></a>    <span class="cf">return</span> output.to_local() <span class="cf">if</span> <span class="bu">isinstance</span>(output, DTensor) <span class="cf">else</span> output</span>
+<span id="cb4-9"><a href="#cb4-9"></a></span>
+<span id="cb4-10"><a href="#cb4-10"></a><span class="co"># Replace THE function object globally</span></span>
+<span id="cb4-11"><a href="#cb4-11"></a>wrapper_fn <span class="op">=</span> wrapper(fn, attention_input_fn, attention_output_fn)</span>
+<span id="cb4-12"><a href="#cb4-12"></a><span class="bu">setattr</span>(F, <span class="st">'scaled_dot_product_attention'</span>, wrapper_fn)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Level 2: ATEN Dispatch</strong></p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1"></a>call_maps <span class="op">=</span> {</span>
+<span id="cb5-2"><a href="#cb5-2"></a>    aten._scaled_dot_product_flash_attention: </span>
+<span id="cb5-3"><a href="#cb5-3"></a>        _scaled_dot_product_ring_flash_attention,</span>
+<span id="cb5-4"><a href="#cb5-4"></a>    aten._scaled_dot_product_efficient_attention: </span>
+<span id="cb5-5"><a href="#cb5-5"></a>        _scaled_dot_product_ring_efficient_attention,</span>
+<span id="cb5-6"><a href="#cb5-6"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Regular Flash Attention: computes on local sequence only.<br>
+Ring Flash Attention: adds KV rotation between ranks.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1"></a><span class="co"># Ring Attention (simplified)</span></span>
+<span id="cb6-2"><a href="#cb6-2"></a><span class="kw">def</span> ring_flash_attention(q_local, k_local, v_local):</span>
+<span id="cb6-3"><a href="#cb6-3"></a>    output <span class="op">=</span> flash_attention(q_local, k_local, v_local)</span>
+<span id="cb6-4"><a href="#cb6-4"></a>    </span>
+<span id="cb6-5"><a href="#cb6-5"></a>    <span class="co"># Rotate KV chunks from other ranks</span></span>
+<span id="cb6-6"><a href="#cb6-6"></a>    <span class="cf">for</span> k_chunk, v_chunk <span class="kw">in</span> rotate_kv_chunks():</span>
+<span id="cb6-7"><a href="#cb6-7"></a>        partial <span class="op">=</span> flash_attention(q_local, k_chunk, v_chunk)</span>
+<span id="cb6-8"><a href="#cb6-8"></a>        output <span class="op">=</span> merge_attention_outputs(output, partial)  <span class="co"># log-sum-exp</span></span>
+<span id="cb6-9"><a href="#cb6-9"></a>    </span>
+<span id="cb6-10"><a href="#cb6-10"></a>    <span class="cf">return</span> output</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+</section>
+<section id="execution-flow" class="level3">
+<h3 class="anchored" data-anchor-id="execution-flow">Execution Flow</h3>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1"></a>F.scaled_dot_product_attention(q, k, v, is_causal<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb7-2"><a href="#cb7-2"></a>    ↓</span>
+<span id="cb7-3"><a href="#cb7-3"></a>wrapper_fn(q, k, v)  <span class="co"># Level 1</span></span>
+<span id="cb7-4"><a href="#cb7-4"></a>    ↓ </span>
+<span id="cb7-5"><a href="#cb7-5"></a>attention_input_fn: converts to DTensor <span class="cf">with</span> Shard(seq_dim)</span>
+<span id="cb7-6"><a href="#cb7-6"></a>    ↓</span>
+<span id="cb7-7"><a href="#cb7-7"></a>DTensor dispatcher finds Ring Attention <span class="kw">in</span> call_maps  <span class="co"># Level 2</span></span>
+<span id="cb7-8"><a href="#cb7-8"></a>    ↓</span>
+<span id="cb7-9"><a href="#cb7-9"></a>_scaled_dot_product_ring_flash_attention executes</span>
+<span id="cb7-10"><a href="#cb7-10"></a>    ↓</span>
+<span id="cb7-11"><a href="#cb7-11"></a>attention_output_fn: converts back to local tensor</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Level 1: tensor conversion and orchestration<br>
+Level 2: swaps CUDA kernel to Ring Attention variant</p>
+</section>
+<section id="memory" class="level3">
+<h3 class="anchored" data-anchor-id="memory">Memory</h3>
+<p><a href="https://tinkerings.dev/static/before_cp.png">Before CP</a> <a href="https://tinkerings.dev/images/after_cp.png">After CP</a></p>
 
 
+</section>
+</section>
 
-
-<div class="quarto-listing quarto-listing-container-default" id="listing-listing">
-<div class="list quarto-listing-default">
-<div class="quarto-post image-right" data-index="0" data-categories="ZGlzdHJpYnV0ZWQtdHJhaW5pbmc=" data-listing-date-sort="1757228400000" data-listing-file-modified-sort="1758256356074" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="5" data-listing-word-count-sort="829">
-<div class="thumbnail"><a href="./posts/context_parallel.html" class="no-external">
-
-<img loading="lazy" src="./posts/images/cp.png" class="thumbnail-image">
-
-</a></div>
-<div class="body">
-<h3 class="no-anchor listing-title">
-<a href="./posts/context_parallel.html" class="no-external">Context Parallelism</a>
-</h3>
-<div class="delink listing-description"><a href="./posts/context_parallel.html" class="no-external">
-Context Parallelism (CP) is a distributed training technique that enables training of LLMs with extremely long sequences (up to 1M tokens) by sharding the sequence dimension…
-</a></div>
-</div>
-<div class="metadata">
-<a href="./posts/context_parallel.html" class="no-external">
-<div class="listing-date">
-Sep 7, 2025
-</div>
-</a>
-</div>
-</div>
-<div class="quarto-post image-right" data-index="1" data-categories="ZGlzdHJpYnV0ZWQtdHJhaW5pbmc=" data-listing-date-sort="1756710000000" data-listing-file-modified-sort="1757633453056" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="19" data-listing-word-count-sort="3603">
-<div class="thumbnail"><a href="./posts/expert_parallel.html" class="no-external">
-
-<img loading="lazy" src="./posts/images/ep.png" class="thumbnail-image">
-
-</a></div>
-<div class="body">
-<h3 class="no-anchor listing-title">
-<a href="./posts/expert_parallel.html" class="no-external">Expert Parallelism</a>
-</h3>
-<div class="delink listing-description"><a href="./posts/expert_parallel.html" class="no-external">
-Let’s distill how to run a Mixture-of-Experts (MoE) model with expert parallelism with an example.
-</a></div>
-</div>
-<div class="metadata">
-<a href="./posts/expert_parallel.html" class="no-external">
-<div class="listing-date">
-Sep 1, 2025
-</div>
-</a>
-</div>
-</div>
-</div>
-<div class="listing-no-matching d-none">No matching items</div>
-</div></main> <!-- /main -->
+</main> <!-- /main -->
 <script id="quarto-html-after-body" type="application/javascript">
   window.document.addEventListener("DOMContentLoaded", function (event) {
     const icon = "";
