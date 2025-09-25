@@ -1,8 +1,8 @@
 ---
-title: "Intro GPU Kernels"
+title: "Triton Kernels"
 date: "2025-09-08"
 categories: [gpus]
-image: images/gpu.jpeg
+image: images/gpu.png
 ---
 
 # GPU Programming: From Memory Bottlenecks to Triton
@@ -165,18 +165,6 @@ For matrix multiplication C = A @ B where:
 - B has shape [K, N]  
 - C has shape [M, N]
 
-```
-    K             N                N
-    ↓             ↓                ↓
-M → [A A A A]  [B B B] → M → [C C C]
-    [A A A A]  [B B B]       [C C C]
-    [A A A A]  [B B B]       [C C C]
-    [A A A A]  [B B B]       [C C C]
-               [B B B]
-               K →
-
-Each C[i,j] = Σ(k=0 to K-1) A[i,k] * B[k,j]
-```
 
 We launch `(M // BLOCK_M) * (N // BLOCK_N)` kernels. Each kernel computes one tile:
 
@@ -194,7 +182,7 @@ The L2 cache optimization happens at the kernel scheduling level—each kernel c
 
 **How GROUP_SIZE_M=2 Reorganizes Execution:**
 
-```
+```python
 Standard Row-Major Order         Grouped Column-Major Order
 (process entire row 0 first)     (process 2 rows at a time)
 
@@ -209,7 +197,7 @@ Block IDs:                       Execution Order:
 
 **Why this matters for cache:**
 
-```
+```python
 Standard row-major:              Grouped (GROUP_SIZE_M=2):
 Block 0: A[row0] × B[col0]      Block 0: A[row0] × B[col0]
 Block 1: A[row0] × B[col1]      Block 1: A[row1] × B[col0] ← B[col0] reused!
@@ -227,7 +215,7 @@ GROUP_SIZE_M=2 keeps both A[row0] and A[row1] in L2 cache across kernel launches
 
 With grouped column-major ordering, we remap pid to get better cache reuse:
 
-```
+```python
 Example: pid=9, M=768, N=768, BLOCK_M=128, BLOCK_N=128, GROUP_SIZE_M=2
 
 num_pid_m = 768/128 = 6 rows of blocks
