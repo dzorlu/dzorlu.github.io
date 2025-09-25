@@ -7,48 +7,6 @@ image: images/gpu.png
 
 # GPU Programming: From Memory Bottlenecks to Triton
 
-## Memory is Always 1D
-
-Memory is a flat 1D array.
-
-```python
-# What you write
-A = torch.randn(1024, 768)  # A[i,j]
-
-# What actually exists in memory (row-major)
-memory = [row0_col0, row0_col1, ..., row0_col767,
-          row1_col0, row1_col1, ..., row1_col767, ...]
-# A[i,j] → memory[i*768 + j]
-```
-
-**Coalescing and performance depend on how your multi-dimensional indexing walks that 1D memory.** When 32 threads in a warp access memory, the hardware can only coalesce these into a single transaction if your indexing pattern makes them access consecutive addresses:
-
-```python
-# Row-major traversal: threads access A[i, 0:32]
-# Memory walk: [i*768+0, i*768+1, ..., i*768+31]
-# Consecutive addresses → 1 coalesced transaction
-
-# Column-major traversal: threads access A[0:32, j]  
-# Memory walk: [0*768+j, 1*768+j, ..., 31*768+j]
-# Addresses 768 elements apart → 32 separate transactions
-```
-
-This is why choosing the right stride matters:
-```python
-x = torch.randn(4096, 4096, device='cuda')
-
-# Row-wise sum: indexing walks memory sequentially
-x.sum(dim=1)  # Fast - stride of 1 through memory
-
-# After transpose: logical rows are physical columns
-y = x.T  # No data movement, just changes stride from (4096, 1) to (1, 4096)
-y.sum(dim=1)  # ~30x slower - stride of 4096 through memory
-
-# .contiguous() reorganizes memory to match logical view
-z = y.contiguous()  # Copies data so logical indexing = sequential walk
-z.sum(dim=1)  # Fast again
-```
-
 ## The Bandwidth Wall
 
 Modern GPUs have massive compute but limited memory bandwidth. The key metric is **arithmetic intensity (AI)**:
@@ -109,6 +67,48 @@ By computing in tiles that fit in SRAM, Flash Attention:
 
 The tiling transforms how we walk through memory—instead of repeatedly traversing the entire KV cache, we load contiguous blocks once and reuse them maximally.
 
+## Memory is Always 1D
+
+Memory is a flat 1D array. Your `tensor[M, N]` doesn't exist—it's just multi-dimensional indexing over `M*N` consecutive bytes.
+
+```python
+# What you write
+A = torch.randn(1024, 768)  # A[i,j]
+
+# What actually exists in memory (row-major)
+memory = [row0_col0, row0_col1, ..., row0_col767,
+          row1_col0, row1_col1, ..., row1_col767, ...]
+# A[i,j] → memory[i*768 + j]
+```
+
+**Coalescing and performance depend on how your multi-dimensional indexing walks that 1D memory.** When 32 threads in a warp access memory, the hardware can only coalesce these into a single transaction if your indexing pattern makes them access consecutive addresses:
+
+```python
+# Row-major traversal: threads access A[i, 0:32]
+# Memory walk: [i*768+0, i*768+1, ..., i*768+31]
+# Consecutive addresses → 1 coalesced transaction
+
+# Column-major traversal: threads access A[0:32, j]  
+# Memory walk: [0*768+j, 1*768+j, ..., 31*768+j]
+# Addresses 768 elements apart → 32 separate transactions
+```
+
+This is why choosing the right stride matters:
+```python
+x = torch.randn(4096, 4096, device='cuda')
+
+# Row-wise sum: indexing walks memory sequentially
+x.sum(dim=1)  # Fast - stride of 1 through memory
+
+# After transpose: logical rows are physical columns
+y = x.T  # No data movement, just changes stride from (4096, 1) to (1, 4096)
+y.sum(dim=1)  # ~30x slower - stride of 4096 through memory
+
+# .contiguous() reorganizes memory to match logical view
+z = y.contiguous()  # Copies data so logical indexing = sequential walk
+z.sum(dim=1)  # Fast again
+```
+
 ## Triton: Think in Blocks, Not Threads
 
 CUDA forces you to manually manage how threads walk through memory:
@@ -165,10 +165,28 @@ For matrix multiplication C = A @ B where:
 - B has shape [K, N]  
 - C has shape [M, N]
 
-We launch `(M // BLOCK_M) * (N // BLOCK_N)` kernels. Each kernel computes one tile of C with shape `[BLOCK_M, BLOCK_N]` by:
-- Loading blocks from one row-strip of A
-- Loading blocks from one column-strip of B
-- Accumulating partial products
+```
+    K             N                N
+    ↓             ↓                ↓
+M → [A A A A]  [B B B] → M → [C C C]
+    [A A A A]  [B B B]       [C C C]
+    [A A A A]  [B B B]       [C C C]
+    [A A A A]  [B B B]       [C C C]
+               [B B B]
+               K →
+
+Each C[i,j] = Σ(k=0 to K-1) A[i,k] * B[k,j]
+```
+
+We launch `(M // BLOCK_M) * (N // BLOCK_N)` kernels. Each kernel computes one tile:
+
+```
+Matrix C divided into tiles:          Each kernel computes one tile:
+[C00 C01 C02 C03]                    
+[C10 C11 C12 C13]                    C11 = A[row1] @ B[col1]
+[C20 C21 C22 C23]                         ↓           ↓
+                                     A[128:256,:] @ B[:,128:256]
+```
 
 ### L2 Cache Optimization with GROUP_SIZE_M
 
