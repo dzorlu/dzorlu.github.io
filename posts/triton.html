@@ -150,7 +150,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h1>GPU Programming: From Memory Bottlenecks to Triton</h1>
 <section id="memory-is-always-1d" class="level2">
 <h2 class="anchored" data-anchor-id="memory-is-always-1d">Memory is Always 1D</h2>
-<p>The most fundamental truth about GPU programming: memory is a flat 1D array. Your <code>tensor[M, N]</code> doesn’t exist—it’s just multi-dimensional indexing over <code>M*N</code> consecutive bytes.</p>
+<p>Memory is a flat 1D array.</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1"></a><span class="co"># What you write</span></span>
 <span id="cb1-2"><a href="#cb1-2"></a>A <span class="op">=</span> torch.randn(<span class="dv">1024</span>, <span class="dv">768</span>)  <span class="co"># A[i,j]</span></span>
 <span id="cb1-3"><a href="#cb1-3"></a></span>
