@@ -148,38 +148,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <section id="gpu-programming-from-memory-bottlenecks-to-triton" class="level1">
 <h1>GPU Programming: From Memory Bottlenecks to Triton</h1>
-<section id="memory-is-always-1d" class="level2">
-<h2 class="anchored" data-anchor-id="memory-is-always-1d">Memory is Always 1D</h2>
-<p>Memory is a flat 1D array.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1"></a><span class="co"># What you write</span></span>
-<span id="cb1-2"><a href="#cb1-2"></a>A <span class="op">=</span> torch.randn(<span class="dv">1024</span>, <span class="dv">768</span>)  <span class="co"># A[i,j]</span></span>
-<span id="cb1-3"><a href="#cb1-3"></a></span>
-<span id="cb1-4"><a href="#cb1-4"></a><span class="co"># What actually exists in memory (row-major)</span></span>
-<span id="cb1-5"><a href="#cb1-5"></a>memory <span class="op">=</span> [row0_col0, row0_col1, ..., row0_col767,</span>
-<span id="cb1-6"><a href="#cb1-6"></a>          row1_col0, row1_col1, ..., row1_col767, ...]</span>
-<span id="cb1-7"><a href="#cb1-7"></a><span class="co"># A[i,j] → memory[i*768 + j]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p><strong>Coalescing and performance depend on how your multi-dimensional indexing walks that 1D memory.</strong> When 32 threads in a warp access memory, the hardware can only coalesce these into a single transaction if your indexing pattern makes them access consecutive addresses:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1"></a><span class="co"># Row-major traversal: threads access A[i, 0:32]</span></span>
-<span id="cb2-2"><a href="#cb2-2"></a><span class="co"># Memory walk: [i*768+0, i*768+1, ..., i*768+31]</span></span>
-<span id="cb2-3"><a href="#cb2-3"></a><span class="co"># Consecutive addresses → 1 coalesced transaction</span></span>
-<span id="cb2-4"><a href="#cb2-4"></a></span>
-<span id="cb2-5"><a href="#cb2-5"></a><span class="co"># Column-major traversal: threads access A[0:32, j]  </span></span>
-<span id="cb2-6"><a href="#cb2-6"></a><span class="co"># Memory walk: [0*768+j, 1*768+j, ..., 31*768+j]</span></span>
-<span id="cb2-7"><a href="#cb2-7"></a><span class="co"># Addresses 768 elements apart → 32 separate transactions</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>This is why choosing the right stride matters:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1"></a>x <span class="op">=</span> torch.randn(<span class="dv">4096</span>, <span class="dv">4096</span>, device<span class="op">=</span><span class="st">'cuda'</span>)</span>
-<span id="cb3-2"><a href="#cb3-2"></a></span>
-<span id="cb3-3"><a href="#cb3-3"></a><span class="co"># Row-wise sum: indexing walks memory sequentially</span></span>
-<span id="cb3-4"><a href="#cb3-4"></a>x.<span class="bu">sum</span>(dim<span class="op">=</span><span class="dv">1</span>)  <span class="co"># Fast - stride of 1 through memory</span></span>
-<span id="cb3-5"><a href="#cb3-5"></a></span>
-<span id="cb3-6"><a href="#cb3-6"></a><span class="co"># After transpose: logical rows are physical columns</span></span>
-<span id="cb3-7"><a href="#cb3-7"></a>y <span class="op">=</span> x.T  <span class="co"># No data movement, just changes stride from (4096, 1) to (1, 4096)</span></span>
-<span id="cb3-8"><a href="#cb3-8"></a>y.<span class="bu">sum</span>(dim<span class="op">=</span><span class="dv">1</span>)  <span class="co"># ~30x slower - stride of 4096 through memory</span></span>
-<span id="cb3-9"><a href="#cb3-9"></a></span>
-<span id="cb3-10"><a href="#cb3-10"></a><span class="co"># .contiguous() reorganizes memory to match logical view</span></span>
-<span id="cb3-11"><a href="#cb3-11"></a>z <span class="op">=</span> y.contiguous()  <span class="co"># Copies data so logical indexing = sequential walk</span></span>
-<span id="cb3-12"><a href="#cb3-12"></a>z.<span class="bu">sum</span>(dim<span class="op">=</span><span class="dv">1</span>)  <span class="co"># Fast again</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-</section>
 <section id="the-bandwidth-wall" class="level2">
 <h2 class="anchored" data-anchor-id="the-bandwidth-wall">The Bandwidth Wall</h2>
 <p>Modern GPUs have massive compute but limited memory bandwidth. The key metric is <strong>arithmetic intensity (AI)</strong>:</p>
@@ -187,36 +155,68 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>To be compute-bound rather than memory-bound, you need high arithmetic intensity. On a B200: - Compute: ~40 TFLOPS (FP32)<br>
 - Memory bandwidth: ~8 TB/s - Breakeven AI: ~5 FLOPs/byte</p>
 <p>Consider different operations:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1"></a><span class="co"># Vector addition: y = a + b</span></span>
-<span id="cb4-2"><a href="#cb4-2"></a><span class="co"># Bytes: read 2*N*4, write N*4 = 12N bytes</span></span>
-<span id="cb4-3"><a href="#cb4-3"></a><span class="co"># FLOPs: N additions</span></span>
-<span id="cb4-4"><a href="#cb4-4"></a><span class="co"># AI = N / 12N = 0.083 FLOPs/byte → Memory bound!</span></span>
-<span id="cb4-5"><a href="#cb4-5"></a></span>
-<span id="cb4-6"><a href="#cb4-6"></a><span class="co"># Matrix multiply: C[M,N] = A[M,K] @ B[K,N]</span></span>
-<span id="cb4-7"><a href="#cb4-7"></a><span class="co"># Bytes: (M*K + K*N + M*N) * 4</span></span>
-<span id="cb4-8"><a href="#cb4-8"></a><span class="co"># FLOPs: 2*M*N*K (multiply + add)</span></span>
-<span id="cb4-9"><a href="#cb4-9"></a><span class="co"># AI = 2*M*N*K / ((M*K + K*N + M*N) * 4)</span></span>
-<span id="cb4-10"><a href="#cb4-10"></a><span class="co"># For M=N=K=4096: AI ≈ 683 FLOPs/byte → Compute bound!</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1"></a><span class="co"># Vector addition: y = a + b</span></span>
+<span id="cb1-2"><a href="#cb1-2"></a><span class="co"># Bytes: read 2*N*4, write N*4 = 12N bytes</span></span>
+<span id="cb1-3"><a href="#cb1-3"></a><span class="co"># FLOPs: N additions</span></span>
+<span id="cb1-4"><a href="#cb1-4"></a><span class="co"># AI = N / 12N = 0.083 FLOPs/byte → Memory bound!</span></span>
+<span id="cb1-5"><a href="#cb1-5"></a></span>
+<span id="cb1-6"><a href="#cb1-6"></a><span class="co"># Matrix multiply: C[M,N] = A[M,K] @ B[K,N]</span></span>
+<span id="cb1-7"><a href="#cb1-7"></a><span class="co"># Bytes: (M*K + K*N + M*N) * 4</span></span>
+<span id="cb1-8"><a href="#cb1-8"></a><span class="co"># FLOPs: 2*M*N*K (multiply + add)</span></span>
+<span id="cb1-9"><a href="#cb1-9"></a><span class="co"># AI = 2*M*N*K / ((M*K + K*N + M*N) * 4)</span></span>
+<span id="cb1-10"><a href="#cb1-10"></a><span class="co"># For M=N=K=4096: AI ≈ 683 FLOPs/byte → Compute bound!</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
 <section id="breaking-the-bandwidth-wall-flash-attention" class="level2">
 <h2 class="anchored" data-anchor-id="breaking-the-bandwidth-wall-flash-attention">Breaking the Bandwidth Wall: Flash Attention</h2>
 <p>Standard attention has a fundamental problem:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1"></a><span class="co"># Standard attention: O = softmax(QK^T)V</span></span>
-<span id="cb5-2"><a href="#cb5-2"></a><span class="co"># Must materialize S = QK^T of size [N, N]</span></span>
-<span id="cb5-3"><a href="#cb5-3"></a><span class="co"># Memory accesses: O(N²) reads/writes to HBM</span></span>
-<span id="cb5-4"><a href="#cb5-4"></a><span class="co"># Compute: O(N²) </span></span>
-<span id="cb5-5"><a href="#cb5-5"></a><span class="co"># AI: O(1) → Memory bound!</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1"></a><span class="co"># Standard attention: O = softmax(QK^T)V</span></span>
+<span id="cb2-2"><a href="#cb2-2"></a><span class="co"># Must materialize S = QK^T of size [N, N]</span></span>
+<span id="cb2-3"><a href="#cb2-3"></a><span class="co"># Memory accesses: O(N²) reads/writes to HBM</span></span>
+<span id="cb2-4"><a href="#cb2-4"></a><span class="co"># Compute: O(N²) </span></span>
+<span id="cb2-5"><a href="#cb2-5"></a><span class="co"># AI: O(1) → Memory bound!</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Flash Attention’s key insight: <strong>tiling changes the memory access pattern</strong>.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1"></a><span class="co"># Flash Attention with tile size T</span></span>
-<span id="cb6-2"><a href="#cb6-2"></a><span class="co"># Process attention in T×T blocks, never materializing full [N,N]</span></span>
-<span id="cb6-3"><a href="#cb6-3"></a><span class="co"># Memory accesses: O(N²/T) to HBM  </span></span>
-<span id="cb6-4"><a href="#cb6-4"></a><span class="co"># Compute: still O(N²)</span></span>
-<span id="cb6-5"><a href="#cb6-5"></a><span class="co"># AI: O(T) → Can be compute bound!</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1"></a><span class="co"># Flash Attention with tile size T</span></span>
+<span id="cb3-2"><a href="#cb3-2"></a><span class="co"># Process attention in T×T blocks, never materializing full [N,N]</span></span>
+<span id="cb3-3"><a href="#cb3-3"></a><span class="co"># Memory accesses: O(N²/T) to HBM  </span></span>
+<span id="cb3-4"><a href="#cb3-4"></a><span class="co"># Compute: still O(N²)</span></span>
+<span id="cb3-5"><a href="#cb3-5"></a><span class="co"># AI: O(T) → Can be compute bound!</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>The magic is keeping tiles in the memory hierarchy: - HBM (main memory): ~8 TB/s - L2 cache: ~100 TB/s - SRAM (shared memory): ~150 TB/s<br>
 - Registers: Even faster</p>
 <p>By computing in tiles that fit in SRAM, Flash Attention: 1. Loads each KV block from HBM only <strong>once per query block</strong> instead of N times 2. Performs all computations in fast SRAM<br>
 3. Only writes final output to HBM</p>
 <p>The tiling transforms how we walk through memory—instead of repeatedly traversing the entire KV cache, we load contiguous blocks once and reuse them maximally.</p>
+</section>
+<section id="memory-is-always-1d" class="level2">
+<h2 class="anchored" data-anchor-id="memory-is-always-1d">Memory is Always 1D</h2>
+<p>Memory is a flat 1D array. Your <code>tensor[M, N]</code> doesn’t exist—it’s just multi-dimensional indexing over <code>M*N</code> consecutive bytes.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1"></a><span class="co"># What you write</span></span>
+<span id="cb4-2"><a href="#cb4-2"></a>A <span class="op">=</span> torch.randn(<span class="dv">1024</span>, <span class="dv">768</span>)  <span class="co"># A[i,j]</span></span>
+<span id="cb4-3"><a href="#cb4-3"></a></span>
+<span id="cb4-4"><a href="#cb4-4"></a><span class="co"># What actually exists in memory (row-major)</span></span>
+<span id="cb4-5"><a href="#cb4-5"></a>memory <span class="op">=</span> [row0_col0, row0_col1, ..., row0_col767,</span>
+<span id="cb4-6"><a href="#cb4-6"></a>          row1_col0, row1_col1, ..., row1_col767, ...]</span>
+<span id="cb4-7"><a href="#cb4-7"></a><span class="co"># A[i,j] → memory[i*768 + j]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><strong>Coalescing and performance depend on how your multi-dimensional indexing walks that 1D memory.</strong> When 32 threads in a warp access memory, the hardware can only coalesce these into a single transaction if your indexing pattern makes them access consecutive addresses:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1"></a><span class="co"># Row-major traversal: threads access A[i, 0:32]</span></span>
+<span id="cb5-2"><a href="#cb5-2"></a><span class="co"># Memory walk: [i*768+0, i*768+1, ..., i*768+31]</span></span>
+<span id="cb5-3"><a href="#cb5-3"></a><span class="co"># Consecutive addresses → 1 coalesced transaction</span></span>
+<span id="cb5-4"><a href="#cb5-4"></a></span>
+<span id="cb5-5"><a href="#cb5-5"></a><span class="co"># Column-major traversal: threads access A[0:32, j]  </span></span>
+<span id="cb5-6"><a href="#cb5-6"></a><span class="co"># Memory walk: [0*768+j, 1*768+j, ..., 31*768+j]</span></span>
+<span id="cb5-7"><a href="#cb5-7"></a><span class="co"># Addresses 768 elements apart → 32 separate transactions</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>This is why choosing the right stride matters:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1"></a>x <span class="op">=</span> torch.randn(<span class="dv">4096</span>, <span class="dv">4096</span>, device<span class="op">=</span><span class="st">'cuda'</span>)</span>
+<span id="cb6-2"><a href="#cb6-2"></a></span>
+<span id="cb6-3"><a href="#cb6-3"></a><span class="co"># Row-wise sum: indexing walks memory sequentially</span></span>
+<span id="cb6-4"><a href="#cb6-4"></a>x.<span class="bu">sum</span>(dim<span class="op">=</span><span class="dv">1</span>)  <span class="co"># Fast - stride of 1 through memory</span></span>
+<span id="cb6-5"><a href="#cb6-5"></a></span>
+<span id="cb6-6"><a href="#cb6-6"></a><span class="co"># After transpose: logical rows are physical columns</span></span>
+<span id="cb6-7"><a href="#cb6-7"></a>y <span class="op">=</span> x.T  <span class="co"># No data movement, just changes stride from (4096, 1) to (1, 4096)</span></span>
+<span id="cb6-8"><a href="#cb6-8"></a>y.<span class="bu">sum</span>(dim<span class="op">=</span><span class="dv">1</span>)  <span class="co"># ~30x slower - stride of 4096 through memory</span></span>
+<span id="cb6-9"><a href="#cb6-9"></a></span>
+<span id="cb6-10"><a href="#cb6-10"></a><span class="co"># .contiguous() reorganizes memory to match logical view</span></span>
+<span id="cb6-11"><a href="#cb6-11"></a>z <span class="op">=</span> y.contiguous()  <span class="co"># Copies data so logical indexing = sequential walk</span></span>
+<span id="cb6-12"><a href="#cb6-12"></a>z.<span class="bu">sum</span>(dim<span class="op">=</span><span class="dv">1</span>)  <span class="co"># Fast again</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
 <section id="triton-think-in-blocks-not-threads" class="level2">
 <h2 class="anchored" data-anchor-id="triton-think-in-blocks-not-threads">Triton: Think in Blocks, Not Threads</h2>
@@ -257,7 +257,22 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h3 class="anchored" data-anchor-id="the-basics">The Basics</h3>
 <p>For matrix multiplication C = A @ B where: - A has shape [M, K] - B has shape [K, N]<br>
 - C has shape [M, N]</p>
-<p>We launch <code>(M // BLOCK_M) * (N // BLOCK_N)</code> kernels. Each kernel computes one tile of C with shape <code>[BLOCK_M, BLOCK_N]</code> by: - Loading blocks from one row-strip of A - Loading blocks from one column-strip of B - Accumulating partial products</p>
+<pre><code>    K             N                N
+    ↓             ↓                ↓
+M → [A A A A]  [B B B] → M → [C C C]
+    [A A A A]  [B B B]       [C C C]
+    [A A A A]  [B B B]       [C C C]
+    [A A A A]  [B B B]       [C C C]
+               [B B B]
+               K →
+
+Each C[i,j] = Σ(k=0 to K-1) A[i,k] * B[k,j]</code></pre>
+<p>We launch <code>(M // BLOCK_M) * (N // BLOCK_N)</code> kernels. Each kernel computes one tile:</p>
+<pre><code>Matrix C divided into tiles:          Each kernel computes one tile:
+[C00 C01 C02 C03]                    
+[C10 C11 C12 C13]                    C11 = A[row1] @ B[col1]
+[C20 C21 C22 C23]                         ↓           ↓
+                                     A[128:256,:] @ B[:,128:256]</code></pre>
 </section>
 <section id="l2-cache-optimization-with-group_size_m" class="level3">
 <h3 class="anchored" data-anchor-id="l2-cache-optimization-with-group_size_m">L2 Cache Optimization with GROUP_SIZE_M</h3>
