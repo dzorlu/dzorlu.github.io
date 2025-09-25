@@ -2,7 +2,7 @@
 title: "Intro GPU Kernels"
 date: "2025-09-08"
 categories: [gpus]
-image: images/gpu.png
+image: images/gpu.jpeg
 ---
 
 # GPU Programming: From Memory Bottlenecks to Triton
