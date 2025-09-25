@@ -9,7 +9,7 @@ image: images/gpu.png
 
 ## Memory is Always 1D
 
-The most fundamental truth about GPU programming: memory is a flat 1D array. Your `tensor[M, N]` doesn't exist—it's just multi-dimensional indexing over `M*N` consecutive bytes.
+Memory is a flat 1D array.
 
 ```python
 # What you write
