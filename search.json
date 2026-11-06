@@ -4,7 +4,7 @@
     "href": "index.html",
     "title": "Tinkerings",
     "section": "",
-    "text": "My notes to build mental models for how things work.\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nTriton Kernels\n\n\n\n\n\n\n\n\nSep 8, 2025\n\n\n\n\n\n\n\n\n\n\n\n\nContext Parallelism\n\n\n\n\n\n\n\n\nSep 3, 2025\n\n\n\n\n\n\n\n\n\n\n\n\nExpert Parallelism\n\n\n\n\n\n\n\n\nSep 1, 2025\n\n\n\n\n\nNo matching items"
+    "text": "Notes to build mental models for how things work.\n\n\n\n\n\n\n\n\n\nBias and variance of the policy gradient\n\n\n\nrl\n\n\n\nEvery RL-for-LLM weighting rule, from REINFORCE to DPPO, measured on a toy where the true gradient is exact: bias, variance, the cap, and why a trust region is needed.\n\n\n\n\n\nNov 6, 2026\n\n\n\n\n\n\n\nTriton Kernels\n\n\n\ngpus\n\n\n\n\n\n\n\n\n\nSep 8, 2025\n\n\n\n\n\n\n\nContext Parallelism\n\n\n\ndistributed-training\n\n\n\n\n\n\n\n\n\nSep 3, 2025\n\n\n\n\n\n\n\nExpert Parallelism\n\n\n\ndistributed-training\n\n\n\n\n\n\n\n\n\nSep 1, 2025\n\n\n\n\n\nNo matching items"
   },
   {
     "objectID": "posts/expert_parallel.html",

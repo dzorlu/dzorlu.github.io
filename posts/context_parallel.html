@@ -60,6 +60,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 
 <script src="../site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="../site_libs/quarto-nav/headroom.min.js"></script>
 <script src="../site_libs/clipboard/clipboard.min.js"></script>
 <script src="../site_libs/quarto-search/autocomplete.umd.js"></script>
 <script src="../site_libs/quarto-search/fuse.min.js"></script>
@@ -72,16 +73,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="../site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="../site_libs/quarto-html/anchor.min.js"></script>
 <link href="../site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="../site_libs/quarto-html/quarto-syntax-highlighting-dark-45e8e462cd760eca75dbd85b13f1b7a2.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="../site_libs/quarto-html/quarto-syntax-highlighting-ba1660c15a418d22b3f3da2c272b5d97.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-2a27ec7538e68809fa2de2390dba7afd.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="dark">
+<link href="../site_libs/bootstrap/bootstrap-30d8496e71bcee49c7e83d50634ad48d.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
-  "location": "sidebar",
+  "location": "navbar",
   "copy-button": false,
   "collapse-after": 3,
-  "panel-placement": "start",
-  "type": "textbox",
+  "panel-placement": "end",
+  "type": "overlay",
   "limit": 50,
   "keyboard-shortcut": [
     "f",
@@ -107,11 +108,27 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 </head>
 
-<body class="fullcontent quarto-light">
+<body class="nav-fixed fullcontent quarto-light">
 
 <div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a href="../index.html" class="navbar-brand navbar-brand-logo">
+    </a>
+    <a class="navbar-brand" href="../index.html">
+    <span class="navbar-title">Tinkerings</span>
+    </a>
+  </div>
+        <div class="quarto-navbar-tools tools-end">
+</div>
+          <div id="quarto-search" class="" title="Search"></div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
 <!-- content -->
-<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
 <!-- margin-sidebar -->
     
@@ -169,18 +186,18 @@ Total: Only 4 different batches processed (each split across 2 GPUs)</code></pre
 </section>
 <section id="the-mesh-setup" class="level3">
 <h3 class="anchored" data-anchor-id="the-mesh-setup">The Mesh Setup</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1"></a>device_mesh <span class="op">=</span> init_device_mesh(</span>
-<span id="cb2-2"><a href="#cb2-2"></a>    <span class="st">"cuda"</span>,</span>
-<span id="cb2-3"><a href="#cb2-3"></a>    (args.dp_size, args.cp_size),  <span class="co"># (4, 2) for 8 GPUs</span></span>
-<span id="cb2-4"><a href="#cb2-4"></a>    mesh_dim_names<span class="op">=</span>(<span class="st">"dp_shard"</span>, <span class="st">"cp"</span>),</span>
-<span id="cb2-5"><a href="#cb2-5"></a>)</span>
-<span id="cb2-6"><a href="#cb2-6"></a></span>
-<span id="cb2-7"><a href="#cb2-7"></a><span class="co"># Flatten to create FSDP mesh - this is critical</span></span>
-<span id="cb2-8"><a href="#cb2-8"></a>device_mesh[(<span class="st">"dp_shard"</span>, <span class="st">"cp"</span>)]._flatten(mesh_dim_name<span class="op">=</span><span class="st">"dp"</span>)</span>
-<span id="cb2-9"><a href="#cb2-9"></a></span>
-<span id="cb2-10"><a href="#cb2-10"></a>dp_mesh <span class="op">=</span> device_mesh[<span class="st">"dp_shard"</span>]   <span class="co"># size = 4 -&gt; for data loading</span></span>
-<span id="cb2-11"><a href="#cb2-11"></a>row_mesh <span class="op">=</span> device_mesh[<span class="st">"dp"</span>]        <span class="co"># size = 8 -&gt; for FSDP all-reduce</span></span>
-<span id="cb2-12"><a href="#cb2-12"></a>col_mesh <span class="op">=</span> device_mesh[<span class="st">"cp"</span>]        <span class="co"># size = 2 -&gt; for CP operations</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a>device_mesh <span class="op">=</span> init_device_mesh(</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>    <span class="st">"cuda"</span>,</span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>    (args.dp_size, args.cp_size),  <span class="co"># (4, 2) for 8 GPUs</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>    mesh_dim_names<span class="op">=</span>(<span class="st">"dp_shard"</span>, <span class="st">"cp"</span>),</span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="co"># Flatten to create FSDP mesh - this is critical</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>device_mesh[(<span class="st">"dp_shard"</span>, <span class="st">"cp"</span>)]._flatten(mesh_dim_name<span class="op">=</span><span class="st">"dp"</span>)</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>dp_mesh <span class="op">=</span> device_mesh[<span class="st">"dp_shard"</span>]   <span class="co"># size = 4 -&gt; for data loading</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>row_mesh <span class="op">=</span> device_mesh[<span class="st">"dp"</span>]        <span class="co"># size = 8 -&gt; for FSDP all-reduce</span></span>
+<span id="cb2-12"><a href="#cb2-12" aria-hidden="true" tabindex="-1"></a>col_mesh <span class="op">=</span> device_mesh[<span class="st">"cp"</span>]        <span class="co"># size = 2 -&gt; for CP operations</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>The crucial point: FSDP still needs to operate across all 8 ranks for gradient synchronization. Even though CP splits sequences within groups of 2, the model weights need to be synchronized across all 8 GPUs. That’s why we create the flattened “dp” mesh with size 8.</p>
 <p>Without FSDP operating on all ranks, you’d essentially train 4 independent model replicas (one per DP group), which would never converge properly. In other words, in CP the weights are replicated across the CP group (similar to DP). Each rank computes gradients for the same weights but using different sequence positions, hence needing gradient synchronization.</p>
 </section>
@@ -188,19 +205,19 @@ Total: Only 4 different batches processed (each split across 2 GPUs)</code></pre
 <section id="context-parallel-in-practice" class="level2">
 <h2 class="anchored" data-anchor-id="context-parallel-in-practice">Context Parallel in Practice</h2>
 <p>The <code>context_parallel</code> context applies Ring Attention to all attention layers. <code>freqs_cis</code> is sharded along the position axis.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1"></a><span class="at">@monitor</span></span>
-<span id="cb3-2"><a href="#cb3-2"></a><span class="kw">def</span> training_step(x, y, i):</span>
-<span id="cb3-3"><a href="#cb3-3"></a>    ctx <span class="op">=</span> nullcontext()</span>
-<span id="cb3-4"><a href="#cb3-4"></a>    <span class="cf">if</span> args.use_cp:</span>
-<span id="cb3-5"><a href="#cb3-5"></a>        ctx <span class="op">=</span> context_parallel(</span>
-<span id="cb3-6"><a href="#cb3-6"></a>            col_mesh,</span>
-<span id="cb3-7"><a href="#cb3-7"></a>            buffers<span class="op">=</span>[x, y, model.freqs_cis],  <span class="co"># Shard these tensors</span></span>
-<span id="cb3-8"><a href="#cb3-8"></a>            buffer_seq_dims<span class="op">=</span>[<span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">0</span>],         <span class="co"># Along sequence dimension</span></span>
-<span id="cb3-9"><a href="#cb3-9"></a>            no_restore_buffers<span class="op">=</span>{x, y},         <span class="co"># Don't unshard after forward</span></span>
-<span id="cb3-10"><a href="#cb3-10"></a>        )</span>
-<span id="cb3-11"><a href="#cb3-11"></a>    <span class="cf">with</span> ctx:</span>
-<span id="cb3-12"><a href="#cb3-12"></a>        logits <span class="op">=</span> model(x)</span>
-<span id="cb3-13"><a href="#cb3-13"></a>        <span class="co"># All SDPA calls now use Ring Attention</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="at">@monitor</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> training_step(x, y, i):</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a>    ctx <span class="op">=</span> nullcontext()</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> args.use_cp:</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>        ctx <span class="op">=</span> context_parallel(</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>            col_mesh,</span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>            buffers<span class="op">=</span>[x, y, model.freqs_cis],  <span class="co"># Shard these tensors</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>            buffer_seq_dims<span class="op">=</span>[<span class="dv">1</span>, <span class="dv">1</span>, <span class="dv">0</span>],         <span class="co"># Along sequence dimension</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>            no_restore_buffers<span class="op">=</span>{x, y},         <span class="co"># Don't unshard after forward</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>        )</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>    <span class="cf">with</span> ctx:</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>        logits <span class="op">=</span> model(x)</span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>        <span class="co"># All SDPA calls now use Ring Attention</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
 <section id="how-context-parallel-works-under-the-hood" class="level2">
 <h2 class="anchored" data-anchor-id="how-context-parallel-works-under-the-hood">How Context Parallel Works Under the Hood</h2>
@@ -208,51 +225,51 @@ Total: Only 4 different batches processed (each split across 2 GPUs)</code></pre
 <h3 class="anchored" data-anchor-id="two-level-replacement">Two-Level Replacement</h3>
 <p><strong>Level 1: Python Function Wrapper</strong></p>
 <p><code>distribute_function</code> is singleton-based. Once called, ALL SDPA calls use Ring Attention:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1"></a><span class="co"># Input: tensors → DTensors with Shard(seq_dim)</span></span>
-<span id="cb4-2"><a href="#cb4-2"></a><span class="kw">def</span> attention_input_fn(mesh, <span class="op">*</span>args, <span class="op">**</span>kwargs):</span>
-<span id="cb4-3"><a href="#cb4-3"></a>    placement <span class="op">=</span> [Shard(seq_dim)]</span>
-<span id="cb4-4"><a href="#cb4-4"></a>    <span class="co"># Convert all tensor args to DTensors</span></span>
-<span id="cb4-5"><a href="#cb4-5"></a>    </span>
-<span id="cb4-6"><a href="#cb4-6"></a><span class="co"># Output: DTensors → local tensors  </span></span>
-<span id="cb4-7"><a href="#cb4-7"></a><span class="kw">def</span> attention_output_fn(mesh, outputs):</span>
-<span id="cb4-8"><a href="#cb4-8"></a>    <span class="cf">return</span> output.to_local() <span class="cf">if</span> <span class="bu">isinstance</span>(output, DTensor) <span class="cf">else</span> output</span>
-<span id="cb4-9"><a href="#cb4-9"></a></span>
-<span id="cb4-10"><a href="#cb4-10"></a><span class="co"># Replace THE function object globally</span></span>
-<span id="cb4-11"><a href="#cb4-11"></a>wrapper_fn <span class="op">=</span> wrapper(fn, attention_input_fn, attention_output_fn)</span>
-<span id="cb4-12"><a href="#cb4-12"></a><span class="bu">setattr</span>(F, <span class="st">'scaled_dot_product_attention'</span>, wrapper_fn)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Input: tensors → DTensors with Shard(seq_dim)</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> attention_input_fn(mesh, <span class="op">*</span>args, <span class="op">**</span>kwargs):</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>    placement <span class="op">=</span> [Shard(seq_dim)]</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Convert all tensor args to DTensors</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Output: DTensors → local tensors  </span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> attention_output_fn(mesh, outputs):</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> output.to_local() <span class="cf">if</span> <span class="bu">isinstance</span>(output, DTensor) <span class="cf">else</span> output</span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="co"># Replace THE function object globally</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>wrapper_fn <span class="op">=</span> wrapper(fn, attention_input_fn, attention_output_fn)</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a><span class="bu">setattr</span>(F, <span class="st">'scaled_dot_product_attention'</span>, wrapper_fn)</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p><strong>Level 2: ATEN Dispatch</strong></p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1"></a>call_maps <span class="op">=</span> {</span>
-<span id="cb5-2"><a href="#cb5-2"></a>    aten._scaled_dot_product_flash_attention: </span>
-<span id="cb5-3"><a href="#cb5-3"></a>        _scaled_dot_product_ring_flash_attention,</span>
-<span id="cb5-4"><a href="#cb5-4"></a>    aten._scaled_dot_product_efficient_attention: </span>
-<span id="cb5-5"><a href="#cb5-5"></a>        _scaled_dot_product_ring_efficient_attention,</span>
-<span id="cb5-6"><a href="#cb5-6"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a>call_maps <span class="op">=</span> {</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>    aten._scaled_dot_product_flash_attention: </span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>        _scaled_dot_product_ring_flash_attention,</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>    aten._scaled_dot_product_efficient_attention: </span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a>        _scaled_dot_product_ring_efficient_attention,</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a>}</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Regular Flash Attention: computes on local sequence only.<br>
 Ring Flash Attention: adds KV rotation between ranks.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1"></a><span class="co"># Ring Attention (simplified)</span></span>
-<span id="cb6-2"><a href="#cb6-2"></a><span class="kw">def</span> ring_flash_attention(q_local, k_local, v_local):</span>
-<span id="cb6-3"><a href="#cb6-3"></a>    output <span class="op">=</span> flash_attention(q_local, k_local, v_local)</span>
-<span id="cb6-4"><a href="#cb6-4"></a>    </span>
-<span id="cb6-5"><a href="#cb6-5"></a>    <span class="co"># Rotate KV chunks from other ranks</span></span>
-<span id="cb6-6"><a href="#cb6-6"></a>    <span class="cf">for</span> k_chunk, v_chunk <span class="kw">in</span> rotate_kv_chunks():</span>
-<span id="cb6-7"><a href="#cb6-7"></a>        partial <span class="op">=</span> flash_attention(q_local, k_chunk, v_chunk)</span>
-<span id="cb6-8"><a href="#cb6-8"></a>        output <span class="op">=</span> merge_attention_outputs(output, partial)  <span class="co"># log-sum-exp</span></span>
-<span id="cb6-9"><a href="#cb6-9"></a>    </span>
-<span id="cb6-10"><a href="#cb6-10"></a>    <span class="cf">return</span> output</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Ring Attention (simplified)</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> ring_flash_attention(q_local, k_local, v_local):</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>    output <span class="op">=</span> flash_attention(q_local, k_local, v_local)</span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a>    <span class="co"># Rotate KV chunks from other ranks</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> k_chunk, v_chunk <span class="kw">in</span> rotate_kv_chunks():</span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>        partial <span class="op">=</span> flash_attention(q_local, k_chunk, v_chunk)</span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>        output <span class="op">=</span> merge_attention_outputs(output, partial)  <span class="co"># log-sum-exp</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a>    </span>
+<span id="cb6-10"><a href="#cb6-10" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> output</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
 <section id="execution-flow" class="level3">
 <h3 class="anchored" data-anchor-id="execution-flow">Execution Flow</h3>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode numberSource python number-lines code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1"></a>F.scaled_dot_product_attention(q, k, v, is_causal<span class="op">=</span><span class="va">True</span>)</span>
-<span id="cb7-2"><a href="#cb7-2"></a>    ↓</span>
-<span id="cb7-3"><a href="#cb7-3"></a>wrapper_fn(q, k, v)  <span class="co"># Level 1</span></span>
-<span id="cb7-4"><a href="#cb7-4"></a>    ↓ </span>
-<span id="cb7-5"><a href="#cb7-5"></a>attention_input_fn: converts to DTensor <span class="cf">with</span> Shard(seq_dim)</span>
-<span id="cb7-6"><a href="#cb7-6"></a>    ↓</span>
-<span id="cb7-7"><a href="#cb7-7"></a>DTensor dispatcher finds Ring Attention <span class="kw">in</span> call_maps  <span class="co"># Level 2</span></span>
-<span id="cb7-8"><a href="#cb7-8"></a>    ↓</span>
-<span id="cb7-9"><a href="#cb7-9"></a>_scaled_dot_product_ring_flash_attention executes</span>
-<span id="cb7-10"><a href="#cb7-10"></a>    ↓</span>
-<span id="cb7-11"><a href="#cb7-11"></a>attention_output_fn: converts back to local tensor</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>F.scaled_dot_product_attention(q, k, v, is_causal<span class="op">=</span><span class="va">True</span>)</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>    ↓</span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>wrapper_fn(q, k, v)  <span class="co"># Level 1</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a>    ↓ </span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a>attention_input_fn: converts to DTensor <span class="cf">with</span> Shard(seq_dim)</span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a>    ↓</span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a>DTensor dispatcher finds Ring Attention <span class="kw">in</span> call_maps  <span class="co"># Level 2</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>    ↓</span>
+<span id="cb7-9"><a href="#cb7-9" aria-hidden="true" tabindex="-1"></a>_scaled_dot_product_ring_flash_attention executes</span>
+<span id="cb7-10"><a href="#cb7-10" aria-hidden="true" tabindex="-1"></a>    ↓</span>
+<span id="cb7-11"><a href="#cb7-11" aria-hidden="true" tabindex="-1"></a>attention_output_fn: converts back to local tensor</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Level 1: tensor conversion and orchestration<br>
 Level 2: swaps CUDA kernel to Ring Attention variant</p>
 </section>

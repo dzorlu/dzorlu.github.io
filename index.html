@@ -24,6 +24,7 @@ ul.task-list li input[type="checkbox"] {
 
 
 <script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
 <script src="site_libs/clipboard/clipboard.min.js"></script>
 <script src="site_libs/quarto-search/autocomplete.umd.js"></script>
 <script src="site_libs/quarto-search/fuse.min.js"></script>
@@ -38,16 +39,16 @@ ul.task-list li input[type="checkbox"] {
 <script src="site_libs/quarto-html/tippy.umd.min.js"></script>
 <script src="site_libs/quarto-html/anchor.min.js"></script>
 <link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
-<link href="site_libs/quarto-html/quarto-syntax-highlighting-dark-45e8e462cd760eca75dbd85b13f1b7a2.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting-ba1660c15a418d22b3f3da2c272b5d97.css" rel="stylesheet" id="quarto-text-highlighting-styles">
 <script src="site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="site_libs/bootstrap/bootstrap-2a27ec7538e68809fa2de2390dba7afd.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="dark">
+<link href="site_libs/bootstrap/bootstrap-30d8496e71bcee49c7e83d50634ad48d.min.css" rel="stylesheet" append-hash="true" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
-  "location": "sidebar",
+  "location": "navbar",
   "copy-button": false,
   "collapse-after": 3,
-  "panel-placement": "start",
-  "type": "textbox",
+  "panel-placement": "end",
+  "type": "overlay",
   "limit": 50,
   "keyboard-shortcut": [
     "f",
@@ -79,7 +80,7 @@ ul.task-list li input[type="checkbox"] {
     }
 
     const options = {
-      valueNames: ['listing-date','listing-title','listing-author','listing-image','listing-description',{ data: ['index'] },{ data: ['categories'] },{ data: ['listing-date-sort'] },{ data: ['listing-file-modified-sort'] }],
+      valueNames: ['listing-date','listing-title','listing-description','listing-categories',{ data: ['index'] },{ data: ['categories'] },{ data: ['listing-date-sort'] },{ data: ['listing-file-modified-sort'] }],
       
       searchColumns: ["listing-date","listing-title","listing-author","listing-image","listing-description"],
     };
@@ -131,11 +132,27 @@ window.Quarto = {
 
 </head>
 
-<body class="quarto-light">
+<body class="nav-fixed quarto-light">
 
 <div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+    <nav class="navbar navbar-expand-lg " data-bs-theme="dark">
+      <div class="navbar-container container-fluid">
+      <div class="navbar-brand-container mx-auto">
+    <a href="./index.html" class="navbar-brand navbar-brand-logo">
+    </a>
+    <a class="navbar-brand" href="./index.html">
+    <span class="navbar-title">Tinkerings</span>
+    </a>
+  </div>
+        <div class="quarto-navbar-tools tools-end">
+</div>
+          <div id="quarto-search" class="" title="Search"></div>
+      </div> <!-- /container-fluid -->
+    </nav>
+</header>
 <!-- content -->
-<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-full">
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-full page-navbar">
 <!-- sidebar -->
 <!-- margin-sidebar -->
     
@@ -161,23 +178,45 @@ window.Quarto = {
 </header>
 
 
-<p>My notes to build mental models for how things work.</p>
+<p>Notes to build mental models for how things work.</p>
 
 
 
 
 <div class="quarto-listing quarto-listing-container-default" id="listing-listing">
 <div class="list quarto-listing-default">
-<div class="quarto-post image-right" data-index="0" data-categories="Z3B1cw==" data-listing-date-sort="1757314800000" data-listing-file-modified-sort="1758775064057" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="9" data-listing-word-count-sort="1743">
-<div class="thumbnail"><a href="./posts/triton.html" class="no-external">
+<div class="quarto-post image-right" data-index="0" data-categories="cmw=" data-listing-date-sort="1793952000000">
+<div class="body">
+<h3 class="no-anchor listing-title">
+<a href="posts/bias-variance/index.html" class="no-external">Bias and variance of the policy gradient</a>
+</h3>
+<div class="listing-categories">
 
-<div class="listing-item-img-placeholder card-img-top" >&nbsp;</div>
+<div class="listing-category" onclick="window.quartoListingCategory('cmw='); return false;">rl</div>
 
+</div>
+<div class="delink listing-description"><a href="posts/bias-variance/index.html" class="no-external">
+<p>Every RL-for-LLM weighting rule, from REINFORCE to DPPO, measured on a toy where the true gradient is exact: bias, variance, the cap, and why a trust region is needed.</p>
 </a></div>
+</div>
+<div class="metadata">
+<a href="posts/bias-variance/index.html" class="no-external">
+<div class="listing-date">
+Nov 6, 2026
+</div>
+</a>
+</div>
+</div>
+<div class="quarto-post image-right" data-index="1" data-categories="Z3B1cw==" data-listing-date-sort="1757314800000" data-listing-file-modified-sort="1793996912611" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="9" data-listing-word-count-sort="1743">
 <div class="body">
 <h3 class="no-anchor listing-title">
 <a href="./posts/triton.html" class="no-external">Triton Kernels</a>
 </h3>
+<div class="listing-categories">
+
+<div class="listing-category" onclick="window.quartoListingCategory('Z3B1cw=='); return false;">gpus</div>
+
+</div>
 <div class="delink listing-description"><a href="./posts/triton.html" class="no-external">
 Modern GPUs have massive compute but limited memory bandwidth. The key metric is <strong>arithmetic intensity (AI)</strong>:
 </a></div>
@@ -190,16 +229,16 @@ Sep 8, 2025
 </a>
 </div>
 </div>
-<div class="quarto-post image-right" data-index="1" data-categories="ZGlzdHJpYnV0ZWQtdHJhaW5pbmc=" data-listing-date-sort="1756882800000" data-listing-file-modified-sort="1758770976656" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="5" data-listing-word-count-sort="827">
-<div class="thumbnail"><a href="./posts/context_parallel.html" class="no-external">
-
-<img loading="lazy" src="./posts/images/cp.png" class="thumbnail-image">
-
-</a></div>
+<div class="quarto-post image-right" data-index="2" data-categories="ZGlzdHJpYnV0ZWQtdHJhaW5pbmc=" data-listing-date-sort="1756882800000" data-listing-file-modified-sort="1793996912608" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="5" data-listing-word-count-sort="827">
 <div class="body">
 <h3 class="no-anchor listing-title">
 <a href="./posts/context_parallel.html" class="no-external">Context Parallelism</a>
 </h3>
+<div class="listing-categories">
+
+<div class="listing-category" onclick="window.quartoListingCategory('ZGlzdHJpYnV0ZWQtdHJhaW5pbmc='); return false;">distributed-training</div>
+
+</div>
 <div class="delink listing-description"><a href="./posts/context_parallel.html" class="no-external">
 Context Parallelism (CP) is a distributed training technique that enables training of LLMs with extremely long sequences (up to 1M tokens) by sharding the sequence dimension…
 </a></div>
@@ -212,16 +251,16 @@ Sep 3, 2025
 </a>
 </div>
 </div>
-<div class="quarto-post image-right" data-index="2" data-categories="ZGlzdHJpYnV0ZWQtdHJhaW5pbmc=" data-listing-date-sort="1756710000000" data-listing-file-modified-sort="1758774519080" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="19" data-listing-word-count-sort="3603">
-<div class="thumbnail"><a href="./posts/expert_parallel.html" class="no-external">
-
-<img loading="lazy" src="./posts/images/ep.png" class="thumbnail-image">
-
-</a></div>
+<div class="quarto-post image-right" data-index="3" data-categories="ZGlzdHJpYnV0ZWQtdHJhaW5pbmc=" data-listing-date-sort="1756710000000" data-listing-file-modified-sort="1793996912608" data-listing-date-modified-sort="NaN" data-listing-reading-time-sort="19" data-listing-word-count-sort="3603">
 <div class="body">
 <h3 class="no-anchor listing-title">
 <a href="./posts/expert_parallel.html" class="no-external">Expert Parallelism</a>
 </h3>
+<div class="listing-categories">
+
+<div class="listing-category" onclick="window.quartoListingCategory('ZGlzdHJpYnV0ZWQtdHJhaW5pbmc='); return false;">distributed-training</div>
+
+</div>
 <div class="delink listing-description"><a href="./posts/expert_parallel.html" class="no-external">
 Let’s distill how to run a Mixture-of-Experts (MoE) model with expert parallelism with an example.
 </a></div>
