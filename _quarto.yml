@@ -28,6 +28,7 @@ format:
       light: [cosmo, custom.scss]
       dark: [cosmo, custom.scss, dark.scss]
     highlight-style: github
+    include-in-header: color-scheme.html
     code-copy: true
     code-line-numbers: false
     toc: false

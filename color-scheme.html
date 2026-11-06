@@ -1,0 +1,7 @@
+<script>
+// Default the colour scheme to the OS preference on first visit; Quarto's toggle stores the choice under this key.
+(function () { try {
+  if (localStorage.getItem('quarto-color-scheme') == null && window.matchMedia('(prefers-color-scheme: dark)').matches)
+    localStorage.setItem('quarto-color-scheme', 'alternate');
+} catch (e) {} })();
+</script>
