@@ -1,0 +1,53 @@
+/*-- scss:defaults --*/
+$font-family-sans-serif: -apple-system, system-ui, "Segoe UI", Helvetica, Arial, sans-serif;
+$font-family-monospace: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+$font-size-base: 1rem;
+$line-height-base: 1.65;
+$body-bg: #fcfcfb;
+$body-color: #1d1d1b;
+$link-color: #2a78d6;
+$link-decoration: none;
+$headings-font-weight: 650;
+$headings-color: #1d1d1b;
+$code-bg: #f2f1ee;
+$code-color: #1d1d1b;
+$code-block-bg: #f2f1ee;
+$border-color: #e4e3df;
+$navbar-bg: #fcfcfb;
+$navbar-fg: #1d1d1b;
+$table-border-color: #e4e3df;
+
+/*-- scss:rules --*/
+.navbar { border-bottom: 1px solid #e4e3df; box-shadow: none; padding: 0.6rem 0; }
+.navbar .navbar-brand { font-weight: 650; }
+.navbar .navbar-title { font-weight: 650; }
+.navbar .nav-link { color: #5f5e5a; }
+a:hover { text-decoration: underline; }
+h1.title { font-size: 2rem; margin-bottom: 0.25rem; }
+.quarto-title .quarto-categories .quarto-category { border-color: #e4e3df; color: #5f5e5a; }
+.quarto-title-meta { color: #5f5e5a; font-size: 0.85rem; }
+h2 { font-size: 1.4rem; margin-top: 2.2rem; border-bottom: 1px solid #e4e3df; padding-bottom: 0.3rem; }
+h3 { font-size: 1.15rem; margin-top: 1.6rem; }
+pre, pre.sourceCode { background: #f2f1ee !important; border: 0; border-radius: 6px; font-size: 0.85rem; padding: 0.8rem; }
+code { font-size: 0.9em; }
+p code, li code, td code { background: #f2f1ee; padding: 1px 4px; border-radius: 3px; }
+table { font-size: 0.92rem; }
+th { background: #f0efec; font-weight: 600; }
+th, td { padding: 0.35rem 0.6rem; border: 1px solid #e4e3df; }
+img { max-width: 100%; border-radius: 4px; }
+em { color: #5f5e5a; }
+.sidebar nav[role=doc-toc] a { color: #5f5e5a; } .sidebar nav[role=doc-toc] a.active { color: #1d1d1b; font-weight: 600; }
+
+/* the listing on the home page */
+.quarto-listing-default { margin-top: 1rem; }
+div.quarto-post { border-bottom: 1px solid #e4e3df; padding: 1.1rem 0; gap: 1.5rem; }
+div.quarto-post .listing-title { font-size: 1.15rem; font-weight: 650; }
+div.quarto-post .listing-title a { color: #1d1d1b; }
+div.quarto-post .listing-title a:hover { color: #2a78d6; text-decoration: none; }
+div.quarto-post .listing-description { color: #5f5e5a; font-size: 0.95rem; }
+div.quarto-post .listing-categories .listing-category { border-color: #e4e3df; color: #5f5e5a; }
+div.quarto-post .metadata { color: #5f5e5a; font-size: 0.85rem; flex: 0 0 110px; order: -1; }
+div.quarto-post .body { flex: 1 1 0; min-width: 0; }
+div.quarto-post .thumbnail { display: none; }
+div.quarto-post .thumbnail img { border-radius: 6px; }
+#title-block-header.quarto-title-block.default .quarto-title .title { font-weight: 650; }

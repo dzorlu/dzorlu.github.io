@@ -1,10 +1,14 @@
 ---
 title: "Tinkerings"
 page-layout: full
+toc: false
 listing:
-  contents: posts
+  contents:
+    - posts
+    - posts/external.yml
   sort: "date desc"
   type: default
+  fields: [date, title, description, categories]
 ---
 
-My notes to build mental models for how things work.
+Notes to build mental models for how things work.

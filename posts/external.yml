@@ -1,0 +1,5 @@
+- title: "Bias and variance of the policy gradient"
+  date: "2026-11-06"
+  description: "Every RL-for-LLM weighting rule, from REINFORCE to DPPO, measured on a toy where the true gradient is exact: bias, variance, the cap, and why a trust region is needed."
+  path: posts/bias-variance/index.html
+  categories: [rl]

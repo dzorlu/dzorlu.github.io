@@ -4,25 +4,28 @@ project:
 website:
   title: "Tinkerings"
   site-url: https://tinkerings.dev
+  navbar:
+    background: "#fcfcfb"
+    foreground: "#1d1d1b"
 
 resources:
   - static/moe.html
   - static/moe-preview.png
   - images/**
+  - posts/bias-variance/**
 
 format:
   html:
-    theme: darkly
-    highlight-style: monokai
+    theme: [cosmo, custom.scss]
+    highlight-style: github
     code-copy: true
-    code-line-numbers: true
-    code-block-bg: "#0e1117"
-    code-block-border-left: "#00d1b2"
+    code-line-numbers: false
+    toc: false
+    grid:
+      body-width: 760px
+      sidebar-width: 220px
+      margin-width: 220px
 
 execute:
   echo: false
   warning: false
-
-
-
-
