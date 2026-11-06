@@ -53,12 +53,11 @@ em { color: $muted; }
 .nav-footer a { color: $muted; }
 
 /* home page header: avatar + intro */
-.home-hero { display: flex; align-items: center; gap: 1.5rem; margin: 0.5rem 0 1.5rem; }
-.home-hero .avatar { flex: 0 0 auto; width: 96px; height: 96px; border-radius: 50%; object-fit: cover; border: 1px solid $rule; }
+.home-hero { display: flex; align-items: center; gap: 1.25rem; margin: 0.5rem 0 1rem; }
+.home-hero .avatar { flex: 0 0 auto; width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 1px solid $rule; }
 .home-hero .intro { margin: 0; }
-.home-hero .intro .site-name { display: block; font-size: 2rem; font-weight: 650; line-height: 1.2; margin: 0 0 0.3rem; color: $ink; }
-.home-hero .intro p { margin: 0; color: $muted; }
-@media (max-width: 575px) { .home-hero { gap: 1rem; } .home-hero .avatar { width: 72px; height: 72px; } .home-hero .intro .site-name { font-size: 1.6rem; } }
+.home-hero .intro p { margin: 0; color: $muted; font-size: 1.15rem; line-height: 1.5; }
+@media (max-width: 575px) { .home-hero { gap: 1rem; } .home-hero .avatar { width: 72px; height: 72px; } }
 
 /* the listing on the home page */
 .quarto-listing-default { margin-top: 0; }
