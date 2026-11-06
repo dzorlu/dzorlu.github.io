@@ -5,8 +5,16 @@ website:
   title: "Tinkerings"
   site-url: https://tinkerings.dev
   navbar:
-    background: "#fcfcfb"
-    foreground: "#1d1d1b"
+    right:
+      - icon: github
+        href: https://github.com/dzorlu
+        aria-label: GitHub
+  page-footer:
+    left: "Tinkerings"
+    right:
+      - icon: github
+        href: https://github.com/dzorlu
+        aria-label: GitHub
 
 resources:
   - static/moe.html
@@ -16,7 +24,9 @@ resources:
 
 format:
   html:
-    theme: [cosmo, custom.scss]
+    theme:
+      light: [cosmo, custom.scss]
+      dark: [cosmo, custom.scss, dark.scss]
     highlight-style: github
     code-copy: true
     code-line-numbers: false

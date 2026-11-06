@@ -1,5 +1,5 @@
 ---
-title: "Tinkerings"
+pagetitle: "Tinkerings"
 page-layout: full
 toc: false
 listing:
@@ -11,4 +11,12 @@ listing:
   fields: [date, title, description, categories]
 ---
 
-Notes to build mental models for how things work.
+```{=html}
+<div class="home-hero">
+  <img class="avatar" src="images/me.jpg" alt="Photo of the author">
+  <div class="intro">
+    <span class="site-name" role="heading" aria-level="1">Tinkerings</span>
+    <p>Notes to build mental models for how things work.</p>
+  </div>
+</div>
+```

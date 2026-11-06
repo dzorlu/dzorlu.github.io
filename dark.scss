@@ -1,0 +1,13 @@
+/*-- scss:defaults --*/
+// dark palette; everything else comes from custom.scss
+$bg:        #151514;
+$ink:       #e8e6e1;
+$muted:     #9c9a92;
+$rule:      #2c2c2a;
+$surface:   #1f1f1d;
+$surface-2: #242422;
+$accent:    #7fb2f0;
+
+/*-- scss:rules --*/
+img { opacity: 0.92; }
+.home-hero .avatar { opacity: 1; }
