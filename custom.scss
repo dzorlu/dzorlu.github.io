@@ -40,7 +40,8 @@ h1.title { font-size: 2rem; margin-bottom: 0.25rem; }
 .quarto-title-meta { color: $muted; font-size: 0.85rem; }
 h2 { font-size: 1.4rem; margin-top: 2.2rem; border-bottom: 1px solid $rule; padding-bottom: 0.3rem; }
 h3 { font-size: 1.15rem; margin-top: 1.6rem; }
-pre, pre.sourceCode { background: $surface !important; border: 0; border-radius: 6px; font-size: 0.85rem; padding: 0.8rem; }
+pre, pre.sourceCode { background: $surface !important; border: 0; border-radius: 6px; font-size: 0.85rem; padding: 0.8rem; color: $ink; }
+pre code { color: inherit; }
 code { font-size: 0.9em; }
 p code, li code, td code { background: $surface; padding: 1px 4px; border-radius: 3px; }
 table { font-size: 0.92rem; }
