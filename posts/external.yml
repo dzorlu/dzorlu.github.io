@@ -1,3 +1,8 @@
+- title: "Score centering"
+  date: "2026-11-06"
+  description: "Why a mismatched inference engine pushes the trainer toward itself, why ratios cannot fix it cleanly, and the one-line change that does: subtract the engine's distribution instead of the trainer's."
+  path: posts/score-centering/index.html
+  categories: [rl]
 - title: "Bias and variance of the policy gradient"
   date: "2026-11-06"
   description: "Every RL-for-LLM weighting rule, from REINFORCE to DPPO, measured on a toy where the true gradient is exact: bias, variance, the cap, and why a trust region is needed."

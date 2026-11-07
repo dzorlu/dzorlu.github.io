@@ -21,6 +21,7 @@ resources:
   - static/moe-preview.png
   - images/**
   - posts/bias-variance/**
+  - posts/score-centering/**
 
 format:
   html:

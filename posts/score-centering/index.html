@@ -1,0 +1,342 @@
+<!doctype html><html><head><meta charset="utf-8"><title>Score centering</title>
+<style>
+:root { --ink:#1d1d1b; --muted:#5f5e5a; --line:#e4e3df; --bg:#fcfcfb; --code:#f2f1ee; --accent:#2a78d6; --th:#f0efec; --widget:#fff; }
+html.dark { --ink:#e8e6e1; --muted:#9c9a92; --line:#2c2c2a; --bg:#151514; --code:#1f1f1d; --accent:#7fb2f0; --th:#242422; --widget:#1a1a19; }
+html.dark img { opacity:0.9; }
+/* widget charts hard-code the light palette in SVG attributes; remap them in dark mode */
+html.dark .w-panels svg [fill="#1d1d1b"] { fill:var(--ink); }  html.dark .w-panels svg [stroke="#1d1d1b"] { stroke:var(--ink); }
+html.dark .w-panels svg [fill="#5f5e5a"] { fill:var(--muted); } html.dark .w-panels svg [stroke="#5f5e5a"] { stroke:var(--muted); }
+html.dark .w-panels svg [stroke="#e4e3df"] { stroke:var(--line); }
+html.dark .w-panels svg [fill="#fff"] { fill:var(--widget); }   html.dark .w-panels svg [stroke="#fff"] { stroke:var(--widget); }
+/* --web: a top bar matching the Quarto site's navbar (brand left, GitHub + colour-scheme toggle right) */
+.topbar { position:sticky; top:0; z-index:20; height:56px; display:flex; align-items:center; justify-content:space-between;
+           padding:0 2.1rem; box-sizing:border-box; background:var(--bg); border-bottom:1px solid var(--line); }
+.topbar .brand { font-size:1.25rem; font-weight:650; color:var(--ink); text-decoration:none; }
+.topbar .tools { display:flex; gap:1rem; align-items:center; }
+.topbar .tools a { color:var(--ink); font-size:1.1rem; line-height:1; text-decoration:none; } .topbar .tools a:hover { color:var(--accent); }
+.topbar .mode i::before { content:"\f5d5"; } html.dark .topbar .mode i::before { content:"\f5d6"; }
+body.web #toc { top:56px; height:calc(100vh - 56px); }
+body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.65 -apple-system,system-ui,sans-serif; }
+a { color:var(--accent); }
+#toc { position:fixed; top:0; left:0; width:230px; height:100vh; overflow-y:auto; padding:40px 16px 40px 24px;
+        box-sizing:border-box; border-right:1px solid var(--line); font-size:13px; }
+#toc a { display:block; color:var(--muted); text-decoration:none; padding:3px 0; }
+#toc a.h3 { padding-left:14px; }
+#toc a.active { color:var(--ink); font-weight:600; }
+#toc .title { font-weight:600; color:var(--ink); margin-bottom:10px; }
+.home { font-size:13px; color:var(--muted); text-decoration:none; } .home:hover { color:var(--accent); }
+main { margin-left:270px; max-width:820px; padding:40px 300px 80px 0; box-sizing:content-box; }
+pre { background:var(--code); padding:12px; overflow-x:auto; border-radius:6px; font-size:13px; }
+code { font:13px Menlo,monospace; }
+p code, li code, td code { background:var(--code); padding:1px 4px; border-radius:3px; }
+table { border-collapse:collapse; margin:12px 0; display:block; overflow-x:auto; font-size:14px;
+         width:max-content; max-width:calc(100% + 300px); }
+th, td { border:1px solid var(--line); padding:6px 10px; white-space:nowrap; } th { background:var(--th); }
+img { max-width:100%; } em { color:var(--muted); }
+sup.cite a { color:var(--accent); text-decoration:none; font-size:11px; }
+sup.cite + sup.cite::before { content:','; font-size:11px; color:var(--accent); }
+.sidenote { float:right; clear:right; margin-right:-300px; width:270px; font-size:12px; line-height:1.45;
+             color:var(--muted); margin-top:4px; margin-bottom:10px; }
+.sidenote b { color:var(--accent); }
+.sidenote.inline { float:none; display:block; margin:-6px 0 12px; width:auto; max-width:820px; border-left:2px solid var(--line); padding-left:8px; }
+#refs li { font-size:13px; color:var(--muted); }
+@media (max-width: 1400px) {
+  #toc { display:none; } main { margin:0 auto; padding:24px 16px 60px; }
+  .sidenote { float:none; display:block; margin:6px 0 10px; width:auto; border-left:2px solid var(--line); padding-left:8px; }
+  table { max-width:100%; }
+}
+.katex-display { overflow-x:auto; overflow-y:hidden; padding:2px 0; }
+details.note { margin:4px 0 14px; }
+details.note summary { list-style:none; cursor:pointer; display:inline-block; font-size:12px; color:var(--accent); }
+details.note summary::-webkit-details-marker { display:none; }
+details.note summary::before { content:'?'; display:inline-block; width:16px; height:16px; line-height:16px; text-align:center;
+         border:1px solid var(--accent); border-radius:50%; margin-right:6px; font-weight:600; }
+details.note[open] summary::before { content:'×'; }
+.note-body { margin-top:8px; padding:12px 16px; border-left:3px solid var(--accent); background:var(--code); border-radius:0 6px 6px 0;
+         font-size:14px; }
+.note-body p:first-child { margin-top:0; } .note-body p:last-child { margin-bottom:0; }
+.tip { border-bottom:1px dotted var(--accent); cursor:help; position:relative; }
+.tip:hover::after { content:attr(data-tip); position:absolute; left:0; top:1.5em; z-index:10; background:var(--ink); color:var(--bg);
+         padding:6px 10px; border-radius:4px; font:12px/1.4 -apple-system,system-ui,sans-serif; width:max-content; max-width:320px; white-space:normal; }
+.widget { margin:16px 0 20px; padding:14px 16px; border:1px solid var(--line); border-radius:8px; background:var(--widget); font-size:13px; }
+.w-controls { display:flex; flex-wrap:wrap; gap:10px 24px; align-items:flex-end; }
+.w-controls label { display:flex; flex-direction:column; gap:2px; color:var(--muted); min-width:180px; }
+.w-controls label b { color:var(--ink); } .w-controls input { width:180px; }
+.w-presets { display:flex; gap:6px; flex-wrap:wrap; }
+.w-presets button { font:12px -apple-system,system-ui,sans-serif; padding:3px 8px; border:1px solid var(--line); border-radius:4px; background:var(--code); cursor:pointer; }
+.w-presets button:hover { border-color:var(--accent); }
+.w-readout { margin:10px 0 6px; color:var(--muted); line-height:1.6; } .w-readout b { color:var(--ink); }
+.w-panels { display:flex; flex-wrap:wrap; gap:8px; }
+.w-panels figure { flex:1 1 240px; margin:0; } .w-panels svg { width:100%; height:auto; font-family:-apple-system,system-ui,sans-serif; }
+.w-panels figcaption { font-size:11px; color:var(--muted); text-align:center; }
+.c-blue { color:#2a78d6; } .c-orange { color:#eb6834; } .c-aqua { color:#1baf7a; }
+</style>
+<script>
+// Same key the Quarto site writes, so the toggle here and the one in the site navbar stay in step.
+(function () { try {
+  let v = localStorage.getItem('quarto-color-scheme');
+  if (v == null && window.matchMedia('(prefers-color-scheme: dark)').matches) { v = 'alternate'; localStorage.setItem('quarto-color-scheme', v); }
+  if (v === 'alternate') document.documentElement.classList.add('dark');
+} catch (e) {} })();
+window.toggleMode = function () {
+  const dark = document.documentElement.classList.toggle('dark');
+  try { localStorage.setItem('quarto-color-scheme', dark ? 'alternate' : 'default'); } catch (e) {}
+};
+</script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.css">
+<link rel="stylesheet" href="../../site_libs/bootstrap/bootstrap-icons.css">
+</head><body class="web">
+<header class="topbar"><a class="brand" href="../../">Tinkerings</a><span class="tools"><a href="https://github.com/dzorlu" aria-label="GitHub"><i class="bi bi-github"></i></a><a class="mode" href="#" onclick="toggleMode(); return false;" title="Toggle dark mode"><i class="bi"></i></a></span></header>
+<nav id="toc"></nav><main id="c"></main>
+<script id="md" type="text/plain"># Score centering
+
+## Summary
+
+In RL for language models the tokens are drawn by an inference engine, and the gradient is computed by a trainer
+whose probabilities differ slightly from the engine&#x27;s: quantization, a stale copy of the weights, different kernels.
+Every correction in use reweights each token by a ratio of the two probabilities, which fixes the mismatch exactly
+only when the ratio is left uncapped, and every practical method caps it. Score centering [[1]](#ref-1) does
+something else. It changes the direction of the gradient rather than its weight, and the whole method is one line.
+
+- **Each update is advantage times score.** The score of the drawn token $y$ is $e_y - p$: one-hot of the token minus
+  the trainer&#x27;s probabilities, the direction that makes $y$ more likely.
+- **Averaged over the engine&#x27;s draws, the score is $q - p$.** Weight each token&#x27;s score by the engine&#x27;s probability
+  $q_v$ and the sum collapses: $\sum_v q_v (e_v - p) = q - p$. If the trainer did the drawing this would be $p - p = 0$.
+- **The expected update splits into drift plus signal.** Any product of two random variables averages to mean times
+  mean plus a covariance. For advantage times score that gives $\bar A \,(q - p)$, the drift, and a covariance, the
+  signal. The drift pushes the trainer toward the engine and knows nothing about which token was good. On-policy the
+  same split exists but the drift is zero, because $q - p$ is.
+- **The fix subtracts $q - p$ from the score.** $(e_y - p) - (q - p) = e_y - q$. Averaged under the engine this is
+  $q - q = 0$, so the drift is zero for any advantage and any baseline. The covariance does not change, because every
+  draw had the same vector subtracted.
+- **In code it is one line.** Where the gradient at the logits was $A\,(p - e_y)$, write $A\,(q - e_y)$. The engine has
+  to return its distribution at each position. No ratios, no clipping, no hyperparameter, and it composes with any
+  importance weight.
+- **Why it matters.** The engine is rebuilt from the trainer after every step with its error added back, so the drift
+  accumulates instead of converging. Importance sampling corrects it by reweighting toward the trainer and pays in
+  variance. Centering corrects it by measuring against the engine and pays nothing.
+
+## One position, three tokens
+
+The trainer gives the next token probabilities $p$, the engine gives $q$, and the engine draws. Only token 0 leads to
+a correct answer. The baseline $b$ is the mean reward of this prompt&#x27;s rollouts.
+
+```python
+p = [0.5, 0.3, 0.2]       # trainer
+q = [0.6, 0.3, 0.1]       # engine; it draws
+R = [1.0, 0.0, 0.0]       # reward if token 0, 1, 2 is drawn
+b = 0.25
+A = [0.75, -0.25, -0.25]  # R - b
+```
+
+The score of each token, and the update if that token is drawn:
+
+```python
+S = [[ 0.5, -0.3, -0.2],   # row v: e_v - p
+     [-0.5,  0.7, -0.2],
+     [-0.5, -0.3,  0.8]]
+
+U = [[ 0.375, -0.225, -0.150],   # row v: A[v] * S[v]
+     [ 0.125, -0.175,  0.050],
+     [ 0.125,  0.075, -0.200]]
+```
+
+The engine draws token $v$ with probability $q_v$, so the expected update is the $q$-weighted sum of the rows:
+
+```python
+0.6 * U[0] + 0.3 * U[1] + 0.1 * U[2] = [0.275, -0.18, -0.095]
+```
+
+## The expected update is drift plus signal
+
+Split it with the covariance identity $\mathbb{E}[XY] = \mathbb{E}[X]\,\mathbb{E}[Y] + \mathrm{Cov}(X, Y)$, where $X$
+is the advantage of the drawn token and $Y$ its score:
+
+```python
+A_avg = 0.6*0.75 + 0.3*(-0.25) + 0.1*(-0.25) = 0.35
+s_bar = 0.6*S[0] + 0.3*S[1] + 0.1*S[2]       = [0.1, 0.0, -0.1]     # = q - p
+
+drift  = A_avg * s_bar  = [0.035,  0.00, -0.035]
+signal = rest           = [0.240, -0.18, -0.060]
+```
+
+The drift raises token 0 and lowers token 2: it moves $p$ toward $q$, scaled by the average advantage, with no regard
+for which token earned the reward. The signal is what remains, and it is the only part that depends on that.
+
+Why $\bar s = q - p$: split the sum that defines it. The one-hot part collects $q$; $p$ is the same vector in every
+term and comes out with the probabilities summing to one.
+
+$$
+\bar s = \sum_v q_v (e_v - p) = \sum_v q_v e_v - \Big(\sum_v q_v\Big) p = q - p
+$$
+
+## Centering the score removes the drift
+
+Use $e_y - q$ as the score. Its mean under the engine&#x27;s draws is $q - q = 0$, so the drift term is $\bar A \times 0$.
+The covariance is untouched, because a covariance already subtracts the means.
+
+```python
+Sc = [[ 0.4, -0.3, -0.1],   # row v: e_v - q
+      [-0.6,  0.7, -0.1],
+      [-0.6, -0.3,  0.9]]
+
+0.6*Sc[0] + 0.3*Sc[1] + 0.1*Sc[2]                 = [0.0,  0.0,   0.0 ]   # mean zero under q
+0.6*A[0]*Sc[0] + 0.3*A[1]*Sc[1] + 0.1*A[2]*Sc[2]  = [0.24, -0.18, -0.06]  # = signal
+```
+
+The same holds for every baseline, because the drift is gone before the baseline enters:
+
+| $b$ | $\bar A$ | plain update | drift | centered update |
+|---|---|---|---|---|
+| 0 | 0.60 | [0.300, -0.18, -0.120] | [0.060, 0, -0.060] | [0.24, -0.18, -0.06] |
+| 0.25 | 0.35 | [0.275, -0.18, -0.095] | [0.035, 0, -0.035] | [0.24, -0.18, -0.06] |
+| 0.6 | 0 | [0.240, -0.18, -0.060] | [0, 0, 0] | [0.24, -0.18, -0.06] |
+| 1.0 | -0.40 | [0.200, -0.18, -0.020] | [-0.040, 0, 0.040] | [0.24, -0.18, -0.06] |
+
+A baseline equal to this position&#x27;s expected reward under the engine, 0.6, would also zero the drift. A group mean is
+one number per prompt while the expected reward changes at every position, so in practice it does not.
+
+In a real model the engine does not ship its full distribution. The paper uses the engine&#x27;s top-$k$ probabilities and
+models the tail from the trainer&#x27;s, which brings the correction back onto the $k$ tokens the trainer can see; 128 or
+even 32 candidates matched full centering.
+
+## The drift compounds
+
+Toward a fixed teacher the drift would be harmless: it is a step of distillation and converges. But the engine is not
+fixed. After each step it reloads the trainer&#x27;s new weights and adds its error again, so the target stays one error
+ahead and the pushes accumulate. The paper&#x27;s 30B runs show how far that goes [[1]](#ref-1):
+
+| engine | plain policy gradient | truncated IS | score centering |
+|---|---|---|---|
+| FP8 | stable, 58% | | |
+| FP8, FP4 KV cache | collapses within 200 steps | 51% | 52% |
+| INT8, INT4 KV cache | under 5% | 12% | 30% |
+
+Every other method tested lands under 5% in the last row. The paper&#x27;s reading is that clipping was designed for
+ratios produced by the policy moving between steps, not by numerical error, and that what breaks training is not the
+size of the mismatch but that the teacher tracks the student.
+
+The same thing shows on a toy: a two-layer network learning to sort four digits, with a copy of itself as the engine
+and a fixed offset on the engine&#x27;s logits, trained by REINFORCE with no baseline ([code](https://github.com/dzorlu/research-collections/tree/main/rl-corrections/pglab)).
+Mean reward over 40-rollout windows; chance is 0.10.
+
+| offset | gradient | 0-40 | 40-80 | 80-120 | 120-160 | 160-200 |
+|---|---|---|---|---|---|---|
+| none | either | .105 | .108 | .116 | .124 | .137 |
+| 1.0 | plain | .103 | .101 | .105 | .101 | .103 |
+| 1.0 | centered | .104 | .111 | .121 | .131 | .140 |
+
+With all-positive rewards the average advantage is the expected reward itself, so every step carries a full push
+toward the offset engine, and here it is as large as the signal: plain REINFORCE never leaves chance. Centered, the
+curve under the offset matches the curve without it. The offset has to be persistent for this to happen. Fresh noise
+each rollout points $q - p$ a different way every step and the pushes average out, which is why quantization and
+staleness, both deterministic, are the cases that collapse.
+
+## References
+
+1. &lt;a id=&quot;ref-1&quot;&gt;&lt;/a&gt;Marek and Ryabinin. Score Centering Stabilizes Off-policy Reinforcement Learning. 2026.
+   [arXiv:2609.20807](https://arxiv.org/abs/2609.20807).
+</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/marked/12.0.2/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js"></script>
+<script></script>
+<script>
+const raw = document.createElement('textarea'); raw.innerHTML = document.getElementById('md').textContent;
+// Math: swap each $$...$$ / $...$ span (outside code) for a placeholder so marked leaves `_`, `*`, `|` alone,
+// then put the escaped source back and let KaTeX render it.
+const math = [];
+const protectedMd = raw.value.replace(/(```[\s\S]*?```|`[^`\n]*`)|\$\$[\s\S]+?\$\$|\$[^$\n]+?\$/g, (m, code) => {
+  if (code) return m;
+  math.push(m); return 'KATEXMATH' + (math.length - 1) + 'END';
+});
+const esc = s => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+// Notes: a block  :::note Title ... :::  becomes a collapsed box opened by a "?" toggle.
+const notes = [];
+const withNotes = protectedMd.replace(/^:::note[ \t]+(.+)\n([\s\S]*?)^:::[ \t]*$/gm, (_, title, body) => {
+  notes.push(`<details class="note"><summary>${title}</summary><div class="note-body">${marked.parse(body)}</div></details>`);
+  return 'NOTEBLOCK' + (notes.length - 1) + 'END';
+});
+// Tooltips: {text @@ note} -> hover note saying where a symbol or number comes from.
+const withTips = withNotes.replace(/\{\{([\s\S]+?) @@ ([\s\S]+?)\}\}/g,
+  (_, t, tip) => `<span class="tip" data-tip="${esc(tip).replace(/"/g, '&quot;')}">${t}</span>`)
+// Widgets: a line  :::widget name  becomes a box that widgets/name.js fills in.
+  .replace(/^:::widget[ \t]+(\S+)[ \t]*$/gm, '<div class="widget" data-widget="$1"></div>');
+const main = document.getElementById('c');
+const home = main.innerHTML;
+main.innerHTML = home + marked.parse(withTips)
+  .replace(/<p>NOTEBLOCK(\d+)END<\/p>/g, (_, i) => notes[+i])
+  .replace(/KATEXMATH(\d+)END/g, (_, i) => esc(math[+i]));
+
+// References: text of each numbered entry.
+const refs = {};
+main.querySelectorAll('a[id^="ref-"]').forEach(a => {
+  const li = a.closest('li'); refs[a.id] = li.innerHTML.replace(a.outerHTML, '');
+  li.closest('ol').id = 'refs';
+});
+
+// Citations: [[n]](#ref-n) -> superscript, plus a side note the first time n appears in each section.
+let seen = new Set();
+for (const el of main.children) {
+  if (el.tagName === 'H2') seen = new Set();
+  el.querySelectorAll('a[href^="#ref-"]').forEach(a => {
+    if (a.closest('#refs')) return;
+    const id = a.getAttribute('href').slice(1), n = id.slice(4);
+    const sup = document.createElement('sup'); sup.className = 'cite';
+    sup.innerHTML = `<a href="#${id}">${n}</a>`;
+    a.replaceWith(sup);
+    if (!seen.has(id) && refs[id]) {
+      seen.add(id);
+      const note = document.createElement('span'); note.className = 'sidenote';
+      note.innerHTML = `<b>${n}</b> ${refs[id]}`;
+      const table = sup.closest('table');
+      if (table) {                                                     // tables reach into the margin: note goes under the table
+        note.classList.add('inline'); let after = table;
+        while (after.nextSibling && after.nextSibling.classList && after.nextSibling.classList.contains('inline')) after = after.nextSibling;
+        after.parentNode.insertBefore(note, after.nextSibling);
+      }
+      else { const block = sup.closest('p, li') || sup; block.parentNode.insertBefore(note, block); }
+    }
+  });
+}
+// Tables: cells stay on one line unless the table would overflow the page; then let them wrap.
+main.querySelectorAll('table').forEach(t => {
+  if (t.scrollWidth > t.clientWidth) t.querySelectorAll('th, td').forEach(c => c.style.whiteSpace = 'normal');
+});
+// Colored columns: a header wrapped in <span class="c-..."> colors its whole column, matching the widgets' series.
+main.querySelectorAll('th > span[class^="c-"]').forEach(s => {
+  const th = s.parentNode, i = [...th.parentNode.children].indexOf(th);
+  th.closest('table').querySelectorAll('tbody tr').forEach(tr => tr.children[i] && tr.children[i].classList.add(s.className));
+});
+// Shaded columns: a header wrapped in <span class="c-shade"> shades its cells by value, lighter is lower, on one
+// log scale across every shaded column of the table.
+main.querySelectorAll('table').forEach(t => {
+  const cols = [...t.querySelectorAll('th > span.c-shade')].map(s => [...s.parentNode.parentNode.children].indexOf(s.parentNode));
+  if (!cols.length) return;
+  const cells = [];
+  t.querySelectorAll('tbody tr').forEach(tr => cols.forEach(i => {
+    const td = tr.children[i], v = parseFloat(td && td.textContent); if (!isNaN(v) && v > 0) cells.push([td, Math.log(v)]);
+  }));
+  const lo = Math.min(...cells.map(c => c[1])), hi = Math.max(...cells.map(c => c[1]));
+  cells.forEach(([td, v]) => td.style.background = `rgba(235,104,52,${(0.06 + 0.5 * (v - lo) / (hi - lo || 1)).toFixed(2)})`);
+});
+// Contents, with the current section highlighted.
+const toc = document.getElementById('toc');
+const h1 = main.querySelector('h1'); toc.innerHTML = `<div class="title">${h1 ? h1.textContent : ''}</div>`;
+const heads = [...main.querySelectorAll('h2, h3')];
+heads.forEach((h, i) => {
+  h.id = h.id || 'sec-' + i;
+  const a = document.createElement('a'); a.href = '#' + h.id; a.textContent = h.textContent;
+  a.className = h.tagName.toLowerCase(); toc.appendChild(a);
+});
+renderMathInElement(document.body, {
+  delimiters: [{left: '$$', right: '$$', display: true}, {left: '$', right: '$', display: false}],
+  throwOnError: false,
+});
+main.querySelectorAll('.widget').forEach(el => (window.widgets || {})[el.dataset.widget]?.(el));
+const links = [...toc.querySelectorAll('a')];
+addEventListener('scroll', () => {
+  let cur = 0; heads.forEach((h, i) => { if (h.getBoundingClientRect().top < 120) cur = i; });
+  links.forEach((a, i) => a.classList.toggle('active', i === cur));
+});
+</script></body></html>
