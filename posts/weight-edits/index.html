@@ -1,0 +1,127 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A map of weight edits</title>
+<style>
+:root { --ink:#1d1d1b; --muted:#5f5e5a; --line:#e4e3df; --bg:#fcfcfb; --code:#f2f1ee; --accent:#2a78d6; --th:#f0efec; --good:#1f7a55; --bad:#b3261e; }
+html.dark { --ink:#e8e6e1; --muted:#9c9a92; --line:#2c2c2a; --bg:#151514; --code:#1f1f1d; --accent:#7fb2f0; --th:#242422; --good:#6fcf9f; --bad:#ff8f85; color-scheme:dark; }
+.topbar { position:sticky; top:0; z-index:20; height:56px; display:flex; align-items:center; justify-content:space-between;
+          padding:0 2.1rem; box-sizing:border-box; background:var(--bg); border-bottom:1px solid var(--line); }
+.topbar .brand { font-size:1.25rem; font-weight:650; color:var(--ink); text-decoration:none; }
+.topbar .tools { display:flex; gap:1rem; align-items:center; }
+.topbar .tools a { color:var(--ink); font-size:1.1rem; line-height:1; text-decoration:none; } .topbar .tools a:hover { color:var(--accent); }
+.topbar .mode i::before { content:"\f5d5"; } html.dark .topbar .mode i::before { content:"\f5d6"; }
+body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.65 -apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif; }
+a { color:var(--accent); text-decoration:none; } a:hover { text-decoration:underline; }
+main { max-width:860px; margin:0 auto; padding:36px 20px 80px; }
+h1 { font-size:2rem; font-weight:650; margin:0 0 .25rem; text-wrap:balance; }
+h2 { font-size:1.3rem; font-weight:650; margin:2.2rem 0 .6rem; }
+.meta { color:var(--muted); font-size:.85rem; margin-bottom:1.4rem; }
+p, li { max-width:72ch; }
+pre { background:var(--code); padding:14px 16px; overflow-x:auto; border-radius:6px; font:13px/1.5 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+code { font:13px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; background:var(--code); padding:1px 4px; border-radius:3px; }
+pre code { background:none; padding:0; }
+.tw { overflow-x:auto; margin:12px 0; }
+table { border-collapse:collapse; font-size:14px; font-variant-numeric:tabular-nums; }
+th, td { border:1px solid var(--line); padding:6px 10px; text-align:left; vertical-align:top; } th { background:var(--th); font-weight:600; }
+td.n { white-space:nowrap; }
+.who td { background:var(--th); font-weight:600; }
+.up { color:var(--good); font-weight:600; } .down { color:var(--bad); font-weight:600; } .mut { color:var(--muted); }
+</style>
+<script>
+// Same key the Quarto site writes, so the toggle here and the one in the site navbar stay in step.
+(function () { try {
+  let v = localStorage.getItem('quarto-color-scheme');
+  if (v == null && window.matchMedia('(prefers-color-scheme: dark)').matches) { v = 'alternate'; localStorage.setItem('quarto-color-scheme', v); }
+  if (v === 'alternate') document.documentElement.classList.add('dark');
+} catch (e) {} })();
+window.toggleMode = function () {
+  const dark = document.documentElement.classList.toggle('dark');
+  try { localStorage.setItem('quarto-color-scheme', dark ? 'alternate' : 'default'); } catch (e) {}
+};
+</script>
+<link rel="stylesheet" href="../../site_libs/bootstrap/bootstrap-icons.css">
+</head><body>
+<header class="topbar"><a class="brand" href="../../">Tinkerings</a><span class="tools"><a href="https://github.com/dzorlu/weight-edit-rl" aria-label="GitHub"><i class="bi bi-github"></i></a><a class="mode" href="#" onclick="toggleMode(); return false;" title="Toggle dark mode"><i class="bi"></i></a></span></header>
+<main>
+<h1>A map of weight edits</h1>
+<div class="meta">State on 14 November 2026 · <a href="traces/">step through the trajectories</a> · <a href="https://github.com/dzorlu/weight-edit-rl">code</a></div>
+
+<p>A language model can improve a smaller model by reading its weights and activations and overwriting a few values, with no gradients. This page lists every edit our editor models have tried on one target, Qwen3.5-0.8B, sorted by what kind of change it is and what it was aimed at.</p>
+
+<p>The target fails at math in one way. It writes "Wait..." and rechecks its work until it runs out of tokens, in about 95% of answers. Each edit below tries to stop that. Scores are the share of correct final answers.</p>
+
+<h2>The kinds of edit</h2>
+
+<p>Every edit changes a matrix that writes into the residual stream: the output matrix of an MLP, where column <code>j</code> is what unit <code>j</code> adds, or the output matrix of an attention layer. Nothing else has been edited.</p>
+
+<pre>weight edit
+├── change what one MLP unit writes        (one column of an MLP output matrix)
+│   ├── remove it            column × 0
+│   ├── flip it              column × −1
+│   ├── amplify it           column × 2
+│   └── redirect it          column − direction
+│
+└── change one direction across a matrix   (a rank-one change to the whole matrix)
+    ├── amplify a direction  W + α · d·(dᵀW)      α &gt; 0
+    ├── remove a direction   W − d·(dᵀW)
+    └── trigger and write    W + a·bᵀ             when the input looks like b, also write a</pre>
+
+<p>Each edit is aimed at one of two behaviours:</p>
+<ul>
+<li><b>Stop the loop.</b> Weaken whatever pushes the token "Wait".</li>
+<li><b>Close the reasoning.</b> Strengthen the token that ends the thinking section, so the model moves on to an answer.</li>
+</ul>
+
+<h2>Every edit tried so far</h2>
+
+<p>"Practice" numbers are measured by the editor on practice problems during its search. "Held-out" is MATH-500, run once afterwards on the edit the editor submitted. The reward of an RL rollout is the gain on 128 hidden answers.</p>
+
+<div class="tw"><table>
+<tr><th>Edit</th><th>Kind</th><th>Aimed at</th><th>Where</th><th>Measured</th><th>Outcome</th></tr>
+
+<tr class="who"><td colspan="6">Claude Opus 5.5 · <a href="traces/#opus">trajectory</a></td></tr>
+<tr><td>Strengthen the end-of-thinking direction, α = 0.5</td><td>amplify a direction</td><td>close the reasoning</td><td>all attention and MLP outputs, layers 14 to 22</td><td class="n">practice 7.4% → 7.0%</td><td>no effect, dropped</td></tr>
+<tr><td>Zero column 998</td><td>remove a unit</td><td>stop the loop</td><td>MLP, layer 16</td><td class="n">practice 7.0% → 14.5%</td><td>replaced by the next one</td></tr>
+<tr><td>Negate column 998</td><td>flip a unit</td><td>stop the loop</td><td>MLP, layer 16</td><td class="n">practice 17.6%</td><td>kept as one half</td></tr>
+<tr><td>Negate column 998, plus the direction at α = 2.0</td><td>flip + amplify</td><td>both</td><td>layers 14 to 22</td><td class="n">practice 37.1%</td><td>rejected: a quarter of finished answers skipped the reasoning</td></tr>
+<tr><td>Negate column 998, plus the direction at α = 2.5 on nine chosen matrices</td><td>flip + amplify</td><td>both</td><td>attention, layers 17 to 21; MLP, layers 15, 16, 19, 22</td><td class="n">practice +26 to +29<br>on three fresh sets</td><td><span class="up">submitted. Held-out 7.6% → 34.8%</span></td></tr>
+<tr><td>The two halves separately</td><td></td><td></td><td></td><td class="n">direction alone 15.6%<br>flip alone 17.6%</td><td>each half is worth about half</td></tr>
+
+<tr class="who"><td colspan="6">Inkling 2 Small, first search · <a href="traces/#inkling-1">trajectory</a></td></tr>
+<tr><td>Strengthen the end-of-thinking direction at α = 0.5, 0.7, 0.85, 1.0</td><td>amplify a direction</td><td>close the reasoning</td><td>MLP, layers 20 to 23</td><td class="n">practice +4.5, +8.9,<br>+21.4, +30.4</td><td><span class="up">α = 0.85 submitted. Held-out 6.6% → 20.2%.</span> α = 1.0 skipped the reasoning in about 30% of answers</td></tr>
+
+<tr class="who"><td colspan="6">Inkling 2 Small, second search · <a href="traces/#inkling-2">trajectory</a></td></tr>
+<tr><td>Zero 11 columns that write "Wait"</td><td>remove units</td><td>stop the loop</td><td>MLP, layers 5, 15, 16, 18, 19, 20, 22, 23</td><td class="n">practice: grade-school<br>problems +7 to +10,<br>MATH 0 to +1.5</td><td>kept as one half</td></tr>
+<tr><td>Also double 8 columns that fire where a finished solution closes its reasoning</td><td>amplify units</td><td>close the reasoning</td><td>MLP, layers 16, 18, 19, 22, 23</td><td class="n">practice MATH +6.7</td><td><span class="up">submitted. Held-out 6.6% → 11.8%.</span> Tripling was worse</td></tr>
+
+<tr class="who"><td colspan="6">Inkling 2 Small, first RL step, 8 forward passes per rollout · trajectories <a href="traces/#rl-smoke3-s0-r0">1</a> <a href="traces/#rl-smoke3-s0-r1">2</a> <a href="traces/#rl-smoke3-s0-r2">3</a> <a href="traces/#rl-smoke3-s0-r3">4</a></td></tr>
+<tr><td>Rollout 1: zero 10 columns that drive "Wait", among them column 998 of layer 16</td><td>remove units</td><td>stop the loop</td><td>MLP, layers 16, 19, 22, 23</td><td class="n">practice +12.1, +11.3</td><td><span class="up">submitted. Reward +13.3</span></td></tr>
+<tr><td>Rollout 2: add a trigger-and-write term toward the end-of-thinking token, then a stronger one</td><td>trigger and write</td><td>close the reasoning</td><td>MLP, layer 23, then layers 21 to 23</td><td class="n">practice −0.8,<br>then <span class="down">−5.5</span></td><td>the stronger one made the model stop thinking at once and give no answer. Nothing submitted, reward 0</td></tr>
+<tr><td>Rollout 3: remove a "looping" direction found by contrasting looping and clean text</td><td>remove a direction</td><td>stop the loop</td><td>attention, layer 23</td><td class="n">practice +6.3, +6.3, +5.1</td><td><span class="up">submitted. Reward +4.7</span></td></tr>
+<tr><td>Rollout 4: a trigger-and-write term, then zero 6 columns, among them column 998 of layer 16</td><td>trigger and write, then remove units</td><td>stop the loop</td><td>MLP, layers 16, 18, 20, 22, 23</td><td class="n">practice <span class="down">−10.6</span>,<br>then +25.0</td><td>dropped the second edit for lack of a confirmation run. Nothing submitted, reward 0</td></tr>
+
+<tr class="who"><td colspan="6">For reference: the published edit from <a href="https://arxiv.org/abs/2611.09382">arXiv 2611.09382</a>, found by GPT-6 Astra, applied by us</td></tr>
+<tr><td>Subtract from column 507 the direction "doubt words minus progress words"</td><td>redirect a unit</td><td>stop the loop</td><td>MLP, layer 23</td><td class="n"></td><td><span class="up">Held-out 7.1% → 28.9%</span></td></tr>
+</table></div>
+
+<h2>What the map shows</h2>
+
+<ul>
+<li><b>The best edit does both things.</b> Opus measured each half alone at about 16 to 18% and the two together at 33 to 36%. Stopping "Wait" does little if the model still never closes its reasoning, and the reverse.</li>
+<li><b>One unit keeps turning up.</b> Column 998 of the layer-16 MLP was found by Opus and, separately, by two of the four RL rollouts. The same unit is edited in two checkpoints of arXiv 2611.09382.</li>
+<li><b>Pushing too hard is the common failure.</b> Strengthen the end-of-thinking signal too much and the model stops reasoning. Opus, Inkling and an RL rollout each ran into it, and the ones with budget for a strength sweep backed off.</li>
+<li><b>One well-chosen unit beat eleven.</b> Opus's single flipped unit was worth more than the eleven units Inkling zeroed in its second search.</li>
+<li><b>All of this fixes one failure.</b> The edits remove an obstacle, the loop. None of them adds an ability the model lacked.</li>
+</ul>
+
+<h2>How the editors found them</h2>
+
+<ul>
+<li><b>Each unit's share of a token's score.</b> At the position just before "Wait", the score of "Wait" splits into one number per MLP unit: the unit's activation times how far its output column points toward that token. Rank the units by it. This is how column 998 was found.</li>
+<li><b>Contrasting two kinds of text.</b> Average the activations where the model loops, subtract the average where it does not. The difference is a direction for looping.</li>
+<li><b>A strength sweep.</b> Try the edit at several strengths. A steady rise shows the edit is the cause, and the sweep shows where it starts to do harm.</li>
+<li><b>Confirmation on fresh problems.</b> Test the chosen edit on problems that played no part in choosing it.</li>
+</ul>
+
+<p class="meta" style="margin-top:2.4rem">Background: <a href="https://rikiyat.github.io/blog/weight-space-programming/">Sparks of Weight-Space Programming</a> (MIT CSAIL) and <a href="https://arxiv.org/abs/2611.09382">Exploring Weight-Space Programming</a>. Each row is a single search or rollout, and results vary a lot between runs of the same editor.</p>
+</main>
+</body></html>
