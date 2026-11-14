@@ -370,34 +370,34 @@ fromHash(); draw();
 
 <h2>Every edit tried so far</h2>
 
-<p>"Practice" numbers are measured by the editor on practice problems during its search. "Held-out" is MATH-500, run once afterwards on the edit the editor submitted. The reward of an RL rollout is the gain on 128 hidden answers.</p>
+<p>Problems come in four sets. <b>Train:</b> MATH and GSM8K training problems the editor uses during its search to diagnose and to choose between edits. <b>Validation:</b> train problems it set aside to check its final edit, never used for a choice. <b>Test:</b> MATH-500, run once after the search on the submitted edit; the editor never sees it. <b>Reward set:</b> 128 hidden MATH training problems that score each RL rollout. All numbers are accuracy changes in points, edited minus original, on the same problems.</p>
 
 <div class="tw"><table>
 <tr><th>Edit</th><th>Kind</th><th>Aimed at</th><th>Where</th><th>Measured</th><th>Outcome</th></tr>
 
 <tr class="who"><td colspan="6">Claude Opus 5.5 · <a href="traces/#opus">trajectory</a></td></tr>
-<tr><td>Strengthen the end-of-thinking direction, α = 0.5</td><td>amplify a direction</td><td>close the reasoning</td><td>all attention and MLP outputs, layers 14 to 22</td><td class="n">practice 7.4% → 7.0%</td><td>no effect, dropped</td></tr>
-<tr><td>Zero column 998</td><td>remove a unit</td><td>stop the loop</td><td>MLP, layer 16</td><td class="n">practice 7.0% → 14.5%</td><td>replaced by the next one</td></tr>
-<tr><td>Negate column 998</td><td>flip a unit</td><td>stop the loop</td><td>MLP, layer 16</td><td class="n">practice 17.6%</td><td>kept as one half</td></tr>
-<tr><td>Negate column 998, plus the direction at α = 2.0</td><td>flip + amplify</td><td>both</td><td>layers 14 to 22</td><td class="n">practice 37.1%</td><td>rejected: a quarter of finished answers skipped the reasoning</td></tr>
-<tr><td>Negate column 998, plus the direction at α = 2.5 on nine chosen matrices</td><td>flip + amplify</td><td>both</td><td>attention, layers 17 to 21; MLP, layers 15, 16, 19, 22</td><td class="n">practice +26 to +29<br>on three fresh sets</td><td><span class="up">submitted. Held-out 7.6% → 34.8%</span></td></tr>
+<tr><td>Strengthen the end-of-thinking direction, α = 0.5</td><td>amplify a direction</td><td>close the reasoning</td><td>all attention and MLP outputs, layers 14 to 22</td><td class="n">train 7.4% → 7.0%</td><td>no effect, dropped</td></tr>
+<tr><td>Zero column 998</td><td>remove a unit</td><td>stop the loop</td><td>MLP, layer 16</td><td class="n">train 7.0% → 14.5%</td><td>replaced by the next one</td></tr>
+<tr><td>Negate column 998</td><td>flip a unit</td><td>stop the loop</td><td>MLP, layer 16</td><td class="n">train 17.6%</td><td>kept as one half</td></tr>
+<tr><td>Negate column 998, plus the direction at α = 2.0</td><td>flip + amplify</td><td>both</td><td>layers 14 to 22</td><td class="n">train 37.1%</td><td>rejected: a quarter of finished answers skipped the reasoning</td></tr>
+<tr><td>Negate column 998, plus the direction at α = 2.5 on nine chosen matrices</td><td>flip + amplify</td><td>both</td><td>attention, layers 17 to 21; MLP, layers 15, 16, 19, 22</td><td class="n">validation +26 to +29<br>on three sets</td><td><span class="up">submitted. Test 7.6% → 34.8%</span></td></tr>
 <tr><td>The two halves separately</td><td></td><td></td><td></td><td class="n">direction alone 15.6%<br>flip alone 17.6%</td><td>each half is worth about half</td></tr>
 
 <tr class="who"><td colspan="6">Inkling 2 Small, first search · <a href="traces/#inkling-1">trajectory</a></td></tr>
-<tr><td>Strengthen the end-of-thinking direction at α = 0.5, 0.7, 0.85, 1.0</td><td>amplify a direction</td><td>close the reasoning</td><td>MLP, layers 20 to 23</td><td class="n">practice +4.5, +8.9,<br>+21.4, +30.4</td><td><span class="up">α = 0.85 submitted. Held-out 6.6% → 20.2%.</span> α = 1.0 skipped the reasoning in about 30% of answers</td></tr>
+<tr><td>Strengthen the end-of-thinking direction at α = 0.5, 0.7, 0.85, 1.0</td><td>amplify a direction</td><td>close the reasoning</td><td>MLP, layers 20 to 23</td><td class="n">train +4.5, +8.9,<br>+21.4, +30.4 by α;<br>validation +22.7, +20.3</td><td><span class="up">α = 0.85 submitted. Test 6.6% → 20.2%.</span> α = 1.0 skipped the reasoning in about 30% of answers</td></tr>
 
 <tr class="who"><td colspan="6">Inkling 2 Small, second search · <a href="traces/#inkling-2">trajectory</a></td></tr>
-<tr><td>Zero 11 columns that write "Wait"</td><td>remove units</td><td>stop the loop</td><td>MLP, layers 5, 15, 16, 18, 19, 20, 22, 23</td><td class="n">practice: grade-school<br>problems +7 to +10,<br>MATH 0 to +1.5</td><td>kept as one half</td></tr>
-<tr><td>Also double 8 columns that fire where a finished solution closes its reasoning</td><td>amplify units</td><td>close the reasoning</td><td>MLP, layers 16, 18, 19, 22, 23</td><td class="n">practice MATH +6.7</td><td><span class="up">submitted. Held-out 6.6% → 11.8%.</span> Tripling was worse</td></tr>
+<tr><td>Zero 11 columns that write "Wait"</td><td>remove units</td><td>stop the loop</td><td>MLP, layers 5, 15, 16, 18, 19, 20, 22, 23</td><td class="n">validation: GSM8K +7 to +10,<br>MATH 0 to +1.5</td><td>kept as one half</td></tr>
+<tr><td>Also double 8 columns that fire where a finished solution closes its reasoning</td><td>amplify units</td><td>close the reasoning</td><td>MLP, layers 16, 18, 19, 22, 23</td><td class="n">validation MATH +6.7</td><td><span class="up">submitted. Test 6.6% → 11.8%.</span> Tripling was worse</td></tr>
 
 <tr class="who"><td colspan="6">Inkling 2 Small, first RL step, 8 forward passes per rollout · trajectories <a href="traces/#rl-smoke3-s0-r0">1</a> <a href="traces/#rl-smoke3-s0-r1">2</a> <a href="traces/#rl-smoke3-s0-r2">3</a> <a href="traces/#rl-smoke3-s0-r3">4</a></td></tr>
-<tr><td>Rollout 1: zero 10 columns that drive "Wait", among them column 998 of layer 16</td><td>remove units</td><td>stop the loop</td><td>MLP, layers 16, 19, 22, 23</td><td class="n">practice +12.1, +11.3</td><td><span class="up">submitted. Reward +13.3</span></td></tr>
-<tr><td>Rollout 2: add a trigger-and-write term toward the end-of-thinking token, then a stronger one</td><td>trigger and write</td><td>close the reasoning</td><td>MLP, layer 23, then layers 21 to 23</td><td class="n">practice −0.8,<br>then <span class="down">−5.5</span></td><td>the stronger one made the model stop thinking at once and give no answer. Nothing submitted, reward 0</td></tr>
-<tr><td>Rollout 3: remove a "looping" direction found by contrasting looping and clean text</td><td>remove a direction</td><td>stop the loop</td><td>attention, layer 23</td><td class="n">practice +6.3, +6.3, +5.1</td><td><span class="up">submitted. Reward +4.7</span></td></tr>
-<tr><td>Rollout 4: a trigger-and-write term, then zero 6 columns, among them column 998 of layer 16</td><td>trigger and write, then remove units</td><td>stop the loop</td><td>MLP, layers 16, 18, 20, 22, 23</td><td class="n">practice <span class="down">−10.6</span>,<br>then +25.0</td><td>dropped the second edit for lack of a confirmation run. Nothing submitted, reward 0</td></tr>
+<tr><td>Rollout 1: zero 10 columns that drive "Wait", among them column 998 of layer 16</td><td>remove units</td><td>stop the loop</td><td>MLP, layers 16, 19, 22, 23</td><td class="n">train +12.1, +11.3</td><td><span class="up">submitted. Reward +13.3</span></td></tr>
+<tr><td>Rollout 2: add a trigger-and-write term toward the end-of-thinking token, then a stronger one</td><td>trigger and write</td><td>close the reasoning</td><td>MLP, layer 23, then layers 21 to 23</td><td class="n">train: first edit −0.8,<br>stronger edit <span class="down">−5.5</span></td><td>the stronger one made the model stop thinking at once and give no answer. Nothing submitted, reward 0</td></tr>
+<tr><td>Rollout 3: remove a "looping" direction found by contrasting looping and clean text</td><td>remove a direction</td><td>stop the loop</td><td>attention, layer 23</td><td class="n">train +6.3, +6.3, +5.1</td><td><span class="up">submitted. Reward +4.7</span></td></tr>
+<tr><td>Rollout 4: a trigger-and-write term, then zero 6 columns, among them column 998 of layer 16</td><td>trigger and write, then remove units</td><td>stop the loop</td><td>MLP, layers 16, 18, 20, 22, 23</td><td class="n">train: first edit <span class="down">−10.6</span>,<br>second edit +25.0</td><td>dropped the second edit for lack of a confirmation run. Nothing submitted, reward 0</td></tr>
 
 <tr class="who"><td colspan="6">For reference: the published edit from <a href="https://arxiv.org/abs/2611.09382">arXiv 2611.09382</a>, found by GPT-6 Astra, applied by us</td></tr>
-<tr><td>Subtract from column 507 the direction "doubt words minus progress words"</td><td>redirect a unit</td><td>stop the loop</td><td>MLP, layer 23</td><td class="n"></td><td><span class="up">Held-out 7.1% → 28.9%</span></td></tr>
+<tr><td>Subtract from column 507 the direction "doubt words minus progress words"</td><td>redirect a unit</td><td>stop the loop</td><td>MLP, layer 23</td><td class="n"></td><td><span class="up">Test 7.1% → 28.9%</span></td></tr>
 </table></div>
 
 <h2>What the map shows</h2>
@@ -416,7 +416,7 @@ fromHash(); draw();
 <li><b>Each unit's share of a token's score.</b> At the position just before "Wait", the score of "Wait" splits into one number per MLP unit: the unit's activation times how far its output column points toward that token. Rank the units by it. This is how column 998 was found.</li>
 <li><b>Contrasting two kinds of text.</b> Average the activations where the model loops, subtract the average where it does not. The difference is a direction for looping.</li>
 <li><b>A strength sweep.</b> Try the edit at several strengths. A steady rise shows the edit is the cause, and the sweep shows where it starts to do harm.</li>
-<li><b>Confirmation on fresh problems.</b> Test the chosen edit on problems that played no part in choosing it.</li>
+<li><b>Validation.</b> Check the chosen edit on problems that played no part in choosing it.</li>
 </ul>
 
 <p class="meta" style="margin-top:2.4rem">Background: <a href="https://rikiyat.github.io/blog/weight-space-programming/">Sparks of Weight-Space Programming</a> (MIT CSAIL) and <a href="https://arxiv.org/abs/2611.09382">Exploring Weight-Space Programming</a>. Each row is a single search or rollout, and results vary a lot between runs of the same editor.</p>
