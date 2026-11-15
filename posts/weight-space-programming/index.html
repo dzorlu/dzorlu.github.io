@@ -106,7 +106,7 @@ p.who2{font-size:13.5px;color:var(--muted);margin:4px 0 8px}
 .refpanel a{color:var(--muted)}.refpanel li.on a{color:var(--accent)}
 .wu,.wide1 .dscroll{width:min(1000px,calc(50vw + 430px - 24px), calc(50vw + 430px - 300px - max(12px, 50vw - 700px)))!important}
 }
-</style><style>.authors{font-size:17px;color:var(--ink);margin:.3rem 0 .4rem}</style></head><body>
+</style><style>.authors{font-size:17px;color:var(--ink);margin:.3rem 0 .4rem}</style><style>ul.links{margin:.3rem 0 1rem;padding-left:1.2rem;font-size:15px;line-height:1.7}</style></head><body>
 <header class="topbar"><a class="brand" href="../../">Tinkerings</a><span class="tools"><a href="https://github.com/dzorlu/weight-edit-rl" aria-label="GitHub"><i class="bi bi-github"></i></a><a class="mode" href="#" onclick="toggleMode(); return false;" title="Toggle dark mode"><i class="bi"></i></a></span></header>
 <nav class="toc" aria-label="Contents"><div class="toc-h">Contents</div><a class="toc2" href="#how-to-diagnose">How to diagnose</a><a class="toc3" href="#dla">1. Direct logit attribution</a><a class="toc4" href="#a-small-network">A small network</a><a class="toc4" href="#where-a-logit-comes-from">Where a logit comes from</a><a class="toc4" href="#across-positions-and-layers">Across positions and layers</a><a class="toc4" href="#dla-in-our-runs">In our runs</a><a class="toc3" href="#diff-means">2. Difference of means</a><a class="toc3" href="#token-directions">3. Token directions</a><a class="toc2" href="#how-to-update">How to update</a><a class="toc3" href="#kind-8">8. Change what a unit reads</a><a class="toc3" href="#variants">Variants seen in later runs</a><a class="toc2" href="#every-edit-tried-so-far">Every edit tried so far</a><a class="toc2" href="#what-the-edits-show">What the edits show</a><a class="toc2" href="#references">References</a></nav><aside class="refpanel" aria-label="References"><div class="toc-h">References</div><ol class="refs">
 <li data-ref=\"1\">Takehi, Teoh, Zhang and Khattab. <a href="https://rikiyat.github.io/blog/weight-space-programming/">Sparks of Weight-Space Programming</a>. blog post, 2026.</li>
@@ -119,7 +119,14 @@ p.who2{font-size:13.5px;color:var(--muted);margin:4px 0 8px}
 </ol></aside><main>
 <h1>Weight-space programming</h1>
 <p class="authors">Karthik Chandrasekar, Aryan Keluskar, Charles Weill, Deniz Zorlu</p>
-<div class="meta">State on 14 November 2026, 19:10 · <a href="run/">live RL run</a> · <a href="traces/">step through the trajectories</a> · <a href="changelog/">changelog</a> · <a href="https://github.com/dzorlu/weight-edit-rl">code</a></div>
+<div class="meta">State on 14 November 2026, 19:10</div>
+<ul class="links">
+<li><a href="https://claude.ai/artifact/Q5CbZUec91ev7SLbVAD9SY">Slides</a></li>
+<li><a href="run/">Live RL run</a></li>
+<li><a href="traces/">Step through the trajectories</a></li>
+<li><a href="changelog/">Changelog</a></li>
+<li><a href="https://github.com/dzorlu/weight-edit-rl">Code</a></li>
+</ul>
 
 <p>Can a model improve another model by editing its weights directly, with no gradients <a class="cite" href="#ref-1">[1]</a> <a class="cite" href="#ref-2">[2]</a>? We set this up as a teacher and a student.</p>
 
