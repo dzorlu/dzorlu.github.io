@@ -91,9 +91,9 @@ window.toggleMode = function () {
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true}]})"></script>
 <style>.tex{overflow-x:auto;margin:10px 0 14px}.dfig.wide1{overflow:visible}.wide1 .dscroll{position:relative;width:min(1000px,calc(100vw - 32px));left:50%;transform:translateX(-50%);box-sizing:border-box}</style>
-<style>.toc{display:none}@media (min-width:1240px){.toc{display:block;position:fixed;top:84px;left:max(16px,calc(50% - 640px));width:200px;max-height:calc(100vh - 110px);overflow:auto;font-size:13px;line-height:1.4}.toc-h{font-weight:600;color:var(--ink);margin-bottom:8px}.toc a{display:block;color:var(--muted);text-decoration:none;padding:3px 0}.toc a:hover{color:var(--accent)}.toc a.toc3{padding-left:12px;font-size:12.5px}.toc a.on{color:var(--accent)}}</style></head><body>
+<style>.toc{display:none}@media (min-width:1240px){.toc{display:block;position:fixed;top:84px;left:max(12px,calc(50% - 640px));width:180px;max-height:calc(100vh - 110px);overflow:auto;font-size:13px;line-height:1.4}.toc-h{font-weight:600;color:var(--ink);margin-bottom:8px}.toc a{display:block;color:var(--muted);text-decoration:none;padding:3px 0}.toc a:hover{color:var(--accent)}.toc a.toc3{padding-left:12px;font-size:12.5px}.toc a.on{color:var(--accent)}}</style><style>@media (min-width:1240px){.wu,.wide1 .dscroll{left:0!important;transform:none!important;width:min(1000px,calc(50vw + 430px - 24px))!important}}</style></head><body>
 <header class="topbar"><a class="brand" href="../../">Tinkerings</a><span class="tools"><a href="https://github.com/dzorlu/weight-edit-rl" aria-label="GitHub"><i class="bi bi-github"></i></a><a class="mode" href="#" onclick="toggleMode(); return false;" title="Toggle dark mode"><i class="bi"></i></a></span></header>
-<nav class="toc" aria-label="Contents"><div class="toc-h">Contents</div><a class="toc2" href="#how-to-diagnose">How to diagnose</a><a class="toc3" href="#a-small-network">A small network</a><a class="toc3" href="#where-a-logit-comes-from">Where a logit comes from</a><a class="toc3" href="#from-one-position-to-the-whole-model">From one position to the whole model</a><a class="toc3" href="#methods-the-editors-used">Methods the editors used</a><a class="toc2" href="#how-to-update">How to update</a><a class="toc2" href="#every-edit-tried-so-far">Every edit tried so far</a><a class="toc2" href="#what-the-map-shows">What the map shows</a><a class="toc2" href="#references">References</a></nav><main>
+<nav class="toc" aria-label="Contents"><div class="toc-h">Contents</div><a class="toc2" href="#how-to-diagnose">How to diagnose</a><a class="toc3" href="#a-small-network">A small network</a><a class="toc3" href="#where-a-logit-comes-from">Where a logit comes from</a><a class="toc3" href="#from-one-position-to-the-whole-model">From one position to the whole model</a><a class="toc3" href="#other-methods">Other methods the editors used</a><a class="toc2" href="#how-to-update">How to update</a><a class="toc2" href="#every-edit-tried-so-far">Every edit tried so far</a><a class="toc2" href="#what-the-map-shows">What the map shows</a><a class="toc2" href="#references">References</a></nav><main>
 <h1>A map of weight edits</h1>
 <div class="meta">State on 14 November 2026, 19:10 · <a href="run/">live RL run</a> · <a href="traces/">step through the trajectories</a> · <a href="changelog/">changelog</a> · <a href="https://github.com/dzorlu/weight-edit-rl">code</a></div>
 
@@ -103,7 +103,7 @@ window.toggleMode = function () {
 
 <h2 id="how-to-diagnose">How to diagnose</h2>
 
-<p>A diagnosis finds the units that make the model write the wrong next token. One fact does the work. A token's logit is a dot product, and the residual stream is a sum. So the logit splits into one part per layer, and each layer part splits into one contribution per unit.</p>
+<p>A diagnosis finds the units that make the model write the wrong next token. The main method is <b>direct logit attribution</b> [3] [4]: split that token's logit into one contribution per layer and per unit, and edit the largest. This section builds it up on a one-layer network.</p>
 
 <h3 id="a-small-network">A small network</h3>
 
@@ -136,13 +136,13 @@ text{font-family:-apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif;f
     <div class="wu-block"><div class="wu-cap"><code>W</code> [4 × 3]</div><div class="wu-sp"></div><div class="wu-grid" id="wu-W"></div></div>
     <div class="wu-op">*</div>
     <div class="wu-block">
-      <div class="wu-cap"><code>U</code> [3 × 3]: <code>u</code> = "Wait" column</div>
+      <div class="wu-cap"><code>U</code> [3 × 3]</div>
       <div class="wu-tok" id="wu-Uh"></div><div class="wu-ugrid" id="wu-U"></div>
     </div>
     <div class="wu-op">=</div>
     <div class="wu-block"><div class="wu-cap">contribution to "Wait" [4 × 3]</div><div class="wu-sp"></div><div class="wu-grid" id="wu-C"></div></div>
     <div class="wu-op wu-sumop">sum<br>row</div>
-    <div class="wu-block"><div class="wu-cap">row contribution [4]</div><div class="wu-sp"></div><div class="wu-col" id="wu-S"></div></div>
+    <div class="wu-block"><div class="wu-cap">row contribution [4]</div><div class="wu-sp"></div><div class="wu-col" id="wu-S"></div><div class="wu-tot" id="wu-T"></div></div>
   </div>
   <div class="wu-total" id="wu-total"></div>
   <div class="wu-read" id="wu-read" aria-live="polite">Hover a cell of <code>W</code> for one weight, or a unit on the right for its row.</div>
@@ -173,6 +173,10 @@ text{font-family:-apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif;f
 .wu-op{align-self:flex-start;margin-top:74px;min-width:14px;text-align:center;font:600 18px ui-monospace,Menlo,monospace;color:var(--ink)}
 .wu-sumop{font:12px -apple-system,system-ui,sans-serif;color:var(--muted);margin-top:68px}
 .wu-total{margin-top:14px;font-size:14px}
+.wu-tot{margin-top:8px;font-size:12px;color:var(--muted);width:150px}
+.wu-trow{display:flex;justify-content:space-between;gap:8px;padding:2px 0}
+.wu-trow b{font:600 12.5px ui-monospace,Menlo,monospace;color:var(--ink)}
+.wu-final{border-top:1px solid var(--line);margin-top:2px;padding-top:4px;color:var(--ink)}
 .wu-read{margin-top:6px;font-size:15px;min-height:1.5em}
 </style>
 <script>
@@ -200,12 +204,13 @@ text{font-family:-apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif;f
   const cS = S.map(v => cell($('wu-S'), v, 3, true));
   const top = S.indexOf(Math.max(...S));
   const idle = 'Hover a cell of <code>W</code> for one weight, or a unit on the right for its row.';
-  $('wu-total').innerHTML = `Layer total, every cell added: <b>${fmt(total)}</b>. Unit ${top} contributes the most, ${fmt(S[top])}: the row to delete or edit.`;
+  $('wu-T').innerHTML = `<div class="wu-trow"><span>sum</span><b>${fmt(total)}</b></div><div class="wu-trow"><span>+ residual h0·u</span><b>0.5</b></div><div class="wu-trow wu-final"><span>= Wait logit</span><b>${fmt(total + 0.5)}</b></div>`;
+  $('wu-total').innerHTML = `The rows add up to <b>${fmt(total)}</b>, this layer's part of the "Wait" logit. Adding the residual's 0.5 gives the logit, <b>${fmt(total + 0.5)}</b>, as in figure 1. Unit ${top} contributes the most, ${fmt(S[top])}: the row to delete or edit.`;
   const light = list => { all.forEach(c => c.classList.add('dim')); list.forEach(c => { c.classList.remove('dim'); c.classList.add('hi'); }); };
   const reset = () => { all.forEach(c => c.classList.remove('dim', 'hi')); $('wu-read').innerHTML = idle; };
   const showCell = (j, d) => {
     reset(); light([cx[j], cW[j][d], cU[d][0], cC[j][d]]);
-    $('wu-read').innerHTML = `W[${j}][${d}]: x[${j}] × W[${j}][${d}] × u[${d}] = ${fmt(x[j])} × ${fmt(W[j][d])} × ${fmt(u[d])} = <b>${fmt(C[j][d])}</b>`;
+    $('wu-read').innerHTML = `W[${j}][${d}]: x[${j}] × W[${j}][${d}] × U[${d}][Wait] = ${fmt(x[j])} × ${fmt(W[j][d])} × ${fmt(u[d])} = <b>${fmt(C[j][d])}</b>`;
   };
   const showRow = j => {
     reset(); light([cx[j], ...cW[j], ...cU.map(r => r[0]), ...cC[j], cS[j]]);
@@ -220,9 +225,7 @@ text{font-family:-apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif;f
   reset();
 })();
 </script>
-<figcaption><b>2.</b> Each weight's contribution to the "Wait" logit is <code>x[j] × W[j][d] × u[d]</code>; each row adds up to one unit's. Unit 2 contributes the most, so it is the one to delete or edit.</figcaption></figure>
-
-<p>Doing this for every layer of the real model, 24 matrices of [3584 × 1024], shows which layer and which unit to delete or edit. This is called direct logit attribution [3] [4].</p>
+<figcaption><b>2.</b> Each weight contributes <code>x[j] × W[j][d] × U[d][Wait]</code>. Each row adds up to one unit's contribution, and all rows to 2.5, the MLP term of the sum above. With the residual's 0.5 that is the "Wait" logit, 3.</figcaption></figure>
 
 <h3 id="from-one-position-to-the-whole-model">From one position to the whole model</h3>
 
@@ -234,13 +237,15 @@ text{font-family:-apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif;f
 
 <p>The table counts only what a unit writes straight into the final vector, not what later layers do with it. So a candidate is confirmed by editing it and generating answers.</p>
 
-<h3 id="methods-the-editors-used">Methods the editors used</h3>
+<p>In our runs, Claude Opus 5.5 ran it for "Wait" and found unit 998 of the layer-16 MLP. Zeroing its row of <code>W</code> raised train accuracy from 7.0% to 14.5%; negating it gave 17.6%. Inkling 2 Small ran it per layer for "Wait" and "&lt;/think&gt;" and found that layers 15 to 21 lower "&lt;/think&gt;". It edited the direction of "&lt;/think&gt;" in layers 20 to 23, and test accuracy went from 6.6% to 20.2%.</p>
 
-<p><b>1. Direct logit attribution</b> [3] [4]: the method above. Claude Opus 5.5 ran it for "Wait" and found unit 998 of the layer-16 MLP. Zeroing its row of <code>W</code> raised train accuracy from 7.0% to 14.5%; negating it gave 17.6%. Inkling 2 Small ran it per layer for "Wait" and "&lt;/think&gt;": layers 15 to 21 lower "&lt;/think&gt;". It edited the direction of "&lt;/think&gt;" in layers 20 to 23, and test accuracy went from 6.6% to 20.2%.</p>
+<h3 id="other-methods">Other methods the editors used</h3>
 
-<p><b>2. Difference of means</b> [6] [7]: average a layer's activations at the positions before "Wait", subtract the average at other positions, and take the units with the largest difference. It needs no token column of <code>U</code>, only two sets of positions. Inkling 2 Small used it in an RL test rollout (<code>smoke3</code>), next to method 1. Opus chose its set of layers to edit the same way, comparing their output at positions where the model wraps up with other positions.</p>
 
-<p><b>3. No unit choice</b>: take a token's column of <code>U</code> and edit it in every output matrix. The two best rollouts of the hero run's first step removed the "Wait" direction and added the "&lt;/think&gt;" direction in all 48 output matrices. Their edits gained 32.8 and 29.4 points on the test set.</p>
+
+<p><b>Difference of means</b> [6] [7]: average a layer's activations at the positions before "Wait", subtract the average at other positions, and take the units with the largest difference. It needs no token column of <code>U</code>, only two sets of positions. Inkling 2 Small used it in an RL test rollout (<code>smoke3</code>), next to direct logit attribution. Opus chose its set of layers to edit the same way, comparing their output at positions where the model wraps up with other positions.</p>
+
+<p><b>No unit choice</b>: take a token's column of <code>U</code> and edit it in every output matrix. The two best rollouts of the hero run's first step removed the "Wait" direction and added the "&lt;/think&gt;" direction in all 48 output matrices. Their edits gained 32.8 and 29.4 points on the test set.</p>
 
 <h2 id="how-to-update">How to update</h2>
 
