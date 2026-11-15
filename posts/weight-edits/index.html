@@ -91,9 +91,9 @@ window.toggleMode = function () {
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true}]})"></script>
 <style>.tex{overflow-x:auto;margin:10px 0 14px}.dfig.wide1{overflow:visible}.wide1 .dscroll{position:relative;width:min(1000px,calc(100vw - 32px));left:50%;transform:translateX(-50%);box-sizing:border-box}</style>
-</head><body>
+<style>.toc{display:none}@media (min-width:1240px){.toc{display:block;position:fixed;top:84px;left:max(16px,calc(50% - 640px));width:200px;max-height:calc(100vh - 110px);overflow:auto;font-size:13px;line-height:1.4}.toc-h{font-weight:600;color:var(--ink);margin-bottom:8px}.toc a{display:block;color:var(--muted);text-decoration:none;padding:3px 0}.toc a:hover{color:var(--accent)}.toc a.toc3{padding-left:12px;font-size:12.5px}.toc a.on{color:var(--accent)}}</style></head><body>
 <header class="topbar"><a class="brand" href="../../">Tinkerings</a><span class="tools"><a href="https://github.com/dzorlu/weight-edit-rl" aria-label="GitHub"><i class="bi bi-github"></i></a><a class="mode" href="#" onclick="toggleMode(); return false;" title="Toggle dark mode"><i class="bi"></i></a></span></header>
-<main>
+<nav class="toc" aria-label="Contents"><div class="toc-h">Contents</div><a class="toc2" href="#how-to-diagnose">How to diagnose</a><a class="toc3" href="#a-small-network">A small network</a><a class="toc3" href="#where-a-logit-comes-from">Where a logit comes from</a><a class="toc3" href="#from-one-position-to-the-whole-model">From one position to the whole model</a><a class="toc3" href="#methods-the-editors-used">Methods the editors used</a><a class="toc2" href="#how-to-update">How to update</a><a class="toc2" href="#every-edit-tried-so-far">Every edit tried so far</a><a class="toc2" href="#what-the-map-shows">What the map shows</a><a class="toc2" href="#references">References</a></nav><main>
 <h1>A map of weight edits</h1>
 <div class="meta">State on 14 November 2026, 19:10 · <a href="run/">live RL run</a> · <a href="traces/">step through the trajectories</a> · <a href="changelog/">changelog</a> · <a href="https://github.com/dzorlu/weight-edit-rl">code</a></div>
 
@@ -101,11 +101,11 @@ window.toggleMode = function () {
 
 <p>The target fails at math in one way. It writes "Wait..." and rechecks its work until it runs out of tokens, in about 95% of answers. Each edit below tries to stop that. Scores are the share of correct final answers.</p>
 
-<h2>How to diagnose</h2>
+<h2 id="how-to-diagnose">How to diagnose</h2>
 
 <p>A diagnosis finds the units that make the model write the wrong next token. One fact does the work. A token's logit is a dot product, and the residual stream is a sum. So the logit splits into one part per layer, and each layer part splits into one contribution per unit.</p>
 
-<h3>A small network</h3>
+<h3 id="a-small-network">A small network</h3>
 
 <p>One layer, with a residual stream of 3 numbers (1024 in the model) and 4 MLP units (3584).</p>
 
@@ -126,7 +126,7 @@ text{font-family:-apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif;f
 
 <p>Figure 2 shows each term of the sum.</p>
 
-<h3>Where a logit comes from</h3>
+<h3 id="where-a-logit-comes-from">Where a logit comes from</h3>
 
 <figure class="dfig"><!-- Interactive single-layer figure: x [M] * W [M, D] * u [D] = contribution of each weight to the "Wait" logit [M, D], with row sums. Spliced into posts/weight-edits/index.html. -->
 <div class="wu" id="wu">
@@ -224,124 +224,25 @@ text{font-family:-apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif;f
 
 <p>Doing this for every layer of the real model, 24 matrices of [3584 × 1024], shows which layer and which unit to delete or edit. This is called direct logit attribution [3] [4].</p>
 
-<h3>What an edit changes</h3>
+<h3 id="from-one-position-to-the-whole-model">From one position to the whole model</h3>
 
-<p>An edit changes rows of <code>W</code>. The activations <code>x</code> and the column <code>u</code> stay the same, so the contributions of the changed rows change, and with them the layer total. Pick an edit:</p>
+<p>The toy is one layer at one position. The real measurement repeats it at every position just before a "Wait" (set <code>P</code>) and adds the results, for every one of the 24 MLP layers:</p>
 
-<figure class="dfig"><!-- Interactive edit figure: same W, u, x as the contribution figure; buttons apply an edit to W. Spliced into posts/weight-edits/index.html. -->
-<div class="we" id="we">
-  <div class="we-btns" role="group" aria-label="Edit">
-    <button data-k="orig" aria-pressed="true">original</button>
-    <button data-k="zero" aria-pressed="false">zero unit 2's row</button>
-    <button data-k="flip" aria-pressed="false">flip unit 1's row</button>
-    <button data-k="dir" aria-pressed="false">remove direction u from every row</button>
-  </div>
-  <div class="we-code" id="we-code"></div>
-  <div class="we-row">
-    <div class="we-block"><div class="we-cap"><code>x</code> [4]</div><div class="we-sum" id="we-X"></div></div>
-    <div class="we-op">*</div>
-    <div class="we-block"><div class="we-cap"><code>W</code> after the edit [4 × 3]</div><div class="we-grid" id="we-W"></div></div>
-    <div class="we-op">* <code>u</code><br>→</div>
-    <div class="we-block"><div class="we-cap">contribution: <code>x * W * u</code> [4 × 3]</div><div class="we-grid" id="we-C"></div></div>
-    <div class="we-op">sum<br>row<br>→</div>
-    <div class="we-block"><div class="we-cap">unit [4]</div><div class="we-sum" id="we-S"></div></div>
-  </div>
-  <div class="we-total" id="we-total"></div>
-</div>
-<noscript><p>The figure needs JavaScript. Layer totals: original 2.5; zero unit 2's row −1.25; flip unit 1's row 5.5; remove direction u 0.</p></noscript>
-<style>
-.we{margin:16px 0 8px;padding:12px;border:1px solid var(--line);border-radius:8px;overflow-x:auto}
-.we-btns{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
-.we-btns button{font:13px -apple-system,system-ui,sans-serif;padding:5px 10px;border-radius:6px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer}
-.we-btns button[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
-.we-code{font:12.5px ui-monospace,Menlo,monospace;color:var(--muted);margin-bottom:10px;min-height:1.4em}
-.we-row{display:flex;gap:8px;align-items:flex-start;min-width:640px}
-.we-block{display:flex;flex-direction:column;gap:4px}
-.we-cap{font-size:13px;color:var(--muted);height:20px;white-space:nowrap}
-.we-grid{display:grid;grid-template-columns:repeat(3,48px);gap:3px}
-.we-sum{display:grid;grid-template-rows:repeat(4,34px);gap:3px}
-.we .c{height:34px;display:flex;align-items:center;justify-content:center;font:12px ui-monospace,Menlo,monospace;border-radius:4px;color:var(--ink)}
-.we-sum .c{border:1px solid var(--line);min-width:52px;font-weight:600}
-.we .c.chg{box-shadow:0 0 0 2px var(--accent)}
-.we-op{align-self:flex-start;margin-top:80px;text-align:center;color:var(--muted);font-size:13px;min-width:28px}
-.we-total{margin-top:12px;font-size:14px}
-</style>
-<script>
-(function () {
-  const W0 = [[0.5, 0, 1], [-1, 0.5, 0], [2, 1, 0.5], [0, -1, 1]], u = [1, 0.5, 0], x = [1, 2, 1.5, 0.5];
-  const uu = u.reduce((a, v) => a + v * v, 0);
-  const edits = {
-    orig: { code: 'no edit', f: W => W },
-    zero: { code: 'W[2] = 0', f: W => W.map((r, j) => j === 2 ? r.map(() => 0) : r) },
-    flip: { code: 'W[1] = −W[1]', f: W => W.map((r, j) => j === 1 ? r.map(v => -v) : r) },
-    dir: { code: 'W = W − outer(W @ u, u) / (u · u)     every row loses its part along u', f: W => W.map(r => { const s = r.reduce((a, v, d) => a + v * u[d], 0) / uu; return r.map((v, d) => v - s * u[d]); }) },
-  };
-  const fmt = v => (Math.abs(v) < 1e-9 ? 0 : Math.round(v * 100) / 100).toString().replace('-', '−');
-  const tint = (v, vmax) => Math.abs(v) < 1e-9 ? 'var(--code)' :
-    `color-mix(in srgb, ${v > 0 ? 'var(--pos)' : 'var(--neg)'} ${Math.round(20 + 70 * Math.min(1, Math.abs(v) / vmax))}%, transparent)`;
-  const $ = id => document.getElementById(id);
-  const mk = (parent, n) => Array.from({ length: n }, () => { const c = document.createElement('div'); c.className = 'c'; parent.appendChild(c); return c; });
-  mk($('we-X'), 4).forEach((c, j) => { c.textContent = fmt(x[j]); });
-  const cW = mk($('we-W'), 12), cC = mk($('we-C'), 12), cS = mk($('we-S'), 4);
-  const total0 = W0.reduce((a, r, j) => a + x[j] * r.reduce((b, v, d) => b + v * u[d], 0), 0);
-  function show(k) {
-    const W = edits[k].f(W0);
-    const C = W.map((r, j) => r.map((v, d) => x[j] * v * u[d]));
-    const S = C.map(r => r.reduce((a, b) => a + b, 0)), tot = S.reduce((a, b) => a + b, 0);
-    W.forEach((r, j) => r.forEach((v, d) => {
-      const i = j * 3 + d, ch = Math.abs(v - W0[j][d]) > 1e-9;
-      cW[i].textContent = fmt(v); cW[i].style.background = tint(v, 2); cW[i].classList.toggle('chg', ch);
-      cC[i].textContent = fmt(C[j][d]); cC[i].style.background = tint(C[j][d], 3); cC[i].classList.toggle('chg', ch);
-    }));
-    S.forEach((v, j) => { cS[j].textContent = fmt(v); cS[j].style.background = tint(v, 3); });
-    $('we-code').textContent = edits[k].code;
-    $('we-total').innerHTML = `Layer total: <b>${fmt(tot)}</b>` + (k === 'orig' ? '.' : `, was ${fmt(total0)}. The "Wait" logit changes by ${fmt(tot - total0)}.`);
-    document.querySelectorAll('#we .we-btns button').forEach(b => b.setAttribute('aria-pressed', b.dataset.k === k));
-  }
-  document.querySelectorAll('#we .we-btns button').forEach(b => b.addEventListener('click', () => show(b.dataset.k)));
-  show('orig');
-})();
-</script><figcaption><b>3.</b> The same layer as figure 2. Changed cells are outlined. Removing the direction <code>u</code> leaves nonzero cells, but every row of the contribution now adds up to 0, so the layer no longer changes the "Wait" logit.</figcaption></figure>
+<div class="tex">$$\text{table}[L, j] \;=\; \sum_{p \in P} x_L[p, j]\,\bigl(W_L[j] \cdot u\bigr) \,/\, \text{rms}(h[p])$$</div>
 
-<div class="tw"><table>
-<tr><th>Edit</th><th>Unit totals after the edit</th></tr>
-<tr><td>zero row <code>j</code></td><td>unit <code>j</code>'s total becomes 0</td></tr>
-<tr><td>flip row <code>j</code></td><td>unit <code>j</code>'s total changes sign</td></tr>
-<tr><td>scale row <code>j</code> by <code>c</code></td><td>unit <code>j</code>'s total times <code>c</code></td></tr>
-<tr><td>remove direction <code>u</code> from every row</td><td>every total becomes 0</td></tr>
-<tr><td>amplify direction <code>u</code> in every row by <code>α</code></td><td>every total times <code>1 + α</code></td></tr>
-</table></div>
+<p>That is a [24 layers × 3584 units] table. Its row sums say which layer adds most to "Wait"; its largest entry says which unit. The division by <code>rms(h[p])</code> is the final norm, which scales every term at a position by the same number. On one of Qwen3.5-0.8B's looping answers, with 5 positions before "Wait", layer 16 adds the most, +17.75, and almost all of it comes from one unit: unit 998, +16.69.</p>
 
-<h3>The steps on the real model</h3>
+<p>The table counts only what a unit writes straight into the final vector, not what later layers do with it. So a candidate is confirmed by editing it and generating answers.</p>
 
-<ol>
-<li><b>Pick the token at fault.</b> "Wait" opens 7.5 lines per 1,000 tokens in answers cut off at the token limit, and 1.4 in answers that finish. <code>u</code> is its column of <code>U</code>.</li>
-<li><b>Record activations.</b> Send several looping answers back through the model in one teacher-forced pass. For each layer you get <code>x_L</code> at every position: shape [tokens, 3584].</li>
-<li><b>Choose the positions.</b> The positions just before each "Wait".</li>
-<li><b>Compute contributions, every layer.</b> <code>s_L = W_L @ u</code>, then <code>x_L[positions] * s_L</code>, summed over the positions: a table of [24 layers, 3584 units].</li>
-<li><b>Rank.</b> Row sums give each layer's part; the largest entries are the candidate units.</li>
-<li><b>Check when they fire.</b> Plot the top unit's activation over all positions to see what it responds to.</li>
-<li><b>Test.</b> Edit the unit's row, generate with original and edited weights on the same problems, and try several strengths.</li>
-<li><b>Validate.</b> Run the chosen edit on problems that played no part in choosing it.</li>
-</ol>
+<h3 id="methods-the-editors-used">Methods the editors used</h3>
 
-<p>A contribution counts only what a unit writes straight into the final vector, not what later layers do with it. That is why step 7 is never skipped. A second method finds a direction without picking a token: average the activations where the model loops, and subtract the average where it does not [6] [7].</p>
+<p><b>1. Direct logit attribution</b> [3] [4]: the method above. Claude Opus 5.5 ran it for "Wait" and found unit 998 of the layer-16 MLP. Zeroing its row of <code>W</code> raised train accuracy from 7.0% to 14.5%; negating it gave 17.6%. Inkling 2 Small ran it per layer for "Wait" and "&lt;/think&gt;": layers 15 to 21 lower "&lt;/think&gt;". It edited the direction of "&lt;/think&gt;" in layers 20 to 23, and test accuracy went from 6.6% to 20.2%.</p>
 
-<h3>Two diagnoses from our runs</h3>
+<p><b>2. Difference of means</b> [6] [7]: average a layer's activations at the positions before "Wait", subtract the average at other positions, and take the units with the largest difference. It needs no token column of <code>U</code>, only two sets of positions. Inkling 2 Small used it in an RL test rollout (<code>smoke3</code>), next to method 1. Opus chose its set of layers to edit the same way, comparing their output at positions where the model wraps up with other positions.</p>
 
-<p>Inkling 2 Small, in its first search, took one of Qwen's own looping answers, 719 tokens long, and ran it back through Qwen. It read the MLP activations of layers 12 to 23. At every position it computed each layer's MLP part of the logit for two tokens: "&lt;/think&gt;", the token that ends the reasoning, and "Wait". Figure C shows each layer's part summed over the 719 positions.</p>
+<p><b>3. No unit choice</b>: take a token's column of <code>U</code> and edit it in every output matrix. The two best rollouts of the hero run's first step removed the "Wait" direction and added the "&lt;/think&gt;" direction in all 48 output matrices. Their edits gained 32.8 and 29.4 points on the test set.</p>
 
-<figure class="wcard dcard"><div class="dduo"><svg class="wfig dfig dhalf" viewBox="0 0 290 263" role="img" aria-label="Each MLP layer's share of the score of "</think>", summed over the 719 positions of one looping answer"><title>Each MLP layer's share of the score of "</think>", summed over the 719 positions of one looping answer</title><text class="ft fb" x="4" y="16">share of <tspan class="fc">"&lt;/think&gt;"</tspan></text><text class="ft fm" x="4" y="32">layer</text><text class="ft fm" x="284" y="32" text-anchor="end">sum</text><line class="ax" x1="193.7" y1="40" x2="193.7" y2="259"/><text class="ft" x="4" y="59">12</text><rect class="bn" x="170.6" y="49" width="23.0" height="13"/><text class="ft fc" x="284" y="59" text-anchor="end">−20.1</text><text class="ft" x="4" y="78">13</text><text class="ft fm" x="284" y="78" text-anchor="end">not recorded</text><text class="ft" x="4" y="97">14</text><rect class="bp" x="193.7" y="87" width="24.3" height="13"/><text class="ft fc" x="284" y="97" text-anchor="end">+21.2</text><text class="ft" x="4" y="116">15</text><rect class="bn" x="121.3" y="106" width="72.4" height="13"/><text class="ft fc" x="284" y="116" text-anchor="end">−63.2</text><text class="ft" x="4" y="135">16</text><rect class="bn" x="120.7" y="125" width="72.9" height="13"/><text class="ft fc" x="284" y="135" text-anchor="end">−63.7</text><text class="ft" x="4" y="154">17</text><text class="ft fm" x="284" y="154" text-anchor="end">not recorded</text><text class="ft" x="4" y="173">18</text><text class="ft fm" x="284" y="173" text-anchor="end">not recorded</text><text class="ft" x="4" y="192">19</text><rect class="bn" x="113.7" y="182" width="79.9" height="13"/><text class="ft fc" x="284" y="192" text-anchor="end">−69.8</text><text class="ft" x="4" y="211">20</text><rect class="bn" x="73.4" y="201" width="120.2" height="13"/><text class="ft fc" x="284" y="211" text-anchor="end">−105</text><text class="ft" x="4" y="230">21</text><rect class="bn" x="159.5" y="220" width="34.1" height="13"/><text class="ft fc" x="284" y="230" text-anchor="end">−29.8</text><text class="ft" x="4" y="249">22</text><rect class="bp" x="193.7" y="239" width="1.3" height="13"/><text class="ft fc" x="284" y="249" text-anchor="end">+1.1</text></svg><svg class="wfig dfig dhalf" viewBox="0 0 290 263" role="img" aria-label="Each MLP layer's share of the score of "Wait", summed over the 719 positions of one looping answer"><title>Each MLP layer's share of the score of "Wait", summed over the 719 positions of one looping answer</title><text class="ft fb" x="4" y="16">share of <tspan class="fc">"Wait"</tspan></text><text class="ft fm" x="4" y="32">layer</text><text class="ft fm" x="284" y="32" text-anchor="end">sum</text><line class="ax" x1="78.9" y1="40" x2="78.9" y2="259"/><text class="ft" x="4" y="59">12</text><text class="ft fm" x="284" y="59" text-anchor="end">not recorded</text><text class="ft" x="4" y="78">13</text><text class="ft fm" x="284" y="78" text-anchor="end">not recorded</text><text class="ft" x="4" y="97">14</text><text class="ft fm" x="284" y="97" text-anchor="end">not recorded</text><text class="ft" x="4" y="116">15</text><text class="ft fm" x="284" y="116" text-anchor="end">not recorded</text><text class="ft" x="4" y="135">16</text><rect class="bp" x="78.9" y="125" width="17.6" height="13"/><text class="ft fc" x="284" y="135" text-anchor="end">+26</text><text class="ft" x="4" y="154">17</text><text class="ft fm" x="284" y="154" text-anchor="end">not recorded</text><text class="ft" x="4" y="173">18</text><text class="ft fm" x="284" y="173" text-anchor="end">not recorded</text><text class="ft" x="4" y="192">19</text><rect class="bp" x="78.9" y="182" width="5.3" height="13"/><text class="ft fc" x="284" y="192" text-anchor="end">+7.8</text><text class="ft" x="4" y="211">20</text><rect class="bn" x="66.8" y="201" width="12.1" height="13"/><text class="ft fc" x="284" y="211" text-anchor="end">−17.9</text><text class="ft" x="4" y="230">21</text><rect class="bp" x="78.9" y="220" width="56.8" height="13"/><text class="ft fc" x="284" y="230" text-anchor="end">+83.8</text><text class="ft" x="4" y="249">22</text><rect class="bp" x="78.9" y="239" width="142.3" height="13"/><text class="ft fc" x="284" y="249" text-anchor="end">+210</text></svg></div>
-<figcaption><b>C.</b> Inkling 2 Small's measurement on one looping answer. Each bar is one MLP layer's part, summed over 719 positions. The two panels have different scales. Layers 13, 17 and 18 are not in its record, and for "Wait" neither are layers 12, 14 and 15. Layer 23 was read at the final position only, where its part of "&lt;/think&gt;" was +2.3, the only clearly positive one.</figcaption></figure>
-
-<p>Inkling concluded three things. The MLPs of layers 15 to 21 lower the logit of "&lt;/think&gt;". The MLP of layer 22 raises the logit of "Wait" by the most, +210. Only layer 23 raises the logit of "&lt;/think&gt;".</p>
-
-<p>It then looked for single units with large contributions. It found many small ones and no dominant one. So it edited a direction instead of units. It set <code>d</code> to <code>U[:, &lt;/think&gt;]</code> scaled to length 1, and changed the output matrix of the MLPs of layers 20 to 23 by <code>W + α·d·(dᵀW)</code>, kind 5 under How to update below. This raises what those MLPs write along <code>d</code>. It tried α = 0.5, 0.7, 0.85 and 1.0. At α = 0.85, test accuracy went from 6.6% to 20.2%.</p>
-
-<p>Claude Opus 5.5 did the same split for "Wait", at the positions just before a "Wait". It found one dominant unit: unit 998 of the layer-16 MLP. Its contribution was about +2 to +3, out of a "Wait" logit of about 17 to 18. The unit has a large negative activation right after a result is computed, the moment before a recheck. A negative activation and a positive contribution mean its row of <code>W</code> points away from <code>u</code>. Zeroing that row raised train accuracy from 7.0% to 14.5%. Negating it gave 17.6%.</p>
-
-
-<h2>How to update</h2>
+<h2 id="how-to-update">How to update</h2>
 
 <p>Every edit so far changes an output matrix: the matrix that writes an MLP's or an attention layer's result into the residual stream. Nothing else has been edited. Column <code>j</code> of an MLP output matrix is what unit <code>j</code> adds. An edit either changes one or a few columns, so what single units write, or adds a rank-one term <code>a·bᵀ</code> that touches every column <a class="cite" href="#ref-5">[5]</a>, so what the whole matrix writes along one direction. Both kinds appear in the table below: Opus's and Inkling's largest gains came from rank-one terms.</p>
 
@@ -629,7 +530,7 @@ fromHash(); draw();
 <li><b>Close the reasoning.</b> Raise the score of the token that ends the thinking section, so the model moves on to an answer.</li>
 </ul>
 
-<h2>Every edit tried so far</h2>
+<h2 id="every-edit-tried-so-far">Every edit tried so far</h2>
 
 <p>Problems come in four sets. <b>Train:</b> MATH and GSM8K training problems the editor uses during its search to diagnose and to choose between edits. <b>Validation:</b> train problems it set aside to check its final edit, never used for a choice. <b>Test:</b> MATH-500, run once after the search on the submitted edit; the editor never sees it. <b>Reward set:</b> 128 hidden MATH training problems that score each RL rollout. All numbers are accuracy changes in points, edited minus original, on the same problems.</p>
 
@@ -682,7 +583,7 @@ fromHash(); draw();
 <tr><td>Subtract from column 507 the direction "doubt words minus progress words"</td><td>redirect a unit</td><td>stop the loop</td><td>MLP, layer 23</td><td class="n"></td><td><span class="up">Test 7.1% → 28.9%</span></td></tr>
 </table></div>
 
-<h2>What the map shows</h2>
+<h2 id="what-the-map-shows">What the map shows</h2>
 
 <ul>
 <li><b>The best edit does both things.</b> Opus measured each half alone at about 16 to 18% and the two together at 33 to 36%. Stopping "Wait" does little if the model still never closes its reasoning, and the reverse.</li>
@@ -693,7 +594,7 @@ fromHash(); draw();
 <li><b>All of this fixes one failure.</b> The edits remove an obstacle, the loop. None of them adds an ability the model lacked.</li>
 </ul>
 
-<h2>References</h2>
+<h2 id="references">References</h2>
 
 <ol class="refs">
 <li id="ref-1">Takehi, Teoh, Zhang and Khattab. <a href="https://rikiyat.github.io/blog/weight-space-programming/">Sparks of Weight-Space Programming</a>. blog post, 2026.</li>
@@ -705,4 +606,4 @@ fromHash(); draw();
 <li id="ref-7">Turner et al.. <a href="https://arxiv.org/abs/2308.10248">Steering Language Models With Activation Engineering</a>. arXiv 2308.10248, 2023.</li>
 </ol>
 </main>
-</body></html>
+<script>(function(){const L=[...document.querySelectorAll('.toc a')],H=L.map(a=>document.getElementById(a.getAttribute('href').slice(1)));function f(){let k=0;H.forEach((h,i)=>{if(h&&h.getBoundingClientRect().top<120)k=i});L.forEach((a,i)=>a.classList.toggle('on',i===k))}addEventListener('scroll',f,{passive:true});f()})();</script></body></html>
