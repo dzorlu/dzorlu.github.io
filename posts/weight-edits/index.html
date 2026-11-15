@@ -251,16 +251,22 @@ text{font-family:-apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif;f
 <li><code>C</code> counts only what a unit writes straight into the final vector. So a candidate is confirmed by editing it and generating answers.</li>
 </ul>
 
-<p>On Qwen3.5-0.8B, one looping answer, 5 positions before "Wait":</p>
+<p>The five largest <code>C_L[j]</code> on Qwen3.5-0.8B, as layer <code>L</code>, unit <code>u</code>, contribution:</p>
 <div class="tw"><table>
-<tr><th>Rank</th><th>Layer <code>L</code></th><th>Unit <code>j</code></th><th><code>C_L[j]</code></th><th>Layer total</th></tr>
-<tr><td>1</td><td>16</td><td>998</td><td>+16.69</td><td>+17.75</td></tr>
-<tr><td>2</td><td>21</td><td>44</td><td>+2.57</td><td>+8.77</td></tr>
-<tr><td>3</td><td>19</td><td>663</td><td>+1.96</td><td>+6.22</td></tr>
-<tr><td>4</td><td>18</td><td>1261</td><td>+1.80</td><td>+3.03</td></tr>
-<tr><td>5</td><td>20</td><td>1111</td><td>+1.51</td><td>+3.59</td></tr>
+<tr><th>Rank</th><th>Our notebook</th><th>Claude Opus 5.5</th><th>Inkling 2 Small</th></tr>
+<tr><td>1</td><td>L16 u998 +16.69</td><td>L16 u998 +7.51</td><td>L22 u11 +55.55</td></tr>
+<tr><td>2</td><td>L21 u44 +2.57</td><td>L23 u36 +3.09</td><td>L22 u3 +50.07</td></tr>
+<tr><td>3</td><td>L19 u663 +1.96</td><td>L22 u194 +1.82</td><td>L23 u46 +26.83</td></tr>
+<tr><td>4</td><td>L18 u1261 +1.80</td><td>L23 u113 +1.14</td><td>L23 u7 +19.95</td></tr>
+<tr><td>5</td><td>L20 u1111 +1.51</td><td>L22 u11 +1.05</td><td>L23 u240 +19.85</td></tr>
+<tr><td>Positions summed</td><td>5 before "Wait", 1 answer</td><td>3 before "Wait", 2 answers</td><td>every position, 1 answer</td></tr>
+<tr><td>Layers searched</td><td>0 to 23</td><td>12 to 23</td><td>22 and 23</td></tr>
 </table></div>
-<p>Unit 998 alone gives almost all of layer 16's +17.75. The other layers' totals are spread over many small units.</p>
+<ul>
+<li>Our notebook and Opus agree: unit 998 of layer 16 is far ahead of every other unit.</li>
+<li>Inkling never searched layer 16. Summed over every position, its largest units in layers 22 and 23 were close to each other, with no single unit far ahead.</li>
+<li>The scales differ because the sums run over different numbers of positions.</li>
+</ul>
 
 <h4 id="dla-in-our-runs">In our runs</h4>
 
