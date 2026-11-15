@@ -91,9 +91,32 @@ window.toggleMode = function () {
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true}]})"></script>
 <style>.tex{overflow-x:auto;margin:10px 0 14px}.dfig.wide1{overflow:visible}.wide1 .dscroll{position:relative;width:min(1000px,calc(100vw - 32px));left:50%;transform:translateX(-50%);box-sizing:border-box}</style>
-<style>.toc{display:none}@media (min-width:1240px){.toc{display:block;position:fixed;top:84px;left:max(12px,calc(50% - 640px));width:180px;max-height:calc(100vh - 110px);overflow:auto;font-size:13px;line-height:1.4}.toc-h{font-weight:600;color:var(--ink);margin-bottom:8px}.toc a{display:block;color:var(--muted);text-decoration:none;padding:3px 0}.toc a:hover{color:var(--accent)}.toc a.toc3{padding-left:12px;font-size:12.5px}.toc a.toc4{padding-left:24px;font-size:12px}.toc a.on{color:var(--accent)}}</style><style>@media (min-width:1240px){.wu,.wide1 .dscroll{left:0!important;transform:none!important;width:min(1000px,calc(50vw + 430px - 24px))!important}}</style><style>main h4{font-size:15px;margin:1.4em 0 .4em}</style></head><body>
+<style>.toc{display:none}@media (min-width:1240px){.toc{display:block;position:fixed;top:84px;left:max(12px,calc(50% - 640px));width:180px;max-height:calc(100vh - 110px);overflow:auto;font-size:13px;line-height:1.4}.toc-h{font-weight:600;color:var(--ink);margin-bottom:8px}.toc a{display:block;color:var(--muted);text-decoration:none;padding:3px 0}.toc a:hover{color:var(--accent)}.toc a.toc3{padding-left:12px;font-size:12.5px}.toc a.toc4{padding-left:24px;font-size:12px}.toc a.on{color:var(--accent)}}</style><style>@media (min-width:1240px){.wu,.wide1 .dscroll{left:0!important;transform:none!important;width:min(1000px,calc(50vw + 430px - 24px))!important}}</style><style>main h4{font-size:15px;margin:1.4em 0 .4em}</style><style>
+details.fold{border:1px solid var(--line);border-radius:8px;margin:10px 0;padding:0 12px}
+details.fold>summary{cursor:pointer;padding:10px 0;font-weight:600;list-style-position:outside}
+details.fold.sub{margin:8px 0;border-style:dashed}
+details.fold.sub>summary{font-weight:500;font-size:14.5px}
+details.fold .cnt{font-weight:400;color:var(--muted);font-size:13px;margin-left:6px}
+p.who2{font-size:13.5px;color:var(--muted);margin:4px 0 8px}
+</style><style>
+.refpanel{display:none}
+@media (min-width:1360px){
+.refpanel{display:block;position:fixed;top:84px;right:max(12px,calc(50% - 700px));width:230px;max-height:calc(100vh - 110px);overflow:auto;font-size:12px;line-height:1.45;color:var(--muted)}
+.refpanel ol{padding-left:20px;margin:0}.refpanel li{margin-bottom:8px}.refpanel li.on{color:var(--ink)}
+.refpanel a{color:var(--muted)}.refpanel li.on a{color:var(--accent)}
+.wu,.wide1 .dscroll{width:min(1000px,calc(50vw + 430px - 24px), calc(50vw + 430px - 300px - max(12px, 50vw - 700px)))!important}
+}
+</style></head><body>
 <header class="topbar"><a class="brand" href="../../">Tinkerings</a><span class="tools"><a href="https://github.com/dzorlu/weight-edit-rl" aria-label="GitHub"><i class="bi bi-github"></i></a><a class="mode" href="#" onclick="toggleMode(); return false;" title="Toggle dark mode"><i class="bi"></i></a></span></header>
-<nav class="toc" aria-label="Contents"><div class="toc-h">Contents</div><a class="toc2" href="#how-to-diagnose">How to diagnose</a><a class="toc3" href="#dla">1. Direct logit attribution</a><a class="toc4" href="#a-small-network">A small network</a><a class="toc4" href="#where-a-logit-comes-from">Where a logit comes from</a><a class="toc4" href="#across-positions-and-layers">Across positions and layers</a><a class="toc4" href="#dla-in-our-runs">In our runs</a><a class="toc3" href="#diff-means">2. Difference of means</a><a class="toc3" href="#token-directions">3. Token directions</a><a class="toc2" href="#how-to-update">How to update</a><a class="toc2" href="#every-edit-tried-so-far">Every edit tried so far</a><a class="toc2" href="#what-the-map-shows">What the map shows</a><a class="toc2" href="#references">References</a></nav><main>
+<nav class="toc" aria-label="Contents"><div class="toc-h">Contents</div><a class="toc2" href="#how-to-diagnose">How to diagnose</a><a class="toc3" href="#dla">1. Direct logit attribution</a><a class="toc4" href="#a-small-network">A small network</a><a class="toc4" href="#where-a-logit-comes-from">Where a logit comes from</a><a class="toc4" href="#across-positions-and-layers">Across positions and layers</a><a class="toc4" href="#dla-in-our-runs">In our runs</a><a class="toc3" href="#diff-means">2. Difference of means</a><a class="toc3" href="#token-directions">3. Token directions</a><a class="toc2" href="#how-to-update">How to update</a><a class="toc2" href="#every-edit-tried-so-far">Every edit tried so far</a><a class="toc2" href="#what-the-map-shows">What the map shows</a><a class="toc2" href="#references">References</a></nav><aside class="refpanel" aria-label="References"><div class="toc-h">References</div><ol class="refs">
+<li data-ref=\"1\">Takehi, Teoh, Zhang and Khattab. <a href="https://rikiyat.github.io/blog/weight-space-programming/">Sparks of Weight-Space Programming</a>. blog post, 2026.</li>
+<li data-ref=\"2\">Hu et al.. <a href="https://arxiv.org/abs/2611.09382">Exploring Weight-Space Programming: Capabilities, Generalization, and Limitations</a>. arXiv 2611.09382, 2026.</li>
+<li data-ref=\"3\">Elhage et al.. <a href="https://transformer-circuits.pub/2021/framework/index.html">A Mathematical Framework for Transformer Circuits</a>. Transformer Circuits Thread, 2021.</li>
+<li data-ref=\"4\">nostalgebraist. <a href="https://www.lesswrong.com/posts/AcKRB8wDpdaN6v6ru/interpreting-gpt-the-logit-lens">interpreting GPT: the logit lens</a>. LessWrong, 2020.</li>
+<li data-ref=\"5\">Meng et al.. <a href="https://arxiv.org/abs/2202.05262">Locating and Editing Factual Associations in GPT</a>. arXiv 2202.05262, 2022.</li>
+<li data-ref=\"6\">Arditi et al.. <a href="https://arxiv.org/abs/2406.11717">Refusal in Language Models Is Mediated by a Single Direction</a>. arXiv 2406.11717, 2024.</li>
+<li data-ref=\"7\">Turner et al.. <a href="https://arxiv.org/abs/2308.10248">Steering Language Models With Activation Engineering</a>. arXiv 2308.10248, 2023.</li>
+</ol></aside><main>
 <h1>A map of weight edits</h1>
 <div class="meta">State on 14 November 2026, 19:10 · <a href="run/">live RL run</a> · <a href="traces/">step through the trajectories</a> · <a href="changelog/">changelog</a> · <a href="https://github.com/dzorlu/weight-edit-rl">code</a></div>
 
@@ -253,17 +276,17 @@ text{font-family:-apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif;f
 
 <p>The five largest <code>C_L[j]</code> on Qwen3.5-0.8B, as layer <code>L</code>, unit <code>u</code>, contribution:</p>
 <div class="tw"><table>
-<tr><th>Rank</th><th>Our notebook</th><th>Claude Opus 5.5</th><th>Inkling 2 Small</th></tr>
-<tr><td>1</td><td>L16 u998 +16.69</td><td>L16 u998 +7.51</td><td>L22 u11 +55.55</td></tr>
-<tr><td>2</td><td>L21 u44 +2.57</td><td>L23 u36 +3.09</td><td>L22 u3 +50.07</td></tr>
-<tr><td>3</td><td>L19 u663 +1.96</td><td>L22 u194 +1.82</td><td>L23 u46 +26.83</td></tr>
-<tr><td>4</td><td>L18 u1261 +1.80</td><td>L23 u113 +1.14</td><td>L23 u7 +19.95</td></tr>
-<tr><td>5</td><td>L20 u1111 +1.51</td><td>L22 u11 +1.05</td><td>L23 u240 +19.85</td></tr>
-<tr><td>Positions summed</td><td>5 before "Wait", 1 answer</td><td>3 before "Wait", 2 answers</td><td>every position, 1 answer</td></tr>
-<tr><td>Layers searched</td><td>0 to 23</td><td>12 to 23</td><td>22 and 23</td></tr>
+<tr><th>Rank</th><th>Claude Opus 5.5</th><th>Inkling 2 Small</th></tr>
+<tr><td>1</td><td>L16 u998 +7.51</td><td>L22 u11 +55.55</td></tr>
+<tr><td>2</td><td>L23 u36 +3.09</td><td>L22 u3 +50.07</td></tr>
+<tr><td>3</td><td>L22 u194 +1.82</td><td>L23 u46 +26.83</td></tr>
+<tr><td>4</td><td>L23 u113 +1.14</td><td>L23 u7 +19.95</td></tr>
+<tr><td>5</td><td>L22 u11 +1.05</td><td>L23 u240 +19.85</td></tr>
+<tr><td>Positions summed</td><td>3 before "Wait", 2 answers</td><td>every position, 1 answer</td></tr>
+<tr><td>Layers searched</td><td>12 to 23</td><td>22 and 23</td></tr>
 </table></div>
 <ul>
-<li>Our notebook and Opus agree: unit 998 of layer 16 is far ahead of every other unit.</li>
+<li>Opus found one unit far ahead of every other: unit 998 of layer 16.</li>
 <li>Inkling never searched layer 16. Summed over every position, its largest units in layers 22 and 23 were close to each other, with no single unit far ahead.</li>
 <li>The scales differ because the sums run over different numbers of positions.</li>
 </ul>
@@ -577,37 +600,52 @@ fromHash(); draw();
 
 <p>Each row is a single search or rollout, and results vary a lot between runs of the same editor.</p>
 
-<div class="tw"><table>
+<details class="fold"><summary>Claude Opus 5.5 <span class="cnt">1 search</span></summary>
+<p class="who2">Claude Opus 5.5 · <a href="traces/#opus">trajectory</a></p><div class="tw"><table>
 <tr><th>Edit</th><th>Kind</th><th>Aimed at</th><th>Where</th><th>Measured</th><th>Outcome</th></tr>
-
-<tr class="who"><td colspan="6">Claude Opus 5.5 · <a href="traces/#opus">trajectory</a></td></tr>
 <tr><td>Strengthen the end-of-thinking direction, α = 0.5</td><td>amplify a direction</td><td>close the reasoning</td><td>all attention and MLP outputs, layers 14 to 22</td><td class="n">train 7.4% → 7.0%</td><td>no effect, dropped</td></tr>
 <tr><td>Zero column 998</td><td>remove a unit</td><td>stop the loop</td><td>MLP, layer 16</td><td class="n">train 7.0% → 14.5%</td><td>replaced by the next one</td></tr>
 <tr><td>Negate column 998</td><td>flip a unit</td><td>stop the loop</td><td>MLP, layer 16</td><td class="n">train 17.6%</td><td>kept as one half</td></tr>
 <tr><td>Negate column 998, plus the direction at α = 2.0</td><td>flip + amplify</td><td>both</td><td>layers 14 to 22</td><td class="n">train 37.1%</td><td>rejected: a quarter of finished answers skipped the reasoning</td></tr>
 <tr><td>Negate column 998, plus the direction at α = 2.5 on nine chosen matrices</td><td>flip + amplify</td><td>both</td><td>attention, layers 17 to 21; MLP, layers 15, 16, 19, 22</td><td class="n">validation +26 to +29<br>on three sets</td><td><span class="up">submitted. Test 7.6% → 34.8%</span></td></tr>
 <tr><td>The two halves separately</td><td></td><td></td><td></td><td class="n">direction alone 15.6%<br>flip alone 17.6%</td><td>each half is worth about half</td></tr>
-
-<tr class="who"><td colspan="6">Inkling 2 Small, first search · <a href="traces/#inkling-1">trajectory</a></td></tr>
+</table></div>
+</details>
+<details class="fold"><summary>Inkling 2 Small <span class="cnt">6 runs</span></summary>
+<details class="fold sub"><summary>first search</summary>
+<p class="who2">Inkling 2 Small, first search · <a href="traces/#inkling-1">trajectory</a></p><div class="tw"><table>
+<tr><th>Edit</th><th>Kind</th><th>Aimed at</th><th>Where</th><th>Measured</th><th>Outcome</th></tr>
 <tr><td>Strengthen the end-of-thinking direction at α = 0.5, 0.7, 0.85, 1.0</td><td>amplify a direction</td><td>close the reasoning</td><td>MLP, layers 20 to 23</td><td class="n">train +4.5, +8.9,<br>+21.4, +30.4 by α;<br>validation +22.7, +20.3</td><td><span class="up">α = 0.85 submitted. Test 6.6% → 20.2%.</span> α = 1.0 skipped the reasoning in about 30% of answers</td></tr>
-
-<tr class="who"><td colspan="6">Inkling 2 Small, second search · <a href="traces/#inkling-2">trajectory</a></td></tr>
+</table></div>
+</details>
+<details class="fold sub"><summary>second search</summary>
+<p class="who2">Inkling 2 Small, second search · <a href="traces/#inkling-2">trajectory</a></p><div class="tw"><table>
+<tr><th>Edit</th><th>Kind</th><th>Aimed at</th><th>Where</th><th>Measured</th><th>Outcome</th></tr>
 <tr><td>Zero 11 columns that write "Wait"</td><td>remove units</td><td>stop the loop</td><td>MLP, layers 5, 15, 16, 18, 19, 20, 22, 23</td><td class="n">validation: GSM8K +7 to +10,<br>MATH 0 to +1.5</td><td>kept as one half</td></tr>
 <tr><td>Also double 8 columns that fire where a finished solution closes its reasoning</td><td>amplify units</td><td>close the reasoning</td><td>MLP, layers 16, 18, 19, 22, 23</td><td class="n">validation MATH +6.7</td><td><span class="up">submitted. Test 6.6% → 11.8%.</span> Tripling was worse</td></tr>
-
-<tr class="who"><td colspan="6">Inkling 2 Small, first RL step, 8 forward passes per rollout · trajectories <a href="traces/#rl-smoke3-s0-r0">1</a> <a href="traces/#rl-smoke3-s0-r1">2</a> <a href="traces/#rl-smoke3-s0-r2">3</a> <a href="traces/#rl-smoke3-s0-r3">4</a></td></tr>
+</table></div>
+</details>
+<details class="fold sub"><summary>first RL step, 8 forward passes per rollout</summary>
+<p class="who2">Inkling 2 Small, first RL step, 8 forward passes per rollout · trajectories <a href="traces/#rl-smoke3-s0-r0">1</a> <a href="traces/#rl-smoke3-s0-r1">2</a> <a href="traces/#rl-smoke3-s0-r2">3</a> <a href="traces/#rl-smoke3-s0-r3">4</a></p><div class="tw"><table>
+<tr><th>Edit</th><th>Kind</th><th>Aimed at</th><th>Where</th><th>Measured</th><th>Outcome</th></tr>
 <tr><td>Rollout 1: zero 10 columns with large shares of the score of "Wait", among them column 998 of layer 16</td><td>remove units</td><td>stop the loop</td><td>MLP, layers 16, 19, 22, 23</td><td class="n">train +12.1, +11.3</td><td><span class="up">submitted. Reward +13.3</span></td></tr>
 <tr><td>Rollout 2: add a trigger-and-write term toward the end-of-thinking token, then a stronger one</td><td>trigger and write</td><td>close the reasoning</td><td>MLP, layer 23, then layers 21 to 23</td><td class="n">train: first edit −0.8,<br>stronger edit <span class="down">−5.5</span></td><td>the stronger one made the model stop thinking at once and give no answer. Nothing submitted, reward 0</td></tr>
 <tr><td>Rollout 3: remove a "looping" direction found by contrasting looping and clean text</td><td>remove a direction</td><td>stop the loop</td><td>attention, layer 23</td><td class="n">train +6.3, +6.3, +5.1</td><td><span class="up">submitted. Reward +4.7</span></td></tr>
 <tr><td>Rollout 4: a trigger-and-write term, then zero 6 columns, among them column 998 of layer 16</td><td>trigger and write, then remove units</td><td>stop the loop</td><td>MLP, layers 16, 18, 20, 22, 23</td><td class="n">train: first edit <span class="down">−10.6</span>,<br>second edit +25.0</td><td>dropped the second edit for lack of a confirmation run. Nothing submitted, reward 0</td></tr>
-
-<tr class="who"><td colspan="6">Inkling 2 Small, RL test run with 32 forward passes per rollout. Stopped before scoring, so no reward · trajectories <a href="traces/#rl-b32-1-s0-r0">1</a> <a href="traces/#rl-b32-1-s0-r1">2</a> <a href="traces/#rl-b32-1-s0-r2">3</a> <a href="traces/#rl-b32-1-s0-r3">4</a></td></tr>
+</table></div>
+</details>
+<details class="fold sub"><summary>RL test run with 32 forward passes per rollout</summary>
+<p class="who2">Inkling 2 Small, RL test run with 32 forward passes per rollout. Stopped before scoring, so no reward · trajectories <a href="traces/#rl-b32-1-s0-r0">1</a> <a href="traces/#rl-b32-1-s0-r1">2</a> <a href="traces/#rl-b32-1-s0-r2">3</a> <a href="traces/#rl-b32-1-s0-r3">4</a></p><div class="tw"><table>
+<tr><th>Edit</th><th>Kind</th><th>Aimed at</th><th>Where</th><th>Measured</th><th>Outcome</th></tr>
 <tr><td>Rollout 1: strengthen a direction, then a trigger-and-write term at α = 3 and 5</td><td>amplify a direction; trigger and write</td><td>stop the loop</td><td>attention, layer 23</td><td class="n">train −2.0;<br>then +5.1 (α = 3),<br><span class="down">−4.3</span> (α = 5)</td><td>still testing when stopped</td></tr>
 <tr><td>Rollout 2: a trigger-and-write term: when units fire as they do where a finished solution closes its reasoning, write the end-of-thinking direction</td><td>trigger and write</td><td>close the reasoning</td><td>MLP, layer 23</td><td class="n">train +7.1,<br>then +32.7, +39.0</td><td>still testing when stopped</td></tr>
 <tr><td>Rollout 3: strengthen the end-of-thinking direction in every attention output matrix</td><td>amplify a direction</td><td>close the reasoning</td><td>attention, all 24 layers</td><td class="n">train +9.4 (α = 1),<br>+21.5 (α = 1.5),<br>+13.8 (α = 1.2)</td><td>still testing when stopped</td></tr>
 <tr><td>Rollout 4: strengthen the end-of-thinking direction in every output matrix, attention and MLP</td><td>amplify a direction</td><td>close the reasoning</td><td>all 24 layers</td><td class="n">train +23.4 (α = 0.5),<br>+6.6 to +13.7 (α = 0.25 to 0.4)</td><td>still testing when stopped</td></tr>
-
-<tr class="who"><td colspan="6">Inkling 2 Small, RL run hero3, step 1, before any training. 32 forward passes per rollout. Reward on 256 hidden answers; the original weights score 7.4%. Mean reward +13.6. The test column is MATH-500, original 6.6%</td></tr>
+</table></div>
+</details>
+<details class="fold sub"><summary>RL run hero3, step 1, before any training</summary>
+<p class="who2">Inkling 2 Small, RL run hero3, step 1, before any training. 32 forward passes per rollout. Reward on 256 hidden answers; the original weights score 7.4%. Mean reward +13.6. The test column is MATH-500, original 6.6%</p><div class="tw"><table>
+<tr><th>Edit</th><th>Kind</th><th>Aimed at</th><th>Where</th><th>Measured</th><th>Outcome</th></tr>
 <tr><td>Rollout <a href="traces/#rl-hero3-s0-r4">5</a>: Remove the "Wait" direction and add twice the end-of-thinking direction, both made specific to their token by removing what the 600 most frequent tokens share</td><td>remove a direction + amplify a direction</td><td>both</td><td>all 48 output matrices, attention and MLP, all 24 layers</td><td class="n">test +32.8</td><td><span class="up">reward +33.6</span></td></tr>
 <tr><td>Rollout <a href="traces/#rl-hero3-s0-r7">8</a>: Remove the "Wait" direction from every output matrix, and add the end-of-thinking direction at 0.6 in the late MLPs</td><td>remove a direction + amplify a direction</td><td>both</td><td>all output matrices; MLP, layers 18 to 23</td><td class="n">test +29.4</td><td><span class="up">reward +27.3</span></td></tr>
 <tr><td>Rollout <a href="traces/#rl-hero3-s0-r2">3</a>: Zero 16 columns that write "Wait", among them column 998 of layer 16, and amplify 5 columns that write against it</td><td>remove units + amplify units</td><td>stop the loop</td><td>MLP, layers 16 to 23</td><td class="n">test +16.7</td><td><span class="up">reward +18.8</span></td></tr>
@@ -616,13 +654,23 @@ fromHash(); draw();
 <tr><td>Rollout <a href="traces/#rl-hero3-s0-r6">7</a>: Remove a "looping" direction: activations inside a loop minus outside</td><td>remove a direction</td><td>stop the loop</td><td>attention, layer 23</td><td class="n">test +2.5</td><td><span class="up">reward +2.7</span></td></tr>
 <tr><td>Rollout <a href="traces/#rl-hero3-s0-r0">1</a>: Zero 7 columns that write "Wait"</td><td>remove units</td><td>stop the loop</td><td>MLP, layer 23</td><td class="n">test +0.6</td><td><span class="up">reward +1.2</span></td></tr>
 <tr><td>Rollout <a href="traces/#rl-hero3-s0-r5">6</a>: None: five malformed tool calls in a row</td><td></td><td></td><td></td><td class="n">test no edit</td><td><span class="mut">reward 0</span></td></tr>
-
-<tr class="who"><td colspan="6">Inkling 2 Small, RL run hero3, step 2, after one training update. Mean reward +24.3. Stopped after this step · <a href="https://github.com/dzorlu/weight-edit-rl/blob/main/results/rl/hero3/analysis_step1_vs_step2.md">analysis</a></td></tr>
+</table></div>
+</details>
+<details class="fold sub"><summary>RL run hero3, step 2, after one training update</summary>
+<p class="who2">Inkling 2 Small, RL run hero3, step 2, after one training update. Mean reward +24.3. Stopped after this step · <a href="https://github.com/dzorlu/weight-edit-rl/blob/main/results/rl/hero3/analysis_step1_vs_step2.md">analysis</a></p><div class="tw"><table>
+<tr><th>Edit</th><th>Kind</th><th>Aimed at</th><th>Where</th><th>Measured</th><th>Outcome</th></tr>
 <tr><td>All 8 rollouts: strengthen the end-of-thinking direction in all 48 output matrices (α 1.0 to 2.0); 3 of them also remove the "Wait" direction. Every rollout read step 1's notes, which held this recipe, so the gain mixes training and copying. A run without notes (nolib1) measures training alone</td><td>amplify a direction (+ remove a direction)</td><td>close the reasoning</td><td>all 48 output matrices, all 24 layers</td><td class="n">test scoring in progress</td><td><span class="up">rewards 32.0, 27.7, 27.3, 25.8, 24.2, 23.1, 20.7, 13.3</span></td></tr>
+</table></div>
+</details>
 
-<tr class="who"><td colspan="6">For reference: the published edit from <a href="https://arxiv.org/abs/2611.09382">arXiv 2611.09382</a>, found by GPT-6 Astra, applied by us</td></tr>
+</details>
+<details class="fold"><summary>For reference: the published edit</summary>
+<p class="who2">For reference: the published edit from <a href="https://arxiv.org/abs/2611.09382">arXiv 2611.09382</a>, found by GPT-6 Astra, applied by us</p><div class="tw"><table>
+<tr><th>Edit</th><th>Kind</th><th>Aimed at</th><th>Where</th><th>Measured</th><th>Outcome</th></tr>
 <tr><td>Subtract from column 507 the direction "doubt words minus progress words"</td><td>redirect a unit</td><td>stop the loop</td><td>MLP, layer 23</td><td class="n"></td><td><span class="up">Test 7.1% → 28.9%</span></td></tr>
 </table></div>
+</details>
+
 
 <h2 id="what-the-map-shows">What the map shows</h2>
 
@@ -647,4 +695,4 @@ fromHash(); draw();
 <li id="ref-7">Turner et al.. <a href="https://arxiv.org/abs/2308.10248">Steering Language Models With Activation Engineering</a>. arXiv 2308.10248, 2023.</li>
 </ol>
 </main>
-<script>(function(){const L=[...document.querySelectorAll('.toc a')],H=L.map(a=>document.getElementById(a.getAttribute('href').slice(1)));function f(){let k=0;H.forEach((h,i)=>{if(h&&h.getBoundingClientRect().top<120)k=i});L.forEach((a,i)=>a.classList.toggle('on',i===k))}addEventListener('scroll',f,{passive:true});f()})();</script></body></html>
+<script>(function(){const L=[...document.querySelectorAll('.toc a')],H=L.map(a=>document.getElementById(a.getAttribute('href').slice(1)));function f(){let k=0;H.forEach((h,i)=>{if(h&&h.getBoundingClientRect().top<120)k=i});L.forEach((a,i)=>a.classList.toggle('on',i===k))}addEventListener('scroll',f,{passive:true});f()})();</script><script>(function(){const P=document.querySelector('.refpanel');if(!P)return;document.querySelectorAll('a.cite').forEach(a=>{const n=a.getAttribute('href').replace('#ref-','');const li=P.querySelector('li[data-ref="'+n+'"]');if(!li)return;a.addEventListener('mouseenter',()=>li.classList.add('on'));a.addEventListener('mouseleave',()=>li.classList.remove('on'));});})();</script></body></html>
