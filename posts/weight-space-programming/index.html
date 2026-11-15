@@ -108,7 +108,7 @@ p.who2{font-size:13.5px;color:var(--muted);margin:4px 0 8px}
 }
 </style></head><body>
 <header class="topbar"><a class="brand" href="../../">Tinkerings</a><span class="tools"><a href="https://github.com/dzorlu/weight-edit-rl" aria-label="GitHub"><i class="bi bi-github"></i></a><a class="mode" href="#" onclick="toggleMode(); return false;" title="Toggle dark mode"><i class="bi"></i></a></span></header>
-<nav class="toc" aria-label="Contents"><div class="toc-h">Contents</div><a class="toc2" href="#how-to-diagnose">How to diagnose</a><a class="toc3" href="#dla">1. Direct logit attribution</a><a class="toc4" href="#a-small-network">A small network</a><a class="toc4" href="#where-a-logit-comes-from">Where a logit comes from</a><a class="toc4" href="#across-positions-and-layers">Across positions and layers</a><a class="toc4" href="#dla-in-our-runs">In our runs</a><a class="toc3" href="#diff-means">2. Difference of means</a><a class="toc3" href="#token-directions">3. Token directions</a><a class="toc2" href="#how-to-update">How to update</a><a class="toc2" href="#every-edit-tried-so-far">Every edit tried so far</a><a class="toc2" href="#take-away">Take-away</a><a class="toc2" href="#what-the-map-shows">What the map shows</a><a class="toc2" href="#references">References</a></nav><aside class="refpanel" aria-label="References"><div class="toc-h">References</div><ol class="refs">
+<nav class="toc" aria-label="Contents"><div class="toc-h">Contents</div><a class="toc2" href="#how-to-diagnose">How to diagnose</a><a class="toc3" href="#dla">1. Direct logit attribution</a><a class="toc4" href="#a-small-network">A small network</a><a class="toc4" href="#where-a-logit-comes-from">Where a logit comes from</a><a class="toc4" href="#across-positions-and-layers">Across positions and layers</a><a class="toc4" href="#dla-in-our-runs">In our runs</a><a class="toc3" href="#diff-means">2. Difference of means</a><a class="toc3" href="#token-directions">3. Token directions</a><a class="toc2" href="#how-to-update">How to update</a><a class="toc2" href="#every-edit-tried-so-far">Every edit tried so far</a><a class="toc2" href="#what-the-edits-show">What the edits show</a><a class="toc2" href="#references">References</a></nav><aside class="refpanel" aria-label="References"><div class="toc-h">References</div><ol class="refs">
 <li data-ref=\"1\">Takehi, Teoh, Zhang and Khattab. <a href="https://rikiyat.github.io/blog/weight-space-programming/">Sparks of Weight-Space Programming</a>. blog post, 2026.</li>
 <li data-ref=\"2\">Hu et al.. <a href="https://arxiv.org/abs/2611.09382">Exploring Weight-Space Programming: Capabilities, Generalization, and Limitations</a>. arXiv 2611.09382, 2026.</li>
 <li data-ref=\"3\">Elhage et al.. <a href="https://transformer-circuits.pub/2021/framework/index.html">A Mathematical Framework for Transformer Circuits</a>. Transformer Circuits Thread, 2021.</li>
@@ -128,23 +128,47 @@ p.who2{font-size:13.5px;color:var(--muted);margin:4px 0 8px}
 <li><b>Training the teacher:</b> we train Inkling 2 Small with RL. The reward is how much its submitted edit improves the student's accuracy on problems it never saw.</li>
 </ul>
 
-<p>The student fails at math mostly in one way. It writes "Wait..." and rechecks its work until it runs out of tokens, in about 95% of answers. So every edit below tries to stop that. Scores are the share of correct final answers.</p>
+<p>The student fails at math mostly because it does not stop reasoning. It writes "Wait..." and rechecks its work until it runs out of tokens. This happens in about 95% of answers. Every edit below tries to fix this, in one of two ways, or both:</p>
+<ul>
+<li><b>Stop the loop.</b> Lower the score of "Wait", so the model stops re-checking.</li>
+<li><b>Close the reasoning.</b> Raise the score of "&lt;/think&gt;", so the model ends its thinking and gives an answer.</li>
+</ul>
 
-<p>This page covers how the teacher finds what to change (How to diagnose), how it changes it (How to update), and every edit tried so far.</p>
+<p>A score is the share of correct final answers. Edits are scored on three sets of problems:</p>
+<ul>
+<li><b>Train:</b> MATH and GSM8K training problems, used during the search. Some are set aside as <b>validation</b>, to check the final edit.</li>
+<li><b>Test:</b> MATH-500, scored once on the submitted edit.</li>
+<li><b>Reward:</b> 128 other MATH training problems, used to score each RL rollout. The teacher never sees them.</li>
+</ul>
+
+<p>The page has three parts:</p>
+<ul>
+<li><b>How to diagnose:</b> how the teacher finds what to change.</li>
+<li><b>How to update:</b> how it changes the weights.</li>
+<li><b>Every edit tried so far,</b> and what the edits show.</li>
+</ul>
 
 <h2 id="how-to-diagnose">How to diagnose</h2>
 
-<ul>
-<li>A diagnosis finds the units that make the model write the wrong next token, here "Wait".</li>
-<li>The editors used three methods, each from the interpretability literature: direct logit attribution, difference of means, and token directions.</li>
-<li>Method 1 is built up below on a one-layer network.</li>
-</ul>
+<p>A diagnosis finds the units that make the model write the wrong next token. Here that token is "Wait". The teachers used three methods from the interpretability literature:</p>
+<ol>
+<li><b>Direct logit attribution:</b> which unit writes "Wait"?</li>
+<li><b>Difference of means:</b> which unit fires differently just before "Wait"?</li>
+<li><b>Token directions:</b> no measurement. Use the token's own direction.</li>
+</ol>
+<p>Method 1 is built up below on a one-layer network.</p>
 
 <h3 id="dla">1. Direct logit attribution <a class="cite" href="#ref-3">[3]</a> <a class="cite" href="#ref-4">[4]</a></h3>
 
 <h4 id="a-small-network">A small network</h4>
 
-<p>One layer, with a residual stream of 3 numbers (1024 in the model) and 4 MLP units (3584).</p>
+<p>Start with a toy network. It has the same parts as the student, only smaller.</p>
+<div class="tw"><table>
+<tr><th></th><th>Toy</th><th>Qwen3.5-0.8B</th></tr>
+<tr><td>Layers</td><td>1</td><td>24</td></tr>
+<tr><td>Residual stream</td><td>3</td><td>1024</td></tr>
+<tr><td>MLP units per layer</td><td>4</td><td>3584</td></tr>
+</table></div>
 
 <figure class="dfig wide1"><div class="dscroll"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 980 265" role="img"><title>The forward pass of one layer: the residual stream h0 passes through; the MLP computes x from h0, then m = x @ W, which is added back; h @ U gives the logits</title><style>
 text{font-family:-apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif;fill:var(--ink,#1d1d1b)}
@@ -161,7 +185,7 @@ text{font-family:-apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif;f
 
 <div class="tex">$$\text{logit}_{\text{Wait}} = h \cdot u = (h_0 + xW)\cdot u = \underbrace{h_0 \cdot u}_{\text{residual: }0.5} \;+\; \underbrace{\sum_j x_j \,(W_j \cdot u)}_{\text{MLP, one term per row of }W:\ 2.5} = 3$$</div>
 
-<p>Figure 2 shows each term of the sum.</p>
+<p>Figure 2 opens up the MLP part. It has one term per unit.</p>
 
 <h4 id="where-a-logit-comes-from">Where a logit comes from</h4>
 
@@ -262,75 +286,88 @@ text{font-family:-apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif;f
   reset();
 })();
 </script>
-<figcaption><b>2.</b> Each weight contributes <code>x[j] × W[j][d] × U[d][Wait]</code>. Each row adds up to one unit's contribution, and all rows to 2.5, the MLP term of the sum above. With the residual's 0.5 that is the "Wait" logit, 3.</figcaption></figure>
+<figcaption><b>2.</b> Each weight adds <code>x[j] × W[j][d] × U[d][Wait]</code>. One row sums to one unit's contribution. All rows sum to the MLP part, 2.5.</figcaption></figure>
 
 <h4 id="across-positions-and-layers">Across positions and layers</h4>
 
-<ul>
-<li>Figure 2 is one position <code>p</code>: one token of the answer, where the next token is "Wait".</li>
-<li>A looping answer writes "Wait" many times. <code>P</code> is all those positions; our example answer has 5.</li>
-<li>Unit <code>j</code> is one MLP neuron: entry <code>j</code> of <code>x</code>, row <code>j</code> of <code>W</code>. Each layer has 3584.</li>
-<li>For every layer <code>L</code> and unit <code>j</code>, add the row contribution over those positions:</li>
-</ul>
+<p>Figure 2 shows one position: one token whose next token is "Wait". A looping answer writes "Wait" many times. Let <code>P</code> be all those positions. Unit <code>j</code> is one MLP neuron: entry <code>j</code> of <code>x</code>, row <code>j</code> of <code>W</code>. For each layer <code>L</code> and unit <code>j</code>, add the unit's contribution over <code>P</code>:</p>
 
 <div class="tex">$$C_L[j] = \sum_{p \in P} x_L[p, j]\,\bigl(W_L[j] \cdot u\bigr) \,/\, \text{rms}(h[p])$$</div>
 
 <ul>
-<li><code>C</code> has one number per unit per layer: [24 layers × 3584 units].</li>
-<li><code>rms(h[p])</code> is the final norm. It divides every term at a position by the same number.</li>
-<li>Rank the units by <code>C_L[j]</code>. The largest is the candidate to edit.</li>
-<li><code>C</code> counts only what a unit writes straight into the final vector. So a candidate is confirmed by editing it and generating answers.</li>
+<li><code>rms(h[p])</code> is the final norm. It scales every term at one position by the same number.</li>
+<li><code>C</code> has one number per unit per layer.</li>
+<li>The unit with the largest <code>C</code> is the candidate to edit.</li>
+<li><code>C</code> counts only what a unit writes straight into the final vector. So we confirm a candidate by editing it and generating answers.</li>
 </ul>
 
-<p>The five largest <code>C_L[j]</code> on Qwen3.5-0.8B, as layer <code>L</code>, unit <code>u</code>, contribution:</p>
+<p>Each teacher ran this search in a different way:</p>
+<ul>
+<li><b>Opus:</b> layers 12 to 23. It summed the positions before "Wait" in 2 answers.</li>
+<li><b>Inkling:</b> layers 22 and 23 only. It summed every position of 1 answer.</li>
+</ul>
+<p>The five units with the largest <code>C</code>:</p>
 <div class="tw"><table>
-<tr><th>Rank</th><th>Claude Opus 5.5</th><th>Inkling 2 Small</th></tr>
-<tr><td>1</td><td>L16 u998 +7.51</td><td>L22 u11 +55.55</td></tr>
-<tr><td>2</td><td>L23 u36 +3.09</td><td>L22 u3 +50.07</td></tr>
-<tr><td>3</td><td>L22 u194 +1.82</td><td>L23 u46 +26.83</td></tr>
-<tr><td>4</td><td>L23 u113 +1.14</td><td>L23 u7 +19.95</td></tr>
-<tr><td>5</td><td>L22 u11 +1.05</td><td>L23 u240 +19.85</td></tr>
-<tr><td>Positions summed</td><td>3 before "Wait", 2 answers</td><td>every position, 1 answer</td></tr>
-<tr><td>Layers searched</td><td>12 to 23</td><td>22 and 23</td></tr>
+<tr><th>Rank</th><th>Opus: layer, unit</th><th>C</th><th>Inkling: layer, unit</th><th>C</th></tr>
+<tr><td>1</td><td>16, 998</td><td>7.51</td><td>22, 11</td><td>55.55</td></tr>
+<tr><td>2</td><td>23, 36</td><td>3.09</td><td>22, 3</td><td>50.07</td></tr>
+<tr><td>3</td><td>22, 194</td><td>1.82</td><td>23, 46</td><td>26.83</td></tr>
+<tr><td>4</td><td>23, 113</td><td>1.14</td><td>23, 7</td><td>19.95</td></tr>
+<tr><td>5</td><td>22, 11</td><td>1.05</td><td>23, 240</td><td>19.85</td></tr>
 </table></div>
 <ul>
-<li>Opus found one unit far ahead of every other: unit 998 of layer 16.</li>
-<li>Inkling never searched layer 16. Summed over every position, its largest units in layers 22 and 23 were close to each other, with no single unit far ahead.</li>
-<li>The scales differ because the sums run over different numbers of positions.</li>
+<li>Opus found one unit far ahead of the rest: unit 998 in layer 16.</li>
+<li>Inkling never searched layer 16. Its top units were close to each other.</li>
+<li>The two scales differ because the sums cover different numbers of positions.</li>
 </ul>
 
 <h4 id="dla-in-our-runs">In our runs</h4>
 
-<ul>
-<li>Claude Opus 5.5 found unit 998 of layer 16. Zeroing its row of <code>W</code>: train accuracy 7.0% → 14.5%. Negating it: 17.6%.</li>
-<li>Inkling 2 Small found that layers 15 to 21 lower "&lt;/think&gt;". It added the "&lt;/think&gt;" direction in layers 20 to 23: test accuracy 6.6% → 20.2%.</li>
-</ul>
+<p>Opus then edited unit 998 of layer 16. Both edits helped:</p>
+<div class="tw"><table>
+<tr><th>Edit</th><th>Train accuracy</th></tr>
+<tr><td>None</td><td>7.0%</td></tr>
+<tr><td>Zero the unit</td><td>14.5%</td></tr>
+<tr><td>Flip the unit</td><td>17.6%</td></tr>
+</table></div>
 
 <h3 id="diff-means">2. Difference of means <a class="cite" href="#ref-6">[6]</a> <a class="cite" href="#ref-7">[7]</a></h3>
 
-<p>Method 1 asks which unit <em>writes</em> "Wait". This method asks which unit <em>fires differently</em> before a "Wait". It uses only the activations <code>x</code>, not <code>W</code> or <code>U</code>, at two sets of positions:</p>
+<p>Method 1 asks which unit <em>writes</em> "Wait". Method 2 asks which unit <em>fires differently</em> just before "Wait". It needs only the activations <code>x</code>. It compares two sets of positions:</p>
 <ul>
 <li><code>P</code>: positions whose next token is "Wait", as in method 1.</li>
-<li><code>Q</code>: positions to compare against. Either the rest of the same answer (every position whose next token is not "Wait"), or positions in answers that finished cleanly.</li>
+<li><code>Q</code>: positions to compare against. These are either the other positions of the same answer, or positions in answers that finished cleanly.</li>
 </ul>
+<p>Example: unit 2 fires 3 and 2 at the positions in <code>P</code>, and 0 and 1 at those in <code>Q</code>. Its means are 2.5 and 0.5, so the difference is 2. It fires mostly before "Wait".</p>
 <div class="tex">$$d[j] = \text{mean}_{p \in P}\, x[p, j] \;-\; \text{mean}_{q \in Q}\, x[q, j]$$</div>
-<p>For example, if unit 2 has activations 3 and 2 at the positions in <code>P</code> and 0 and 1 at those in <code>Q</code>, then <code>d[2] = 2.5 − 0.5 = 2</code>: it fires mostly before "Wait". The units with the largest <code>d[j]</code> are the candidates. Computed on the residual stream <code>h</code> instead of <code>x</code>, the difference is a direction, which can be removed from the output matrices <a class="cite" href="#ref-6">[6]</a>.</p>
+<p>The units with the largest <code>d</code> are the candidates. On the residual stream <code>h</code>, the same difference gives a direction instead of a unit. That direction can be removed from the output matrices <a class="cite" href="#ref-6">[6]</a>.</p>
 
 <h3 id="token-directions">3. Token directions</h3>
 
-<p>Skip the measurement. Take a token's column of <code>U</code> as a direction and remove it from, or add it to, the output matrices of every layer. Removing a direction from every layer is directional ablation <a class="cite" href="#ref-6">[6]</a>.</p>
+<p>This method skips the measurement. Each token has a column in <code>U</code>. That column is a direction in the residual stream. We can remove it from the output matrices of every layer, or add it. Removing it from every layer is called directional ablation <a class="cite" href="#ref-6">[6]</a>.</p>
+
+<p>Inkling used this method in its first search. It saw that layers 15 to 21 push "&lt;/think&gt;" down. So it added the "&lt;/think&gt;" direction to the MLPs of layers 20 to 23. Test accuracy rose from 6.6% to 20.2%.</p>
 
 <h2 id="how-to-update">How to update</h2>
 
-<p>Every edit so far changes an output matrix: the matrix that writes an MLP's or an attention layer's result into the residual stream. Nothing else has been edited. Column <code>j</code> of an MLP output matrix is what unit <code>j</code> adds. An edit either changes one or a few columns, so what single units write, or adds a rank-one term <code>a·bᵀ</code> that touches every column <a class="cite" href="#ref-5">[5]</a>, so what the whole matrix writes along one direction. Both kinds appear in the table below: Opus's and Inkling's largest gains came from rank-one terms.</p>
+<p>Every edit so far changes an output matrix. This matrix writes an MLP's or an attention layer's result back into the residual stream. No other weights were edited.</p>
+
+<p>There are two kinds of edit:</p>
+<ul>
+<li><b>Change a few units.</b> Each unit has its own slice of the matrix: what it writes. Changing it changes only that unit.</li>
+<li><b>Add a rank-one term <code>a·bᵀ</code></b> <a class="cite" href="#ref-5">[5]</a>. This touches every unit. It changes what the whole matrix writes along one direction.</li>
+</ul>
+<p>Opus's and Inkling's largest gains came from rank-one terms.</p>
+
+<p>The figures in this section draw <code>W</code> as it is stored in the model file, [1024 × 3584]. Unit <code>j</code> is column <code>j</code> here. In How to diagnose we used the transpose, so unit <code>j</code> was row <code>j</code>. It is the same matrix.</p>
 
 <figure class="wcard worient"><svg class="wfig wide" viewBox="0 0 388 214" role="img" aria-label="Where the edited matrix sits: the residual stream h feeds the MLP units x, and W maps x back into the residual stream"><title>Where the edited matrix sits: the residual stream h feeds the MLP units x, and W maps x back into the residual stream</title><text class="ft" x="12" y="24">residual stream <tspan class="fc">h [1024]</tspan></text><text class="ft fc" x="378" y="24" text-anchor="end">h + m</text><line class="ln" x1="12" y1="40" x2="330" y2="40"/><line class="ln" x1="350" y1="40" x2="371" y2="40"/><polygon class="lh" points="378,40 370,36 370,44"/><circle class="ln nofill" cx="340" cy="40" r="10"/><line class="ln" x1="334" y1="40" x2="346" y2="40"/><line class="ln" x1="340" y1="34" x2="340" y2="46"/><line class="ln" x1="34" y1="40" x2="34" y2="113.0"/><polygon class="lh" points="34,120.0 30,112.0 38,112.0"/><text class="ft fc fm" x="42" y="66">gate_proj,</text><text class="ft fc fm" x="42" y="81">up_proj</text><rect class="bx" x="12" y="120.0" width="104" height="44" rx="5"/><text class="ft" x="64" y="139.0" text-anchor="middle">MLP units</text><text class="ft fc" x="64" y="155.0" text-anchor="middle">x [3584]</text><line class="ln" x1="116" y1="142.0" x2="139" y2="142.0"/><polygon class="lh" points="146,142.0 138,138.0 138,146.0"/><text class="ft fm fs" transform="translate(162 142.0) rotate(-90)" text-anchor="middle">1024 residual dimensions</text><text class="ft fe" x="172" y="91">W <tspan class="fc">[1024 × 3584]</tspan>, edited</text><rect class="wp" x="172.5" y="100.5" width="13" height="13" fill-opacity="0.5"/><rect class="wn" x="186.5" y="100.5" width="13" height="13" fill-opacity="0.375"/><rect class="wz" x="200.5" y="100.5" width="13" height="13"/><rect class="wp" x="214.5" y="100.5" width="13" height="13" fill-opacity="0.625"/><rect class="wp" x="228.5" y="100.5" width="13" height="13" fill-opacity="0.375"/><rect class="wn" x="242.5" y="100.5" width="13" height="13" fill-opacity="0.5"/><rect class="wz" x="256.5" y="100.5" width="13" height="13"/><rect class="wp" x="270.5" y="100.5" width="13" height="13" fill-opacity="0.5"/><rect class="wn" x="284.5" y="100.5" width="13" height="13" fill-opacity="0.625"/><rect class="wp" x="298.5" y="100.5" width="13" height="13" fill-opacity="0.375"/><rect class="wn" x="172.5" y="114.5" width="13" height="13" fill-opacity="0.375"/><rect class="wp" x="186.5" y="114.5" width="13" height="13" fill-opacity="0.625"/><rect class="wp" x="200.5" y="114.5" width="13" height="13" fill-opacity="0.5"/><rect class="wn" x="214.5" y="114.5" width="13" height="13" fill-opacity="0.5"/><rect class="wz" x="228.5" y="114.5" width="13" height="13"/><rect class="wp" x="242.5" y="114.5" width="13" height="13" fill-opacity="0.375"/><rect class="wn" x="256.5" y="114.5" width="13" height="13" fill-opacity="0.5"/><rect class="wz" x="270.5" y="114.5" width="13" height="13"/><rect class="wp" x="284.5" y="114.5" width="13" height="13" fill-opacity="0.5"/><rect class="wn" x="298.5" y="114.5" width="13" height="13" fill-opacity="0.375"/><rect class="wz" x="172.5" y="128.5" width="13" height="13"/><rect class="wn" x="186.5" y="128.5" width="13" height="13" fill-opacity="0.5"/><rect class="wp" x="200.5" y="128.5" width="13" height="13" fill-opacity="0.375"/><rect class="wp" x="214.5" y="128.5" width="13" height="13" fill-opacity="0.375"/><rect class="wn" x="228.5" y="128.5" width="13" height="13" fill-opacity="0.625"/><rect class="wn" x="242.5" y="128.5" width="13" height="13" fill-opacity="0.5"/><rect class="wp" x="256.5" y="128.5" width="13" height="13" fill-opacity="0.375"/><rect class="wn" x="270.5" y="128.5" width="13" height="13" fill-opacity="0.375"/><rect class="wz" x="284.5" y="128.5" width="13" height="13"/><rect class="wp" x="298.5" y="128.5" width="13" height="13" fill-opacity="0.625"/><rect class="wp" x="172.5" y="142.5" width="13" height="13" fill-opacity="0.625"/><rect class="wz" x="186.5" y="142.5" width="13" height="13"/><rect class="wn" x="200.5" y="142.5" width="13" height="13" fill-opacity="0.5"/><rect class="wn" x="214.5" y="142.5" width="13" height="13" fill-opacity="0.625"/><rect class="wp" x="228.5" y="142.5" width="13" height="13" fill-opacity="0.5"/><rect class="wz" x="242.5" y="142.5" width="13" height="13"/><rect class="wp" x="256.5" y="142.5" width="13" height="13" fill-opacity="0.625"/><rect class="wn" x="270.5" y="142.5" width="13" height="13" fill-opacity="0.5"/><rect class="wp" x="284.5" y="142.5" width="13" height="13" fill-opacity="0.375"/><rect class="wz" x="298.5" y="142.5" width="13" height="13"/><rect class="wp" x="172.5" y="156.5" width="13" height="13" fill-opacity="0.5"/><rect class="wp" x="186.5" y="156.5" width="13" height="13" fill-opacity="0.375"/><rect class="wp" x="200.5" y="156.5" width="13" height="13" fill-opacity="0.5"/><rect class="wp" x="214.5" y="156.5" width="13" height="13" fill-opacity="0.5"/><rect class="wn" x="228.5" y="156.5" width="13" height="13" fill-opacity="0.375"/><rect class="wp" x="242.5" y="156.5" width="13" height="13" fill-opacity="0.625"/><rect class="wn" x="256.5" y="156.5" width="13" height="13" fill-opacity="0.375"/><rect class="wp" x="270.5" y="156.5" width="13" height="13" fill-opacity="0.375"/><rect class="wn" x="284.5" y="156.5" width="13" height="13" fill-opacity="0.5"/><rect class="wp" x="298.5" y="156.5" width="13" height="13" fill-opacity="0.375"/><rect class="wp" x="172.5" y="170.5" width="13" height="13" fill-opacity="0.375"/><rect class="wp" x="186.5" y="170.5" width="13" height="13" fill-opacity="0.5"/><rect class="wn" x="200.5" y="170.5" width="13" height="13" fill-opacity="0.625"/><rect class="wn" x="214.5" y="170.5" width="13" height="13" fill-opacity="0.375"/><rect class="wz" x="228.5" y="170.5" width="13" height="13"/><rect class="wn" x="242.5" y="170.5" width="13" height="13" fill-opacity="0.375"/><rect class="wp" x="256.5" y="170.5" width="13" height="13" fill-opacity="0.5"/><rect class="wp" x="270.5" y="170.5" width="13" height="13" fill-opacity="0.625"/><rect class="wz" x="284.5" y="170.5" width="13" height="13"/><rect class="wn" x="298.5" y="170.5" width="13" height="13" fill-opacity="0.5"/><rect class="we" x="170" y="98" width="144" height="88" rx="2"/><text class="ft fm fs" x="242.0" y="201" text-anchor="middle">3584 MLP units</text><polyline class="ln nofill" points="314,142.0 340,142.0 340,58"/><polygon class="lh" points="340,51 336,59 344,59"/><text class="ft fc" x="346" y="80">m =</text><text class="ft fc" x="346" y="95">W @ x</text></svg>
-<figcaption>One MLP at one token position. <code>W</code> is <code>down_proj</code>, shape [1024 × 3584]. Unit <code>j</code> adds column <code>j</code> of <code>W</code> to the residual stream, scaled by its activation <code>x[j]</code>. The attention output matrix, shape [1024 × 2048], plays the same role for an attention layer. These two matrices are the only weights edited.</figcaption></figure>
+<figcaption>One MLP at one position. <code>W</code> is <code>down_proj</code>. Unit <code>j</code> adds column <code>j</code> of <code>W</code> to the residual stream, scaled by its activation <code>x[j]</code>. The attention output matrix does the same job for attention. Only these two matrices are edited.</figcaption></figure>
 
 <!-- edit-gui:start -->
-<p>The figure below draws <code>W</code> as 6 rows by 10 columns, before and after the edit. Rows are residual dimensions and columns are MLP units. <span class="sw swp"></span> positive weight, <span class="sw swn"></span> negative weight, <span class="sw swz"></span> zero. A stronger colour is a larger weight. <span class="sw swc"></span> marks the cells the edit changes. The other cells are faded.</p>
+<p>The figure below shows a small <code>W</code> before and after an edit. Rows are residual dimensions. Columns are MLP units. <span class="sw swp"></span> positive weight, <span class="sw swn"></span> negative weight, <span class="sw swz"></span> zero. A stronger colour means a larger weight. <span class="sw swc"></span> marks the cells the edit changes. The rest are faded.</p>
 
-<p>Kinds 1 to 4 change one column of an MLP output matrix. The other columns stay the same. Kinds 5 to 7 are rank-one changes. They can touch every entry of the matrix. Cell <code>(i, j)</code> changes by the product of entry <code>i</code> of the vertical vector and entry <code>j</code> of the horizontal vector.</p>
+<p>Kinds 1 to 4 change one column. The other columns stay the same. Kinds 5 to 7 add a rank-one term <code>a·bᵀ</code>, so they can change every cell. Cell <code>(i, j)</code> changes by <code>a[i] × b[j]</code>.</p>
 
 <noscript><p class="mut">Choosing another kind in this figure needs JavaScript. The table below lists every edit.</p></noscript>
 <figure class="wcard wpanel" id="we-gui">
@@ -348,7 +385,7 @@ text{font-family:-apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif;f
 <div class="wfigbox" id="we-fig" role="group" aria-label="Matrix before and after the edit. Arrow keys move between cells."><svg class="wfig wgui" viewBox="0 0 360 122" role="img" aria-label="Flip a unit: W[:, j] = -W[:, j]"><title>Flip a unit: W[:, j] = -W[:, j]</title><text class="ft fm" x="40" y="11">before</text><text class="ft fm" x="214" y="11">after</text><rect class="fr" x="40" y="30" width="140" height="84"/><rect class="wp dim" data-i="0" data-j="0" x="40.5" y="30.5" width="13" height="13" fill-opacity="0.438"/><rect class="wn dim" data-i="0" data-j="1" x="54.5" y="30.5" width="13" height="13" fill-opacity="0.344"/><rect class="wz" data-i="0" data-j="2" x="68.5" y="30.5" width="13" height="13"/><rect class="wp" data-i="0" data-j="3" x="82.5" y="30.5" width="13" height="13" fill-opacity="0.531"/><rect class="wp dim" data-i="0" data-j="4" x="96.5" y="30.5" width="13" height="13" fill-opacity="0.344"/><rect class="wn dim" data-i="0" data-j="5" x="110.5" y="30.5" width="13" height="13" fill-opacity="0.438"/><rect class="wz" data-i="0" data-j="6" x="124.5" y="30.5" width="13" height="13"/><rect class="wp dim" data-i="0" data-j="7" x="138.5" y="30.5" width="13" height="13" fill-opacity="0.438"/><rect class="wn dim" data-i="0" data-j="8" x="152.5" y="30.5" width="13" height="13" fill-opacity="0.531"/><rect class="wp dim" data-i="0" data-j="9" x="166.5" y="30.5" width="13" height="13" fill-opacity="0.344"/><rect class="wn dim" data-i="1" data-j="0" x="40.5" y="44.5" width="13" height="13" fill-opacity="0.344"/><rect class="wp dim" data-i="1" data-j="1" x="54.5" y="44.5" width="13" height="13" fill-opacity="0.531"/><rect class="wp dim" data-i="1" data-j="2" x="68.5" y="44.5" width="13" height="13" fill-opacity="0.438"/><rect class="wn" data-i="1" data-j="3" x="82.5" y="44.5" width="13" height="13" fill-opacity="0.438"/><rect class="wz" data-i="1" data-j="4" x="96.5" y="44.5" width="13" height="13"/><rect class="wp dim" data-i="1" data-j="5" x="110.5" y="44.5" width="13" height="13" fill-opacity="0.344"/><rect class="wn dim" data-i="1" data-j="6" x="124.5" y="44.5" width="13" height="13" fill-opacity="0.438"/><rect class="wz" data-i="1" data-j="7" x="138.5" y="44.5" width="13" height="13"/><rect class="wp dim" data-i="1" data-j="8" x="152.5" y="44.5" width="13" height="13" fill-opacity="0.438"/><rect class="wn dim" data-i="1" data-j="9" x="166.5" y="44.5" width="13" height="13" fill-opacity="0.344"/><rect class="wz" data-i="2" data-j="0" x="40.5" y="58.5" width="13" height="13"/><rect class="wn dim" data-i="2" data-j="1" x="54.5" y="58.5" width="13" height="13" fill-opacity="0.438"/><rect class="wp dim" data-i="2" data-j="2" x="68.5" y="58.5" width="13" height="13" fill-opacity="0.344"/><rect class="wp" data-i="2" data-j="3" x="82.5" y="58.5" width="13" height="13" fill-opacity="0.344"/><rect class="wn dim" data-i="2" data-j="4" x="96.5" y="58.5" width="13" height="13" fill-opacity="0.531"/><rect class="wn dim" data-i="2" data-j="5" x="110.5" y="58.5" width="13" height="13" fill-opacity="0.438"/><rect class="wp dim" data-i="2" data-j="6" x="124.5" y="58.5" width="13" height="13" fill-opacity="0.344"/><rect class="wn dim" data-i="2" data-j="7" x="138.5" y="58.5" width="13" height="13" fill-opacity="0.344"/><rect class="wz" data-i="2" data-j="8" x="152.5" y="58.5" width="13" height="13"/><rect class="wp dim" data-i="2" data-j="9" x="166.5" y="58.5" width="13" height="13" fill-opacity="0.531"/><rect class="wp dim" data-i="3" data-j="0" x="40.5" y="72.5" width="13" height="13" fill-opacity="0.531"/><rect class="wz" data-i="3" data-j="1" x="54.5" y="72.5" width="13" height="13"/><rect class="wn dim" data-i="3" data-j="2" x="68.5" y="72.5" width="13" height="13" fill-opacity="0.438"/><rect class="wn" data-i="3" data-j="3" x="82.5" y="72.5" width="13" height="13" fill-opacity="0.531"/><rect class="wp dim" data-i="3" data-j="4" x="96.5" y="72.5" width="13" height="13" fill-opacity="0.438"/><rect class="wz" data-i="3" data-j="5" x="110.5" y="72.5" width="13" height="13"/><rect class="wp dim" data-i="3" data-j="6" x="124.5" y="72.5" width="13" height="13" fill-opacity="0.531"/><rect class="wn dim" data-i="3" data-j="7" x="138.5" y="72.5" width="13" height="13" fill-opacity="0.438"/><rect class="wp dim" data-i="3" data-j="8" x="152.5" y="72.5" width="13" height="13" fill-opacity="0.344"/><rect class="wz" data-i="3" data-j="9" x="166.5" y="72.5" width="13" height="13"/><rect class="wp dim" data-i="4" data-j="0" x="40.5" y="86.5" width="13" height="13" fill-opacity="0.438"/><rect class="wp dim" data-i="4" data-j="1" x="54.5" y="86.5" width="13" height="13" fill-opacity="0.344"/><rect class="wp dim" data-i="4" data-j="2" x="68.5" y="86.5" width="13" height="13" fill-opacity="0.438"/><rect class="wp" data-i="4" data-j="3" x="82.5" y="86.5" width="13" height="13" fill-opacity="0.438"/><rect class="wn dim" data-i="4" data-j="4" x="96.5" y="86.5" width="13" height="13" fill-opacity="0.344"/><rect class="wp dim" data-i="4" data-j="5" x="110.5" y="86.5" width="13" height="13" fill-opacity="0.531"/><rect class="wn dim" data-i="4" data-j="6" x="124.5" y="86.5" width="13" height="13" fill-opacity="0.344"/><rect class="wp dim" data-i="4" data-j="7" x="138.5" y="86.5" width="13" height="13" fill-opacity="0.344"/><rect class="wn dim" data-i="4" data-j="8" x="152.5" y="86.5" width="13" height="13" fill-opacity="0.438"/><rect class="wp dim" data-i="4" data-j="9" x="166.5" y="86.5" width="13" height="13" fill-opacity="0.344"/><rect class="wp dim" data-i="5" data-j="0" x="40.5" y="100.5" width="13" height="13" fill-opacity="0.344"/><rect class="wp dim" data-i="5" data-j="1" x="54.5" y="100.5" width="13" height="13" fill-opacity="0.438"/><rect class="wn dim" data-i="5" data-j="2" x="68.5" y="100.5" width="13" height="13" fill-opacity="0.531"/><rect class="wn" data-i="5" data-j="3" x="82.5" y="100.5" width="13" height="13" fill-opacity="0.344"/><rect class="wz" data-i="5" data-j="4" x="96.5" y="100.5" width="13" height="13"/><rect class="wn dim" data-i="5" data-j="5" x="110.5" y="100.5" width="13" height="13" fill-opacity="0.344"/><rect class="wp dim" data-i="5" data-j="6" x="124.5" y="100.5" width="13" height="13" fill-opacity="0.438"/><rect class="wp dim" data-i="5" data-j="7" x="138.5" y="100.5" width="13" height="13" fill-opacity="0.531"/><rect class="wz" data-i="5" data-j="8" x="152.5" y="100.5" width="13" height="13"/><rect class="wn dim" data-i="5" data-j="9" x="166.5" y="100.5" width="13" height="13" fill-opacity="0.438"/><path class="chg" d="M82 30H96M82 30V44M96 30V44M82 44V58M96 44V58M82 58V72M96 58V72M82 72V86M96 72V86M82 86V100M96 86V100M82 114H96M82 100V114M96 100V114"/><text class="ft fc" x="89" y="25" text-anchor="middle">j</text><rect class="cur" x="40" y="30" width="14" height="14" style="display:none"/><rect class="fr" x="214" y="30" width="140" height="84"/><rect class="wp dim" data-i="0" data-j="0" x="214.5" y="30.5" width="13" height="13" fill-opacity="0.438"/><rect class="wn dim" data-i="0" data-j="1" x="228.5" y="30.5" width="13" height="13" fill-opacity="0.344"/><rect class="wz" data-i="0" data-j="2" x="242.5" y="30.5" width="13" height="13"/><rect class="wn" data-i="0" data-j="3" x="256.5" y="30.5" width="13" height="13" fill-opacity="0.531"/><rect class="wp dim" data-i="0" data-j="4" x="270.5" y="30.5" width="13" height="13" fill-opacity="0.344"/><rect class="wn dim" data-i="0" data-j="5" x="284.5" y="30.5" width="13" height="13" fill-opacity="0.438"/><rect class="wz" data-i="0" data-j="6" x="298.5" y="30.5" width="13" height="13"/><rect class="wp dim" data-i="0" data-j="7" x="312.5" y="30.5" width="13" height="13" fill-opacity="0.438"/><rect class="wn dim" data-i="0" data-j="8" x="326.5" y="30.5" width="13" height="13" fill-opacity="0.531"/><rect class="wp dim" data-i="0" data-j="9" x="340.5" y="30.5" width="13" height="13" fill-opacity="0.344"/><rect class="wn dim" data-i="1" data-j="0" x="214.5" y="44.5" width="13" height="13" fill-opacity="0.344"/><rect class="wp dim" data-i="1" data-j="1" x="228.5" y="44.5" width="13" height="13" fill-opacity="0.531"/><rect class="wp dim" data-i="1" data-j="2" x="242.5" y="44.5" width="13" height="13" fill-opacity="0.438"/><rect class="wp" data-i="1" data-j="3" x="256.5" y="44.5" width="13" height="13" fill-opacity="0.438"/><rect class="wz" data-i="1" data-j="4" x="270.5" y="44.5" width="13" height="13"/><rect class="wp dim" data-i="1" data-j="5" x="284.5" y="44.5" width="13" height="13" fill-opacity="0.344"/><rect class="wn dim" data-i="1" data-j="6" x="298.5" y="44.5" width="13" height="13" fill-opacity="0.438"/><rect class="wz" data-i="1" data-j="7" x="312.5" y="44.5" width="13" height="13"/><rect class="wp dim" data-i="1" data-j="8" x="326.5" y="44.5" width="13" height="13" fill-opacity="0.438"/><rect class="wn dim" data-i="1" data-j="9" x="340.5" y="44.5" width="13" height="13" fill-opacity="0.344"/><rect class="wz" data-i="2" data-j="0" x="214.5" y="58.5" width="13" height="13"/><rect class="wn dim" data-i="2" data-j="1" x="228.5" y="58.5" width="13" height="13" fill-opacity="0.438"/><rect class="wp dim" data-i="2" data-j="2" x="242.5" y="58.5" width="13" height="13" fill-opacity="0.344"/><rect class="wn" data-i="2" data-j="3" x="256.5" y="58.5" width="13" height="13" fill-opacity="0.344"/><rect class="wn dim" data-i="2" data-j="4" x="270.5" y="58.5" width="13" height="13" fill-opacity="0.531"/><rect class="wn dim" data-i="2" data-j="5" x="284.5" y="58.5" width="13" height="13" fill-opacity="0.438"/><rect class="wp dim" data-i="2" data-j="6" x="298.5" y="58.5" width="13" height="13" fill-opacity="0.344"/><rect class="wn dim" data-i="2" data-j="7" x="312.5" y="58.5" width="13" height="13" fill-opacity="0.344"/><rect class="wz" data-i="2" data-j="8" x="326.5" y="58.5" width="13" height="13"/><rect class="wp dim" data-i="2" data-j="9" x="340.5" y="58.5" width="13" height="13" fill-opacity="0.531"/><rect class="wp dim" data-i="3" data-j="0" x="214.5" y="72.5" width="13" height="13" fill-opacity="0.531"/><rect class="wz" data-i="3" data-j="1" x="228.5" y="72.5" width="13" height="13"/><rect class="wn dim" data-i="3" data-j="2" x="242.5" y="72.5" width="13" height="13" fill-opacity="0.438"/><rect class="wp" data-i="3" data-j="3" x="256.5" y="72.5" width="13" height="13" fill-opacity="0.531"/><rect class="wp dim" data-i="3" data-j="4" x="270.5" y="72.5" width="13" height="13" fill-opacity="0.438"/><rect class="wz" data-i="3" data-j="5" x="284.5" y="72.5" width="13" height="13"/><rect class="wp dim" data-i="3" data-j="6" x="298.5" y="72.5" width="13" height="13" fill-opacity="0.531"/><rect class="wn dim" data-i="3" data-j="7" x="312.5" y="72.5" width="13" height="13" fill-opacity="0.438"/><rect class="wp dim" data-i="3" data-j="8" x="326.5" y="72.5" width="13" height="13" fill-opacity="0.344"/><rect class="wz" data-i="3" data-j="9" x="340.5" y="72.5" width="13" height="13"/><rect class="wp dim" data-i="4" data-j="0" x="214.5" y="86.5" width="13" height="13" fill-opacity="0.438"/><rect class="wp dim" data-i="4" data-j="1" x="228.5" y="86.5" width="13" height="13" fill-opacity="0.344"/><rect class="wp dim" data-i="4" data-j="2" x="242.5" y="86.5" width="13" height="13" fill-opacity="0.438"/><rect class="wn" data-i="4" data-j="3" x="256.5" y="86.5" width="13" height="13" fill-opacity="0.438"/><rect class="wn dim" data-i="4" data-j="4" x="270.5" y="86.5" width="13" height="13" fill-opacity="0.344"/><rect class="wp dim" data-i="4" data-j="5" x="284.5" y="86.5" width="13" height="13" fill-opacity="0.531"/><rect class="wn dim" data-i="4" data-j="6" x="298.5" y="86.5" width="13" height="13" fill-opacity="0.344"/><rect class="wp dim" data-i="4" data-j="7" x="312.5" y="86.5" width="13" height="13" fill-opacity="0.344"/><rect class="wn dim" data-i="4" data-j="8" x="326.5" y="86.5" width="13" height="13" fill-opacity="0.438"/><rect class="wp dim" data-i="4" data-j="9" x="340.5" y="86.5" width="13" height="13" fill-opacity="0.344"/><rect class="wp dim" data-i="5" data-j="0" x="214.5" y="100.5" width="13" height="13" fill-opacity="0.344"/><rect class="wp dim" data-i="5" data-j="1" x="228.5" y="100.5" width="13" height="13" fill-opacity="0.438"/><rect class="wn dim" data-i="5" data-j="2" x="242.5" y="100.5" width="13" height="13" fill-opacity="0.531"/><rect class="wp" data-i="5" data-j="3" x="256.5" y="100.5" width="13" height="13" fill-opacity="0.344"/><rect class="wz" data-i="5" data-j="4" x="270.5" y="100.5" width="13" height="13"/><rect class="wn dim" data-i="5" data-j="5" x="284.5" y="100.5" width="13" height="13" fill-opacity="0.344"/><rect class="wp dim" data-i="5" data-j="6" x="298.5" y="100.5" width="13" height="13" fill-opacity="0.438"/><rect class="wp dim" data-i="5" data-j="7" x="312.5" y="100.5" width="13" height="13" fill-opacity="0.531"/><rect class="wz" data-i="5" data-j="8" x="326.5" y="100.5" width="13" height="13"/><rect class="wn dim" data-i="5" data-j="9" x="340.5" y="100.5" width="13" height="13" fill-opacity="0.438"/><path class="chg" d="M256 30H270M256 30V44M270 30V44M256 44V58M270 44V58M256 58V72M270 58V72M256 72V86M270 72V86M256 86V100M270 86V100M256 114H270M256 100V114M270 100V114"/><text class="ft fc" x="263" y="25" text-anchor="middle">j</text><rect class="cur" x="214" y="30" width="14" height="14" style="display:none"/><line class="ar" x1="186" y1="72" x2="202" y2="72"/><polygon class="ah" points="208,72 201,68.5 201,75.5"/></svg></div>
 <p class="wline" id="we-sum" aria-live="polite">Column 3 changes sign. 6 of 60 cells change.</p>
 <p class="wline mut" id="we-read" aria-live="polite">Hover over a cell, tap it, or focus the figure and use the arrow keys to read its value.</p>
-<figcaption id="we-cap"><b>2. Flip a unit</b><br><code>W[:, j] = -W[:, j]</code><br>Unit <code>j</code> writes the negative of its old vector. Every token it raised, it now lowers.<br><span class="mut">Example:</span> column 998 of the layer-16 MLP negated, the edit Claude Opus 5.5 kept.</figcaption>
+<figcaption id="we-cap"><b>2. Flip a unit</b><br><code>W[:, j] = -W[:, j]</code><br>Unit <code>j</code> writes the negative of its old vector. Every token it raised, it now lowers.<br><span class="mut">Example:</span> Opus flipped unit 998 in layer 16. It kept this as one half of its final edit.</figcaption>
 </figure>
 <script>
 (function () {
@@ -426,7 +463,7 @@ var KINDS = {
        ex: 'column 998 of the layer-16 MLP set to zero.' },
   2: { name: 'Flip a unit', formula: 'W[:, j] = -W[:, j]',
        text: 'Unit <code>j</code> writes the negative of its old vector. Every token it raised, it now lowers.',
-       ex: 'column 998 of the layer-16 MLP negated, the edit Claude Opus 5.5 kept.' },
+       ex: 'Opus flipped unit 998 in layer 16. It kept this as one half of its final edit.' },
   3: { name: 'Amplify a unit', formula: 'W[:, j] = c * W[:, j]',
        text: 'Unit <code>j</code> writes the same vector at <code>c</code> times the size.',
        ex: 'Inkling 2 Small doubled 8 columns, <code>c = 2</code>.',
@@ -602,120 +639,112 @@ fromHash(); draw();
 </script>
 <!-- edit-gui:end -->
 
-<p>Each edit is aimed at one of two behaviours:</p>
-<ul>
-<li><b>Stop the loop.</b> Lower the score of the token "Wait".</li>
-<li><b>Close the reasoning.</b> Raise the score of the token that ends the thinking section, so the model moves on to an answer.</li>
-</ul>
+
 
 <h2 id="every-edit-tried-so-far">Every edit tried so far</h2>
 
-<p>A teacher model, Claude Opus 5.5 or Inkling 2 Small, proposes edits to the weights of Qwen3.5-0.8B and tests them on math problems:</p>
-<ul>
-<li><b>Train:</b> MATH and GSM8K training problems, used during the search.</li>
-<li><b>Test:</b> MATH-500, scored once on the submitted edit.</li>
-<li><b>Reward:</b> 128 other MATH training problems, used to score each RL rollout.</li>
-</ul>
-<p>Every edit the teachers proposed does one of two things:</p>
-<ul>
-<li><b>Lower "Wait"</b>, so the model stops re-checking its work.</li>
-<li><b>Raise "&lt;/think&gt;"</b>, so the model ends its reasoning and gives an answer.</li>
-</ul>
-<p>Numbers are accuracy changes in points: edited minus original, on the same problems.</p>
+<p>The tables list every edit, grouped by teacher and run. Most numbers are changes in accuracy, in points: edited minus original, on the same problems. Numbers with % are plain accuracies. α is the strength of an edit.</p>
 
 <details class="fold"><summary>Claude Opus 5.5 <span class="cnt">1 search</span></summary>
 <p class="who2">Claude Opus 5.5 · <a href="traces/#opus">trajectory</a></p><div class="tw"><table>
-<tr><th>Edit</th><th>Kind</th><th>Aimed at</th><th>Where</th><th>Measured</th><th>Outcome</th></tr>
-<tr><td>Strengthen the end-of-thinking direction, α = 0.5</td><td>amplify a direction</td><td>close the reasoning</td><td>all attention and MLP outputs, layers 14 to 22</td><td class="n">train 7.4% → 7.0%</td><td>no effect, dropped</td></tr>
-<tr><td>Zero column 998</td><td>remove a unit</td><td>stop the loop</td><td>MLP, layer 16</td><td class="n">train 7.0% → 14.5%</td><td>replaced by the next one</td></tr>
-<tr><td>Negate column 998</td><td>flip a unit</td><td>stop the loop</td><td>MLP, layer 16</td><td class="n">train 17.6%</td><td>kept as one half</td></tr>
-<tr><td>Negate column 998, plus the direction at α = 2.0</td><td>flip + amplify</td><td>both</td><td>layers 14 to 22</td><td class="n">train 37.1%</td><td>rejected: a quarter of finished answers skipped the reasoning</td></tr>
-<tr><td>Negate column 998, plus the direction at α = 2.5 on nine chosen matrices</td><td>flip + amplify</td><td>both</td><td>attention, layers 17 to 21; MLP, layers 15, 16, 19, 22</td><td class="n">validation +26 to +29<br>on three sets</td><td><span class="up">submitted. Test 7.6% → 34.8%</span></td></tr>
-<tr><td>The two halves separately</td><td></td><td></td><td></td><td class="n">direction alone 15.6%<br>flip alone 17.6%</td><td>each half is worth about half</td></tr>
+<tr><th>Edit</th><th>Kind</th><th>Aimed at</th><th>Where</th><th>Strength</th><th>Measured</th><th>Outcome</th></tr>
+<tr><td>Strengthen the end-of-thinking direction</td><td>amplify a direction</td><td>close the reasoning</td><td>attention and MLP, layers 14 to 22</td><td>α 0.5</td><td>train 7.4% → 7.0%</td><td>no effect, dropped</td></tr>
+<tr><td>Zero unit 998</td><td>remove a unit</td><td>stop the loop</td><td>MLP, layer 16</td><td></td><td>train 7.0% → 14.5%</td><td>replaced by the flip</td></tr>
+<tr><td>Flip unit 998</td><td>flip a unit</td><td>stop the loop</td><td>MLP, layer 16</td><td></td><td>train 17.6%</td><td>kept as one half</td></tr>
+<tr><td>Flip + direction</td><td>flip + amplify</td><td>both</td><td>layers 14 to 22</td><td>α 2.0</td><td>train 37.1%</td><td>rejected: a quarter of finished answers skipped the reasoning</td></tr>
+<tr><td>Flip + direction on nine chosen matrices</td><td>flip + amplify</td><td>both</td><td>attention, layers 17 to 21; MLP, layers 15, 16, 19, 22</td><td>α 2.5</td><td>validation +26 to +29 on three sets</td><td><span class="up">submitted. Test 7.6% → 34.8%</span></td></tr>
 </table></div>
+<p>Each half alone, on train problems:</p>
+<ul><li>direction only: 15.6%</li><li>flip only: 17.6%</li></ul>
 </details>
 <details class="fold"><summary>Inkling 2 Small <span class="cnt">6 runs</span></summary>
 <details class="fold sub"><summary>first search</summary>
-<p class="who2">Inkling 2 Small, first search · <a href="traces/#inkling-1">trajectory</a></p><div class="tw"><table>
-<tr><th>Edit</th><th>Kind</th><th>Aimed at</th><th>Where</th><th>Measured</th><th>Outcome</th></tr>
-<tr><td>Strengthen the end-of-thinking direction at α = 0.5, 0.7, 0.85, 1.0</td><td>amplify a direction</td><td>close the reasoning</td><td>MLP, layers 20 to 23</td><td class="n">train +4.5, +8.9,<br>+21.4, +30.4 by α;<br>validation +22.7, +20.3</td><td><span class="up">α = 0.85 submitted. Test 6.6% → 20.2%.</span> α = 1.0 skipped the reasoning in about 30% of answers</td></tr>
+<p class="who2">Inkling 2 Small, first search · <a href="traces/#inkling-1">trajectory</a></p>
+<p>Strengthen the end-of-thinking direction in the MLPs of layers 20 to 23. Aimed at closing the reasoning. One row per strength:</p>
+<div class="tw"><table>
+<tr><th>α</th><th>Train</th><th>Outcome</th></tr>
+<tr><td>0.5</td><td>+4.5</td><td></td></tr>
+<tr><td>0.7</td><td>+8.9</td><td></td></tr>
+<tr><td>0.85</td><td>+21.4</td><td><span class="up">submitted. Test 6.6% → 20.2%</span></td></tr>
+<tr><td>1.0</td><td>+30.4</td><td>skipped the reasoning in about 30% of answers</td></tr>
 </table></div>
+<p>On validation the two strongest settings gave +22.7 and +20.3.</p>
 </details>
 <details class="fold sub"><summary>second search</summary>
 <p class="who2">Inkling 2 Small, second search · <a href="traces/#inkling-2">trajectory</a></p><div class="tw"><table>
 <tr><th>Edit</th><th>Kind</th><th>Aimed at</th><th>Where</th><th>Measured</th><th>Outcome</th></tr>
-<tr><td>Zero 11 columns that write "Wait"</td><td>remove units</td><td>stop the loop</td><td>MLP, layers 5, 15, 16, 18, 19, 20, 22, 23</td><td class="n">validation: GSM8K +7 to +10,<br>MATH 0 to +1.5</td><td>kept as one half</td></tr>
-<tr><td>Also double 8 columns that fire where a finished solution closes its reasoning</td><td>amplify units</td><td>close the reasoning</td><td>MLP, layers 16, 18, 19, 22, 23</td><td class="n">validation MATH +6.7</td><td><span class="up">submitted. Test 6.6% → 11.8%.</span> Tripling was worse</td></tr>
+<tr><td>Zero 11 units that write "Wait"</td><td>remove units</td><td>stop the loop</td><td>MLP, layers 5, 15, 16, 18, 19, 20, 22, 23</td><td>validation: GSM8K +7 to +10, MATH 0 to +1.5</td><td>kept as one half</td></tr>
+<tr><td>Also double 8 units that fire where finished answers close their reasoning</td><td>amplify units</td><td>close the reasoning</td><td>MLP, layers 16, 18, 19, 22, 23</td><td>validation MATH +6.7</td><td><span class="up">submitted. Test 6.6% → 11.8%</span>. Tripling was worse.</td></tr>
 </table></div>
 </details>
-<details class="fold sub"><summary>first RL step, 8 forward passes per rollout</summary>
-<p class="who2">Inkling 2 Small, first RL step, 8 forward passes per rollout · trajectories <a href="traces/#rl-smoke3-s0-r0">1</a> <a href="traces/#rl-smoke3-s0-r1">2</a> <a href="traces/#rl-smoke3-s0-r2">3</a> <a href="traces/#rl-smoke3-s0-r3">4</a></p><div class="tw"><table>
+<details class="fold sub"><summary>first RL test (smoke3)</summary>
+<p class="who2">Inkling 2 Small, first RL test (smoke3), 8 forward passes per rollout · trajectories <a href="traces/#rl-smoke3-s0-r0">1</a> <a href="traces/#rl-smoke3-s0-r1">2</a> <a href="traces/#rl-smoke3-s0-r2">3</a> <a href="traces/#rl-smoke3-s0-r3">4</a></p><div class="tw"><table>
 <tr><th>Edit</th><th>Kind</th><th>Aimed at</th><th>Where</th><th>Measured</th><th>Outcome</th></tr>
-<tr><td>Rollout 1: zero 10 columns with large shares of the score of "Wait", among them column 998 of layer 16</td><td>remove units</td><td>stop the loop</td><td>MLP, layers 16, 19, 22, 23</td><td class="n">train +12.1, +11.3</td><td><span class="up">submitted. Reward +13.3</span></td></tr>
-<tr><td>Rollout 2: add a trigger-and-write term toward the end-of-thinking token, then a stronger one</td><td>trigger and write</td><td>close the reasoning</td><td>MLP, layer 23, then layers 21 to 23</td><td class="n">train: first edit −0.8,<br>stronger edit <span class="down">−5.5</span></td><td>the stronger one made the model stop thinking at once and give no answer. Nothing submitted, reward 0</td></tr>
-<tr><td>Rollout 3: remove a "looping" direction found by contrasting looping and clean text</td><td>remove a direction</td><td>stop the loop</td><td>attention, layer 23</td><td class="n">train +6.3, +6.3, +5.1</td><td><span class="up">submitted. Reward +4.7</span></td></tr>
-<tr><td>Rollout 4: a trigger-and-write term, then zero 6 columns, among them column 998 of layer 16</td><td>trigger and write, then remove units</td><td>stop the loop</td><td>MLP, layers 16, 18, 20, 22, 23</td><td class="n">train: first edit <span class="down">−10.6</span>,<br>second edit +25.0</td><td>dropped the second edit for lack of a confirmation run. Nothing submitted, reward 0</td></tr>
+<tr><td>Rollout 1: zero 10 units with a large share of the "Wait" score, including unit 998 of layer 16</td><td>remove units</td><td>stop the loop</td><td>MLP, layers 16, 19, 22, 23</td><td>train +12.1, +11.3</td><td><span class="up">submitted. Reward +13.3</span></td></tr>
+<tr><td>Rollout 2: add a trigger-and-write term toward end-of-thinking. Then add a stronger one</td><td>trigger and write</td><td>close the reasoning</td><td>MLP, layer 23, then layers 21 to 23</td><td>train −0.8, then <span class="down">−5.5</span></td><td>The stronger one made the model stop thinking at once and give no answer. Nothing submitted. Reward 0.</td></tr>
+<tr><td>Rollout 3: remove a "looping" direction: looping text minus clean text</td><td>remove a direction</td><td>stop the loop</td><td>attention, layer 23</td><td>train +6.3, +6.3, +5.1</td><td><span class="up">submitted. Reward +4.7</span></td></tr>
+<tr><td>Rollout 4: a trigger-and-write term. Then zero 6 units, including unit 998 of layer 16</td><td>trigger and write, then remove units</td><td>stop the loop</td><td>MLP, layers 16, 18, 20, 22, 23</td><td>train <span class="down">−10.6</span>, then +25.0</td><td>Dropped the second edit because there was no confirmation run. Nothing submitted. Reward 0.</td></tr>
 </table></div>
 </details>
-<details class="fold sub"><summary>RL test run with 32 forward passes per rollout</summary>
-<p class="who2">Inkling 2 Small, RL test run with 32 forward passes per rollout. Stopped before scoring, so no reward · trajectories <a href="traces/#rl-b32-1-s0-r0">1</a> <a href="traces/#rl-b32-1-s0-r1">2</a> <a href="traces/#rl-b32-1-s0-r2">3</a> <a href="traces/#rl-b32-1-s0-r3">4</a></p><div class="tw"><table>
+<details class="fold sub"><summary>second RL test (b32-1)</summary>
+<p class="who2">Inkling 2 Small, second RL test (b32-1), 32 forward passes per rollout. Stopped before scoring, so no reward · trajectories <a href="traces/#rl-b32-1-s0-r0">1</a> <a href="traces/#rl-b32-1-s0-r1">2</a> <a href="traces/#rl-b32-1-s0-r2">3</a> <a href="traces/#rl-b32-1-s0-r3">4</a></p><div class="tw"><table>
 <tr><th>Edit</th><th>Kind</th><th>Aimed at</th><th>Where</th><th>Measured</th><th>Outcome</th></tr>
-<tr><td>Rollout 1: strengthen a direction, then a trigger-and-write term at α = 3 and 5</td><td>amplify a direction; trigger and write</td><td>stop the loop</td><td>attention, layer 23</td><td class="n">train −2.0;<br>then +5.1 (α = 3),<br><span class="down">−4.3</span> (α = 5)</td><td>still testing when stopped</td></tr>
-<tr><td>Rollout 2: a trigger-and-write term: when units fire as they do where a finished solution closes its reasoning, write the end-of-thinking direction</td><td>trigger and write</td><td>close the reasoning</td><td>MLP, layer 23</td><td class="n">train +7.1,<br>then +32.7, +39.0</td><td>still testing when stopped</td></tr>
-<tr><td>Rollout 3: strengthen the end-of-thinking direction in every attention output matrix</td><td>amplify a direction</td><td>close the reasoning</td><td>attention, all 24 layers</td><td class="n">train +9.4 (α = 1),<br>+21.5 (α = 1.5),<br>+13.8 (α = 1.2)</td><td>still testing when stopped</td></tr>
-<tr><td>Rollout 4: strengthen the end-of-thinking direction in every output matrix, attention and MLP</td><td>amplify a direction</td><td>close the reasoning</td><td>all 24 layers</td><td class="n">train +23.4 (α = 0.5),<br>+6.6 to +13.7 (α = 0.25 to 0.4)</td><td>still testing when stopped</td></tr>
+<tr><td>Rollout 1: strengthen a direction. Then a trigger-and-write term</td><td>amplify a direction; trigger and write</td><td>stop the loop</td><td>attention, layer 23</td><td>train −2.0; then α 3: +5.1, α 5: <span class="down">−4.3</span></td><td>still testing when stopped</td></tr>
+<tr><td>Rollout 2: trigger and write. When units fire as they do at the end of a finished answer's reasoning, write the end-of-thinking direction</td><td>trigger and write</td><td>close the reasoning</td><td>MLP, layer 23</td><td>train +7.1, then +32.7, +39.0</td><td>still testing when stopped</td></tr>
+<tr><td>Rollout 3: strengthen the end-of-thinking direction in every attention output matrix</td><td>amplify a direction</td><td>close the reasoning</td><td>attention, all 24 layers</td><td>α 1: +9.4 · α 1.2: +13.8 · α 1.5: +21.5</td><td>still testing when stopped</td></tr>
+<tr><td>Rollout 4: strengthen the end-of-thinking direction in every output matrix</td><td>amplify a direction</td><td>close the reasoning</td><td>attention and MLP, all 24 layers</td><td>α 0.25 to 0.4: +6.6 to +13.7 · α 0.5: +23.4</td><td>still testing when stopped</td></tr>
 </table></div>
 </details>
-<details class="fold sub"><summary>RL run hero3, step 1, before any training</summary>
-<p class="who2">Inkling 2 Small, RL run hero3, step 1, before any training. 32 forward passes per rollout. Reward on 256 hidden answers; the original weights score 7.4%. Mean reward +13.6. The test column is MATH-500, original 6.6%</p><div class="tw"><table>
-<tr><th>Edit</th><th>Kind</th><th>Aimed at</th><th>Where</th><th>Measured</th><th>Outcome</th></tr>
-<tr><td>Rollout <a href="traces/#rl-hero3-s0-r4">5</a>: Remove the "Wait" direction and add twice the end-of-thinking direction, both made specific to their token by removing what the 600 most frequent tokens share</td><td>remove a direction + amplify a direction</td><td>both</td><td>all 48 output matrices, attention and MLP, all 24 layers</td><td class="n">test +32.8</td><td><span class="up">reward +33.6</span></td></tr>
-<tr><td>Rollout <a href="traces/#rl-hero3-s0-r7">8</a>: Remove the "Wait" direction from every output matrix, and add the end-of-thinking direction at 0.6 in the late MLPs</td><td>remove a direction + amplify a direction</td><td>both</td><td>all output matrices; MLP, layers 18 to 23</td><td class="n">test +29.4</td><td><span class="up">reward +27.3</span></td></tr>
-<tr><td>Rollout <a href="traces/#rl-hero3-s0-r2">3</a>: Zero 16 columns that write "Wait", among them column 998 of layer 16, and amplify 5 columns that write against it</td><td>remove units + amplify units</td><td>stop the loop</td><td>MLP, layers 16 to 23</td><td class="n">test +16.7</td><td><span class="up">reward +18.8</span></td></tr>
-<tr><td>Rollout <a href="traces/#rl-hero3-s0-r3">4</a>: Multiply by 5 the 18 columns that are active where the model is ready to end its reasoning, and zero 4 others</td><td>amplify units + remove units</td><td>close the reasoning</td><td>MLP, layers 15, 16, 18, 19, 22, 23</td><td class="n">test +15.2</td><td><span class="up">reward +15.6</span></td></tr>
-<tr><td>Rollout <a href="traces/#rl-hero3-s0-r1">2</a>: Strengthen the end-of-thinking direction at α = 0.45</td><td>amplify a direction</td><td>close the reasoning</td><td>all 48 output matrices, all 24 layers</td><td class="n">test +11.1</td><td><span class="up">reward +9.4</span></td></tr>
-<tr><td>Rollout <a href="traces/#rl-hero3-s0-r6">7</a>: Remove a "looping" direction: activations inside a loop minus outside</td><td>remove a direction</td><td>stop the loop</td><td>attention, layer 23</td><td class="n">test +2.5</td><td><span class="up">reward +2.7</span></td></tr>
-<tr><td>Rollout <a href="traces/#rl-hero3-s0-r0">1</a>: Zero 7 columns that write "Wait"</td><td>remove units</td><td>stop the loop</td><td>MLP, layer 23</td><td class="n">test +0.6</td><td><span class="up">reward +1.2</span></td></tr>
-<tr><td>Rollout <a href="traces/#rl-hero3-s0-r5">6</a>: None: five malformed tool calls in a row</td><td></td><td></td><td></td><td class="n">test no edit</td><td><span class="mut">reward 0</span></td></tr>
+<details class="fold sub"><summary>main RL run (hero3), step 1</summary>
+<p class="who2">Inkling 2 Small, main RL run (hero3), step 1, before any training</p>
+<ul>
+<li>32 forward passes per rollout.</li>
+<li>Reward set: 256 hidden answers. Original weights: 7.4%.</li>
+<li>Test set: MATH-500. Original weights: 6.6%.</li>
+<li>Mean reward: +13.6.</li>
+</ul>
+<div class="tw"><table>
+<tr><th>Edit</th><th>Kind</th><th>Aimed at</th><th>Where</th><th>Test</th><th>Reward</th></tr>
+<tr><td>Rollout <a href="traces/#rl-hero3-s0-r4">5</a>: Remove the "Wait" direction. Add the end-of-thinking direction twice. First, each direction loses the part it shares with the 600 most frequent tokens, so it is specific to its own token</td><td>remove a direction + amplify a direction</td><td>both</td><td>all 48 output matrices</td><td>+32.8</td><td><span class="up">+33.6</span></td></tr>
+<tr><td>Rollout <a href="traces/#rl-hero3-s0-r7">8</a>: Remove the "Wait" direction from every output matrix. Add the end-of-thinking direction at 0.6 in the MLPs of layers 18 to 23</td><td>remove a direction + amplify a direction</td><td>both</td><td>all output matrices; MLP, layers 18 to 23</td><td>+29.4</td><td><span class="up">+27.3</span></td></tr>
+<tr><td>Rollout <a href="traces/#rl-hero3-s0-r2">3</a>: Zero 16 units that write "Wait", including unit 998 of layer 16. Amplify 5 units that write against it</td><td>remove units + amplify units</td><td>stop the loop</td><td>MLP, layers 16 to 23</td><td>+16.7</td><td><span class="up">+18.8</span></td></tr>
+<tr><td>Rollout <a href="traces/#rl-hero3-s0-r3">4</a>: Multiply by 5 the 18 units that are active where the model is ready to end its reasoning. Zero 4 others</td><td>amplify units + remove units</td><td>close the reasoning</td><td>MLP, layers 15, 16, 18, 19, 22, 23</td><td>+15.2</td><td><span class="up">+15.6</span></td></tr>
+<tr><td>Rollout <a href="traces/#rl-hero3-s0-r1">2</a>: Strengthen the end-of-thinking direction at α 0.45</td><td>amplify a direction</td><td>close the reasoning</td><td>all 48 output matrices</td><td>+11.1</td><td><span class="up">+9.4</span></td></tr>
+<tr><td>Rollout <a href="traces/#rl-hero3-s0-r6">7</a>: Remove a "looping" direction: activations inside a loop minus outside</td><td>remove a direction</td><td>stop the loop</td><td>attention, layer 23</td><td>+2.5</td><td><span class="up">+2.7</span></td></tr>
+<tr><td>Rollout <a href="traces/#rl-hero3-s0-r0">1</a>: Zero 7 units that write "Wait"</td><td>remove units</td><td>stop the loop</td><td>MLP, layer 23</td><td>+0.6</td><td><span class="up">+1.2</span></td></tr>
+<tr><td>Rollout <a href="traces/#rl-hero3-s0-r5">6</a>: No edit: five malformed tool calls in a row</td><td></td><td></td><td></td><td>no edit</td><td><span class="mut">0</span></td></tr>
 </table></div>
 </details>
-<details class="fold sub"><summary>RL run hero3, step 2, after one training update</summary>
-<p class="who2">Inkling 2 Small, RL run hero3, step 2, after one training update. Mean reward +24.3. Stopped after this step · <a href="https://github.com/dzorlu/weight-edit-rl/blob/main/results/rl/hero3/analysis_step1_vs_step2.md">analysis</a></p><div class="tw"><table>
-<tr><th>Edit</th><th>Kind</th><th>Aimed at</th><th>Where</th><th>Measured</th><th>Outcome</th></tr>
-<tr><td>All 8 rollouts: strengthen the end-of-thinking direction in all 48 output matrices (α 1.0 to 2.0); 3 of them also remove the "Wait" direction, but in 2 of those (rollouts 2 and 3) "Wait" was among the tokens projected out of the direction itself, so the removal had no effect. Every rollout read step 1's notes, which held this recipe, so the gain mixes training and copying. A run without notes (nolib1) measures training alone</td><td>amplify a direction (+ remove a direction)</td><td>close the reasoning</td><td>all 48 output matrices, all 24 layers</td><td class="n">test scoring in progress</td><td><span class="up">rewards 32.0, 27.7, 27.3, 25.8, 24.2, 23.1, 20.7, 13.3</span></td></tr>
+<details class="fold sub"><summary>main RL run (hero3), step 2</summary>
+<p class="who2">Inkling 2 Small, main RL run (hero3), step 2, after one training update · <a href="https://github.com/dzorlu/weight-edit-rl/blob/main/results/rl/hero3/analysis_step1_vs_step2.md">analysis</a></p>
+<ul>
+<li>All 8 rollouts strengthened the end-of-thinking direction in all 48 output matrices, at α 1.0 to 2.0.</li>
+<li>3 rollouts also removed the "Wait" direction. In 2 of them (rollouts 2 and 3), "Wait" was one of the tokens projected out of that direction. So the removal did nothing.</li>
+<li>Every rollout read step 1's notes, which held this recipe. So the gain mixes training and copying. A run without notes (nolib1) measures training alone.</li>
+<li>Mean reward: +24.3. Test scoring is in progress.</li>
+</ul>
+<div class="tw"><table>
+<tr><th>Rollout rewards, best to worst</th></tr>
+<tr><td>32.0, 27.7, 27.3, 25.8, 24.2, 23.1, 20.7, 13.3</td></tr>
 </table></div>
 </details>
-
 </details>
 <details class="fold"><summary>For reference: the published edit</summary>
-<p class="who2">For reference: the published edit from <a href="https://arxiv.org/abs/2611.09382">arXiv 2611.09382</a>, found by GPT-6 Astra, applied by us</p><div class="tw"><table>
+<p class="who2">The published edit from <a href="https://arxiv.org/abs/2611.09382">arXiv 2611.09382</a>, found by GPT-6 Astra, applied by us</p><div class="tw"><table>
 <tr><th>Edit</th><th>Kind</th><th>Aimed at</th><th>Where</th><th>Measured</th><th>Outcome</th></tr>
-<tr><td>Subtract from column 507 the direction "doubt words minus progress words"</td><td>redirect a unit</td><td>stop the loop</td><td>MLP, layer 23</td><td class="n"></td><td><span class="up">Test 7.1% → 28.9%</span></td></tr>
+<tr><td>Subtract from unit 507 the direction "doubt words minus progress words"</td><td>redirect a unit</td><td>stop the loop</td><td>MLP, layer 23</td><td></td><td><span class="up">Test 7.1% → 28.9%</span></td></tr>
 </table></div>
 </details>
 
-
-<h2 id="take-away">Take-away</h2>
-<ul>
-<li>The teachers found only two error modes, and every edit targets one of them:
-<ul>
-<li>the model re-checks its work in a loop ("Wait");</li>
-<li>the model never ends its reasoning ("&lt;/think&gt;").</li>
-</ul></li>
-<li>Both have the same result: most wrong answers are cut off at the token limit.</li>
-<li>No edit targeted any other error, such as arithmetic mistakes or wrong answers in finished solutions.</li>
-<li>Likely reason: the summary of the original model's answers, given to the teacher at the start, points straight at "Wait".</li>
-</ul>
-
-<h2 id="what-the-map-shows">What the map shows</h2>
+<h2 id="what-the-edits-show">What the edits show</h2>
 
 <ul>
-<li><b>The best edit does both things.</b> Opus measured each half alone at about 16 to 18% and the two together at 33 to 36%. Stopping "Wait" does little if the model still never closes its reasoning, and the reverse.</li>
-<li><b>One unit keeps turning up.</b> Column 998 of the layer-16 MLP was found by Opus and, separately, by two of the four RL rollouts. The same unit is edited in two checkpoints of arXiv 2611.09382.</li>
-<li><b>Pushing too hard is the common failure.</b> Raise the score of the end-of-thinking token too much and the model stops reasoning. Opus, Inkling and an RL rollout each ran into it, and the ones with budget for a strength sweep backed off.</li>
-<li><b>One well-chosen unit beat eleven.</b> Opus's single flipped unit was worth more than the eleven units Inkling zeroed in its second search.</li>
-<li><b>The largest gains spread a direction over every layer.</b> In the hero run's first step the two best rollouts, +33.6 and +27.3, both removed the "Wait" direction and added the end-of-thinking direction in the output matrices of all 24 layers. Editing a few columns gave +1 to +19.</li>
-<li><b>All of this fixes one failure.</b> The edits remove an obstacle, the loop. None of them adds an ability the model lacked.</li>
+<li><b>The teachers found only two error modes.</b> The model re-checks its work in a loop ("Wait"), and it never ends its reasoning ("&lt;/think&gt;"). Both end the same way: the answer is cut off at the token limit.</li>
+<li><b>The best edit does both.</b> Opus tested each half alone and both together. Together was about twice as good as either half.</li>
+<li><b>One unit keeps turning up.</b> Unit 998 in the layer-16 MLP. Opus found it, and so did several RL rollouts. Two checkpoints in arXiv 2611.09382 also edit it.</li>
+<li><b>Pushing too hard is the common failure.</b> If the end-of-thinking score rises too much, the model stops reasoning. Opus, Inkling and one RL rollout all hit this. The teachers that tested several strengths backed off.</li>
+<li><b>The largest gains edit many layers.</b> In hero3 step 1, the two best rollouts removed the "Wait" direction from every output matrix and added the end-of-thinking direction. Edits to a few units earned less.</li>
+<li><b>No edit tried anything else,</b> such as arithmetic mistakes or wrong answers in finished solutions. A likely reason: the teacher starts with a summary of the student's answers, and that summary points straight at "Wait".</li>
 </ul>
 
 <h2 id="references">References</h2>
