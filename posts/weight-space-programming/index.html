@@ -350,7 +350,7 @@ text{font-family:-apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif;f
 
 <h2 id="how-to-update">How to update</h2>
 
-<p>Every edit so far changes an output matrix. This matrix writes an MLP's or an attention layer's result back into the residual stream. No other weights were edited.</p>
+<p>A diagnosis gives a unit or a direction. The teacher then changes the weights there. It only edits output matrices: the matrix <code>W</code> from How to diagnose, which writes an MLP's result back into the residual stream, and the same matrix in attention layers. No other weights are changed.</p>
 
 <p>There are two kinds of edit:</p>
 <ul>
