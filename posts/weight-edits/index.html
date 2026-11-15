@@ -119,12 +119,6 @@ text{font-family:-apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif;f
 
 <h3>Where a logit comes from</h3>
 
-<p>Take one layer: activations <code>x</code>, output matrix <code>W</code> with one row per unit, and the unembedding matrix <code>U</code> with one column per token.</p>
-<ol>
-<li><code>x * W</code>: scale row <code>j</code> of <code>W</code> by <code>x[j]</code>. Row <code>j</code> is now what unit <code>j</code> writes into the stream.</li>
-<li><code>@ U</code>: a [units × tokens] matrix. Cell <code>[j, t]</code> is unit <code>j</code>'s part of token <code>t</code>'s logit.</li>
-<li>Read the "Wait" column: the largest entry is the unit to edit. Its column sum is the layer's part of the "Wait" logit.</li>
-</ol>
 <p>Hover any cell.</p>
 
 <figure class="dfig"><!-- Interactive single-layer figure: x * W [M, D] @ U [D, V] = each unit's contribution to each token's logit [M, V]. Spliced into posts/weight-edits/index.html. -->
