@@ -119,161 +119,175 @@ text{font-family:-apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif;f
 
 <h3>Where a logit comes from</h3>
 
-<p>Take one layer. Its output matrix <code>W</code> has one row per unit. The column of <code>U</code> for "Wait" is <code>u</code>. Two multiplications give every weight's contribution to the "Wait" logit:</p>
+<p>Take one layer: activations <code>x</code>, output matrix <code>W</code> with one row per unit, and <code>u</code>, the column of <code>U</code> for "Wait".</p>
 <ol>
-<li><code>W * u</code>: multiply column <code>d</code> of <code>W</code> by <code>u[d]</code>. This is <code>W @ u</code> without the sum across each row.</li>
-<li>Multiply each row by that unit's activation <code>x[j]</code>.</li>
+<li><code>x * W</code>: scale row <code>j</code> of <code>W</code> by <code>x[j]</code>. Row <code>j</code> is now what unit <code>j</code> writes into the stream.</li>
+<li>Dot each row with <code>u</code>. That gives each unit's part of the "Wait" logit.</li>
 </ol>
-<p>Hover a cell to see its contribution, or a row's total to see one unit's.</p>
+<p>Hover a cell, or a unit total.</p>
 
-<figure class="dfig"><!-- Interactive single-layer figure: W [M, D], u [D] → W * u → × x → contribution. Spliced into posts/weight-edits/index.html. -->
+<figure class="dfig"><!-- Interactive single-layer figure: x [M], W [M, D] → x * W (what each unit writes) → · u → unit totals. Spliced into posts/weight-edits/index.html. -->
 <div class="wu" id="wu">
   <div class="wu-row">
-    <div class="wu-block">
-      <div class="wu-cap"><code>W</code> [4 × 3]</div>
-      <div class="wu-top wu-blank"></div>
-      <div class="wu-grid" id="wu-W"></div>
-    </div>
+    <div class="wu-block"><div class="wu-cap"><code>x</code> [4]</div><div class="wu-col" id="wu-x"></div></div>
     <div class="wu-op big">*</div>
-    <div class="wu-block">
-      <div class="wu-cap"><code>u</code> [3]</div>
-      <div class="wu-top wu-blank"></div>
-      <div class="wu-ucol" id="wu-u"></div>
-      <div class="wu-note">"Wait" column of <code>U</code>.<br>Entry <code>d</code> multiplies<br>column <code>d</code> of <code>W</code>.</div>
-    </div>
+    <div class="wu-block"><div class="wu-cap"><code>W</code> [4 × 3]</div><div class="wu-grid" id="wu-W"></div></div>
     <div class="wu-op big">=</div>
-    <div class="wu-block">
-      <div class="wu-cap"><code>W * u</code> [4 × 3]</div>
-      <div class="wu-top wu-blank"></div>
-      <div class="wu-grid" id="wu-Wu"></div>
-    </div>
-    <div class="wu-op">× <code>x</code><br>by row<br>→</div>
-    <div class="wu-block">
-      <div class="wu-cap">contribution [4 × 3]</div>
-      <div class="wu-top wu-blank"></div>
-      <div class="wu-withx">
-        <div class="wu-x" id="wu-x"></div>
-        <div class="wu-grid" id="wu-C"></div>
-        <div class="wu-sum" id="wu-S"></div>
-      </div>
-    </div>
+    <div class="wu-block"><div class="wu-cap"><code>x * W</code> [4 × 3]</div><div class="wu-grid" id="wu-XW"></div><div class="wu-note">Row <code>j</code>: what unit <code>j</code> writes.<br>Rows added up: <code>m = x @ W</code>.</div></div>
+    <div class="wu-op big">·</div>
+    <div class="wu-block"><div class="wu-cap"><code>u</code> [3]</div><div class="wu-ugrid" id="wu-u"></div><div class="wu-note">The "Wait"<br>column of <code>U</code>.</div></div>
+    <div class="wu-op big">=</div>
+    <div class="wu-block"><div class="wu-cap">unit total [4]</div><div class="wu-col" id="wu-S"></div></div>
   </div>
   <div class="wu-total" id="wu-total"></div>
-  <div class="wu-read" id="wu-read" aria-live="polite">Hover or tap a cell, or a row's total.</div>
+  <div class="wu-read" id="wu-read" aria-live="polite">Hover or tap a cell or a unit total.</div>
 </div>
-<noscript><p>The figure needs JavaScript. Its numbers: W rows [0.5, 0, 1], [−1, 0.5, 0], [2, 1, 0.5], [0, −1, 1]; u = [1, 0.5, 0]; x = [1, 2, 1.5, 0.5]; unit totals 0.5, −1.5, 3.75, −0.25; layer total 2.5.</p></noscript>
+<noscript><p>The figure needs JavaScript. x = [1, 2, 1.5, 0.5]; W rows [0.5, 0, 1], [−1, 0.5, 0], [2, 1, 0.5], [0, −1, 1]; u = [1, 0.5, 0]; unit totals 0.5, −1.5, 3.75, −0.25; layer total 2.5.</p></noscript>
 <style>
 .wu{margin:16px 0 8px;padding:12px;border:1px solid var(--line);border-radius:8px;overflow-x:auto}
-.wu-row{display:flex;align-items:flex-start;gap:6px;flex-wrap:nowrap;min-width:800px}
+.wu-row{display:flex;align-items:flex-start;gap:6px;min-width:720px}
 .wu-block{display:flex;flex-direction:column;gap:4px}
-.wu-cap{font-size:13px;color:var(--muted);height:20px}
-.wu-ucol{display:grid;grid-template-columns:repeat(3,42px);gap:3px}
-.wu-ucol .c{height:34px;display:flex;align-items:center;justify-content:center;font:600 12px ui-monospace,Menlo,monospace;border-radius:4px;border:1px solid var(--line)}
-.wu-note{font-size:11.5px;color:var(--muted);margin-top:8px;line-height:1.35}
-.wu-top{display:grid;grid-template-columns:repeat(3,42px);gap:3px;height:34px}
-.wu-top .c{font-size:11px;color:var(--muted);text-align:center;line-height:1.1}
-.wu-top .c b{display:block;color:var(--ink);font:600 12px ui-monospace,Menlo,monospace}
-.wu-grid{display:grid;grid-template-columns:repeat(3,42px);gap:3px}
-.wu-withx{display:flex;gap:6px;align-items:flex-start}
-.wu-x,.wu-sum{display:grid;grid-template-rows:repeat(4,34px);gap:3px}
-.wu-x .c,.wu-sum .c{height:34px;display:flex;align-items:center;justify-content:center;font:12px ui-monospace,Menlo,monospace;padding:0 6px;border-radius:4px}
-.wu-x .c{color:var(--muted);white-space:nowrap}
-.wu-top.wu-blank{display:none}
-.wu-sum .c{border:1px solid var(--line);min-width:44px;cursor:pointer;font-weight:600}
-.wu-grid .c{height:34px;display:flex;align-items:center;justify-content:center;font:12px ui-monospace,Menlo,monospace;border-radius:4px;cursor:pointer;color:var(--ink);outline:none}
-.wu .c.dim{opacity:.35}
-.wu .c.hi{box-shadow:0 0 0 2px var(--accent)}
-.wu .c:focus-visible{box-shadow:0 0 0 2px var(--accent)}
-.wu-op{align-self:center;text-align:center;color:var(--muted);font-size:13px;padding-top:24px;min-width:26px}
-.wu-op.big{font:600 20px ui-monospace,Menlo,monospace;color:var(--ink)}
+.wu-cap{font-size:13px;color:var(--muted);height:20px;white-space:nowrap}
+.wu-grid{display:grid;grid-template-columns:repeat(3,44px);gap:3px}
+.wu-ugrid{display:grid;grid-template-columns:repeat(3,40px);gap:3px}
+.wu-col{display:grid;grid-template-rows:repeat(4,34px);gap:3px}
+.wu .c{height:34px;min-width:40px;display:flex;align-items:center;justify-content:center;font:12px ui-monospace,Menlo,monospace;border-radius:4px;color:var(--ink);cursor:pointer;outline:none}
+.wu-ugrid .c{border:1px solid var(--line);font-weight:600}
+#wu-S .c{border:1px solid var(--line);font-weight:600;min-width:50px}
+.wu-note{font-size:11.5px;color:var(--muted);margin-top:6px;line-height:1.35}
+.wu .c.dim{opacity:.3}
+.wu .c.hi,.wu .c:focus-visible{box-shadow:0 0 0 2px var(--accent)}
+.wu-op{align-self:flex-start;margin-top:84px;min-width:20px;text-align:center;font:600 20px ui-monospace,Menlo,monospace;color:var(--ink)}
 .wu-total{margin-top:12px;font-size:14px}
 .wu-read{margin-top:6px;font-size:14px;color:var(--muted);min-height:1.5em}
 </style>
 <script>
 (function () {
   const W = [[0.5, 0, 1], [-1, 0.5, 0], [2, 1, 0.5], [0, -1, 1]], u = [1, 0.5, 0], x = [1, 2, 1.5, 0.5];
-  const M = W.length, D = u.length;
-  const Wu = W.map(r => r.map((v, d) => v * u[d]));
-  const C = Wu.map((r, j) => r.map(v => v * x[j]));
-  const rows = C.map(r => r.reduce((a, b) => a + b, 0)), total = rows.reduce((a, b) => a + b, 0);
-  const fmt = v => (Math.abs(v) < 1e-12 ? 0 : Math.round(v * 100) / 100).toString().replace('-', '−');
-  const tint = (v, vmax) => {
-    if (Math.abs(v) < 1e-12) return 'var(--code)';
-    const p = Math.round(20 + 70 * Math.min(1, Math.abs(v) / vmax));
-    return `color-mix(in srgb, ${v > 0 ? 'var(--pos)' : 'var(--neg)'} ${p}%, transparent)`;
+  const XW = W.map((r, j) => r.map(v => x[j] * v));
+  const S = XW.map(r => r.reduce((a, v, d) => a + v * u[d], 0)), total = S.reduce((a, b) => a + b, 0);
+  const fmt = v => (Math.abs(v) < 1e-9 ? 0 : Math.round(v * 100) / 100).toString().replace('-', '−');
+  const tint = (v, vmax) => Math.abs(v) < 1e-9 ? 'var(--code)' :
+    `color-mix(in srgb, ${v > 0 ? 'var(--pos)' : 'var(--neg)'} ${Math.round(20 + 70 * Math.min(1, Math.abs(v) / vmax))}%, transparent)`;
+  const $ = id => document.getElementById(id), all = [];
+  const cell = (parent, v, vmax, color = true) => {
+    const c = document.createElement('div'); c.className = 'c'; c.tabIndex = 0; c.textContent = fmt(v);
+    if (color) c.style.background = tint(v, vmax); parent.appendChild(c); all.push(c); return c;
   };
-  const $ = id => document.getElementById(id), cells = { W: [], Wu: [], C: [] }, sums = [];
-  const ucells = u.map((v, d) => { const c = document.createElement('div'); c.className = 'c'; c.textContent = fmt(v); c.title = `u[${d}]`; $('wu-u').appendChild(c); return c; });
-  for (const [key, M_, vmax] of [['W', W, 2], ['Wu', Wu, 2], ['C', C, 3]]) {
-    const g = $('wu-' + key);
-    M_.forEach((r, j) => r.forEach((v, d) => {
-      const c = document.createElement('div');
-      c.className = 'c'; c.tabIndex = 0; c.textContent = fmt(v); c.style.background = tint(v, vmax);
-      c.dataset.j = j; c.dataset.d = d; c.setAttribute('aria-label', `${key} row ${j} column ${d}: ${fmt(v)}`);
-      g.appendChild(c); (cells[key][j] = cells[key][j] || [])[d] = c;
-    }));
-  }
-  $('wu-x').innerHTML = x.map((v, j) => `<div class="c">x[${j}] = ${fmt(v)}</div>`).join('');
-  rows.forEach((v, j) => {
-    const c = document.createElement('div');
-    c.className = 'c'; c.tabIndex = 0; c.textContent = fmt(v); c.style.background = tint(v, 3); c.dataset.j = j;
-    c.setAttribute('aria-label', `unit ${j} total: ${fmt(v)}`); $('wu-S').appendChild(c); sums[j] = c;
-  });
-  const top = rows.indexOf(Math.max(...rows));
-  $('wu-total').innerHTML = `Layer total, the sum of every cell: <b>${fmt(total)}</b>. Unit ${top} adds the most, ${fmt(rows[top])}: the candidate to delete or edit.`;
-  const all = () => [...Object.values(cells).flat(2), ...sums, ...ucells];
-  const clear = () => all().forEach(c => c.classList.remove('dim', 'hi'));
+  const cx = x.map(v => cell($('wu-x'), v, 2, false));
+  const cW = W.map(r => r.map(v => cell($('wu-W'), v, 2)));
+  const cXW = XW.map(r => r.map(v => cell($('wu-XW'), v, 3)));
+  const cu = u.map(v => cell($('wu-u'), v, 1, false));
+  const cS = S.map(v => cell($('wu-S'), v, 3));
+  const top = S.indexOf(Math.max(...S));
+  $('wu-total').innerHTML = `Layer total, all unit totals added: <b>${fmt(total)}</b>. Unit ${top} adds the most, ${fmt(S[top])}: the candidate to delete or edit.`;
+  const focus = list => { all.forEach(c => c.classList.add('dim')); list.forEach(c => { c.classList.remove('dim'); c.classList.add('hi'); }); };
+  const reset = () => { all.forEach(c => c.classList.remove('dim', 'hi')); $('wu-read').textContent = 'Hover or tap a cell or a unit total.'; };
   const showCell = (j, d) => {
-    all().forEach(c => c.classList.add('dim'));
-    for (const k of ['W', 'Wu', 'C']) { cells[k][j][d].classList.remove('dim'); cells[k][j][d].classList.add('hi'); }
-    ucells[d].classList.remove('dim'); ucells[d].classList.add('hi');
-    $('wu-read').innerHTML = `Unit ${j}, column ${d}: x[${j}] × W[${j}, ${d}] × u[${d}] = ${fmt(x[j])} × ${fmt(W[j][d])} × ${fmt(u[d])} = <b>${fmt(C[j][d])}</b>`;
+    reset(); focus([cx[j], cW[j][d], cXW[j][d], cu[d]]);
+    $('wu-read').innerHTML = `x[${j}] × W[${j}, ${d}] = ${fmt(x[j])} × ${fmt(W[j][d])} = ${fmt(XW[j][d])}. Times u[${d}] = ${fmt(u[d])}: <b>${fmt(XW[j][d] * u[d])}</b> toward the "Wait" logit.`;
   };
   const showRow = j => {
-    all().forEach(c => c.classList.add('dim'));
-    for (const k of ['W', 'Wu', 'C']) cells[k][j].forEach(c => { c.classList.remove('dim'); c.classList.add('hi'); });
-    sums[j].classList.remove('dim'); sums[j].classList.add('hi');
-    ucells.forEach(c => c.classList.remove('dim'));
-    $('wu-read').innerHTML = `Unit ${j}: ${C[j].map(fmt).join(' + ')} = <b>${fmt(rows[j])}</b>, what this unit adds to the "Wait" logit.`;
+    reset(); focus([cx[j], ...cW[j], ...cXW[j], ...cu, cS[j]]);
+    $('wu-read').innerHTML = `Unit ${j}: [${XW[j].map(fmt).join(', ')}] · [${u.map(fmt).join(', ')}] = ${XW[j].map((v, d) => fmt(v * u[d])).join(' + ')} = <b>${fmt(S[j])}</b>`;
   };
-  Object.values(cells).flat(2).forEach(c => {
-    const go = () => showCell(+c.dataset.j, +c.dataset.d);
-    c.addEventListener('mouseenter', go); c.addEventListener('focus', go); c.addEventListener('click', go);
-  });
-  sums.forEach(c => {
-    const go = () => showRow(+c.dataset.j);
-    c.addEventListener('mouseenter', go); c.addEventListener('focus', go); c.addEventListener('click', go);
-  });
-  $('wu').addEventListener('mouseleave', () => { clear(); $('wu-read').textContent = 'Hover or tap a cell, or a row\'s total.'; });
+  const on = (c, f) => ['mouseenter', 'focus', 'click'].forEach(e => c.addEventListener(e, f));
+  [cW, cXW].forEach(G => G.forEach((r, j) => r.forEach((c, d) => on(c, () => showCell(j, d)))));
+  cx.forEach((c, j) => on(c, () => showRow(j)));
+  cS.forEach((c, j) => on(c, () => showRow(j)));
+  $('wu').addEventListener('mouseleave', reset);
 })();
 </script>
 <figcaption><b>2.</b> One layer, 4 units, 3 residual dimensions. Column 2 adds nothing, because <code>u[2] = 0</code>. Unit 1 lowers the "Wait" logit; unit 2 raises it most.</figcaption></figure>
 
-<p>A row's total is that unit's contribution. All the cells together are the layer's. Doing this for every layer of the real model, 24 matrices of [3584 × 1024], shows which layer and which unit to delete or edit. This is called direct logit attribution [3] [4].</p>
+<p>A unit total is that unit's contribution; the layer total is the layer's. Doing this for every layer of the real model, 24 matrices of [3584 × 1024], shows which layer and which unit to delete or edit. This is called direct logit attribution [3] [4].</p>
 
 <h3>What an edit changes</h3>
 
-<p>An edit changes <code>s = W @ u</code>, so it changes every contribution that uses it. Zeroing one row removes one unit's contribution. Removing the direction <code>u</code> from every row makes <code>s</code> zero for all units, so the layer can no longer change the "Wait" logit at all.</p>
+<p>An edit changes rows of <code>W</code>. The activations <code>x</code> and the column <code>u</code> stay the same, so the contributions of the changed rows change, and with them the layer total. Pick an edit:</p>
 
-<figure class="dfig"><div class="dscroll"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 400" role="img"><title>Two edits to layer 2: zeroing unit 2's row removes its contribution; removing direction u from every row makes s zero for all units</title><style>
-text{font-family:-apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif;fill:var(--ink,#1d1d1b)}
-.s{font-size:13px}.tiny{font-size:11.5px;fill:var(--muted,#5f5e5a)}.num{font-size:11.5px;font-family:ui-monospace,Menlo,monospace}
-.code{font-size:13px;font-family:ui-monospace,Menlo,monospace}.h{font-size:14px;font-weight:600}.op{font-size:17px;font-weight:600}
-.stream{stroke:var(--muted,#5f5e5a);stroke-width:3}.ar{stroke:var(--muted,#5f5e5a);stroke-width:1.4;fill:none}.hd{fill:var(--muted,#5f5e5a)}
-.axis{stroke:var(--muted,#5f5e5a);stroke-width:1}.box{fill:none;stroke:var(--muted,#5f5e5a);stroke-width:1.2}
-.sel{fill:none;stroke:var(--accent,#2a78d6);stroke-width:2.2}.addc{fill:var(--bg,#fff);stroke:var(--muted,#5f5e5a);stroke-width:1.4}
-.pos{fill:var(--pos,#2a6fc9)}.neg{fill:var(--neg,#d2601f)}.zero{fill:var(--code,#e9e8e4);stroke:var(--line,#d9d7d1);stroke-width:.6}
-.gray{fill:var(--muted,#5f5e5a)}
+<figure class="dfig"><!-- Interactive edit figure: same W, u, x as the contribution figure; buttons apply an edit to W. Spliced into posts/weight-edits/index.html. -->
+<div class="we" id="we">
+  <div class="we-btns" role="group" aria-label="Edit">
+    <button data-k="orig" aria-pressed="true">original</button>
+    <button data-k="zero" aria-pressed="false">zero unit 2's row</button>
+    <button data-k="flip" aria-pressed="false">flip unit 1's row</button>
+    <button data-k="dir" aria-pressed="false">remove direction u from every row</button>
+  </div>
+  <div class="we-code" id="we-code"></div>
+  <div class="we-row">
+    <div class="we-block"><div class="we-cap"><code>x</code> [4]</div><div class="we-sum" id="we-X"></div></div>
+    <div class="we-op">*</div>
+    <div class="we-block"><div class="we-cap"><code>W</code> after the edit [4 × 3]</div><div class="we-grid" id="we-W"></div></div>
+    <div class="we-op">→</div>
+    <div class="we-block"><div class="we-cap"><code>x * W</code> [4 × 3]</div><div class="we-grid" id="we-C"></div></div>
+    <div class="we-op">· <code>u</code><br>→</div>
+    <div class="we-block"><div class="we-cap">unit total</div><div class="we-sum" id="we-S"></div></div>
+  </div>
+  <div class="we-total" id="we-total"></div>
+</div>
+<noscript><p>The figure needs JavaScript. Layer totals: original 2.5; zero unit 2's row −1.25; flip unit 1's row 5.5; remove direction u 0.</p></noscript>
+<style>
+.we{margin:16px 0 8px;padding:12px;border:1px solid var(--line);border-radius:8px;overflow-x:auto}
+.we-btns{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px}
+.we-btns button{font:13px -apple-system,system-ui,sans-serif;padding:5px 10px;border-radius:6px;border:1px solid var(--line);background:transparent;color:var(--ink);cursor:pointer}
+.we-btns button[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 1px var(--accent)}
+.we-code{font:12.5px ui-monospace,Menlo,monospace;color:var(--muted);margin-bottom:10px;min-height:1.4em}
+.we-row{display:flex;gap:8px;align-items:flex-start;min-width:640px}
+.we-block{display:flex;flex-direction:column;gap:4px}
+.we-cap{font-size:13px;color:var(--muted);height:20px;white-space:nowrap}
+.we-grid{display:grid;grid-template-columns:repeat(3,48px);gap:3px}
+.we-sum{display:grid;grid-template-rows:repeat(4,34px);gap:3px}
+.we .c{height:34px;display:flex;align-items:center;justify-content:center;font:12px ui-monospace,Menlo,monospace;border-radius:4px;color:var(--ink)}
+.we-sum .c{border:1px solid var(--line);min-width:52px;font-weight:600}
+.we .c.chg{box-shadow:0 0 0 2px var(--accent)}
+.we-op{align-self:flex-start;margin-top:80px;text-align:center;color:var(--muted);font-size:13px;min-width:28px}
+.we-total{margin-top:12px;font-size:14px}
 </style>
-<defs><marker id="hd" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="hd"/></marker></defs><text x="0" y="20" class="h" text-anchor="start" xml:space="preserve">An edit changes s = W @ u, so it changes every contribution that uses it</text><text x="0" y="42" class="tiny" text-anchor="start" xml:space="preserve">Layer 2 only. x2 = [0, 1, 3] stays the same; layer 1 and the embedding still give 2.</text><text x="0" y="76" class="h" text-anchor="start" xml:space="preserve">original</text><rect x="0" y="88" width="36" height="26" rx="2" class="zero" fill-opacity="1.00"/><text x="18.0" y="105.0" class="num" text-anchor="middle" xml:space="preserve">0</text><rect x="40" y="88" width="36" height="26" rx="2" class="pos" fill-opacity="0.74"/><text x="58.0" y="105.0" class="num" text-anchor="middle" xml:space="preserve">1</text><text x="86" y="105" class="tiny" text-anchor="start" xml:space="preserve">row 0</text><rect x="0" y="118" width="36" height="26" rx="2" class="pos" fill-opacity="0.74"/><text x="18.0" y="135.0" class="num" text-anchor="middle" xml:space="preserve">1</text><rect x="40" y="118" width="36" height="26" rx="2" class="zero" fill-opacity="1.00"/><text x="58.0" y="135.0" class="num" text-anchor="middle" xml:space="preserve">0</text><text x="86" y="135" class="tiny" text-anchor="start" xml:space="preserve">row 1</text><rect x="0" y="148" width="36" height="26" rx="2" class="pos" fill-opacity="0.48"/><text x="18.0" y="165.0" class="num" text-anchor="middle" xml:space="preserve">0.5</text><rect x="40" y="148" width="36" height="26" rx="2" class="neg" fill-opacity="0.48"/><text x="58.0" y="165.0" class="num" text-anchor="middle" xml:space="preserve">−0.5</text><text x="86" y="165" class="tiny" text-anchor="start" xml:space="preserve">row 2</text><text x="0" y="200" class="code" text-anchor="start" xml:space="preserve">s2 = W2 @ u = [0, 1, 0.5]</text><text x="0" y="227" class="tiny" text-anchor="start" xml:space="preserve">unit 0</text><rect x="46" y="214" width="1.5" height="16" rx="2" class="zero" fill-opacity="0.85"/><text x="52.0" y="227" class="num" text-anchor="start" xml:space="preserve">0</text><text x="0" y="251" class="tiny" text-anchor="start" xml:space="preserve">unit 1</text><rect x="46" y="238" width="48.0" height="16" rx="2" class="pos" fill-opacity="0.85"/><text x="100.0" y="251" class="num" text-anchor="start" xml:space="preserve">1</text><text x="0" y="275" class="tiny" text-anchor="start" xml:space="preserve">unit 2</text><rect x="46" y="262" width="72.0" height="16" rx="2" class="pos" fill-opacity="0.85"/><text x="124.0" y="275" class="num" text-anchor="start" xml:space="preserve">1.5</text><line x1="46" y1="210" x2="46" y2="286" class="axis"/><text x="0" y="310" class="s" text-anchor="start" xml:space="preserve">layer 2 part = 2.5</text><text x="0" y="330" class="s" text-anchor="start" xml:space="preserve">logit(Wait) = 4.5</text><text x="250" y="76" class="h" text-anchor="start" xml:space="preserve">zero unit 2</text><rect x="250" y="88" width="36" height="26" rx="2" class="zero" fill-opacity="1.00"/><text x="268.0" y="105.0" class="num" text-anchor="middle" xml:space="preserve">0</text><rect x="290" y="88" width="36" height="26" rx="2" class="pos" fill-opacity="0.74"/><text x="308.0" y="105.0" class="num" text-anchor="middle" xml:space="preserve">1</text><text x="336" y="105" class="tiny" text-anchor="start" xml:space="preserve">row 0</text><rect x="250" y="118" width="36" height="26" rx="2" class="pos" fill-opacity="0.74"/><text x="268.0" y="135.0" class="num" text-anchor="middle" xml:space="preserve">1</text><rect x="290" y="118" width="36" height="26" rx="2" class="zero" fill-opacity="1.00"/><text x="308.0" y="135.0" class="num" text-anchor="middle" xml:space="preserve">0</text><text x="336" y="135" class="tiny" text-anchor="start" xml:space="preserve">row 1</text><rect x="250" y="148" width="36" height="26" rx="2" class="zero" fill-opacity="1.00"/><text x="268.0" y="165.0" class="num" text-anchor="middle" xml:space="preserve">0</text><rect x="290" y="148" width="36" height="26" rx="2" class="zero" fill-opacity="1.00"/><text x="308.0" y="165.0" class="num" text-anchor="middle" xml:space="preserve">0</text><text x="336" y="165" class="tiny" text-anchor="start" xml:space="preserve">row 2</text><rect x="246" y="144" width="84" height="34" rx="4" class="sel"/><text x="250" y="200" class="code" text-anchor="start" xml:space="preserve">s2 = W2 @ u = [0, 1, 0]</text><text x="250" y="227" class="tiny" text-anchor="start" xml:space="preserve">unit 0</text><rect x="296" y="214" width="1.5" height="16" rx="2" class="zero" fill-opacity="0.85"/><text x="302.0" y="227" class="num" text-anchor="start" xml:space="preserve">0</text><text x="250" y="251" class="tiny" text-anchor="start" xml:space="preserve">unit 1</text><rect x="296" y="238" width="48.0" height="16" rx="2" class="pos" fill-opacity="0.85"/><text x="350.0" y="251" class="num" text-anchor="start" xml:space="preserve">1</text><text x="250" y="275" class="tiny" text-anchor="start" xml:space="preserve">unit 2</text><rect x="296" y="262" width="1.5" height="16" rx="2" class="zero" fill-opacity="0.85"/><text x="302.0" y="275" class="num" text-anchor="start" xml:space="preserve">0</text><line x1="296" y1="210" x2="296" y2="286" class="axis"/><text x="250" y="310" class="s" text-anchor="start" xml:space="preserve">layer 2 part = 1</text><text x="250" y="330" class="s" text-anchor="start" xml:space="preserve">logit(Wait) = 3</text><text x="500" y="76" class="h" text-anchor="start" xml:space="preserve">remove direction u</text><rect x="500" y="88" width="36" height="26" rx="2" class="zero" fill-opacity="1.00"/><text x="518.0" y="105.0" class="num" text-anchor="middle" xml:space="preserve">0</text><rect x="540" y="88" width="36" height="26" rx="2" class="pos" fill-opacity="0.74"/><text x="558.0" y="105.0" class="num" text-anchor="middle" xml:space="preserve">1</text><text x="586" y="105" class="tiny" text-anchor="start" xml:space="preserve">row 0</text><rect x="500" y="118" width="36" height="26" rx="2" class="zero" fill-opacity="1.00"/><text x="518.0" y="135.0" class="num" text-anchor="middle" xml:space="preserve">0</text><rect x="540" y="118" width="36" height="26" rx="2" class="zero" fill-opacity="1.00"/><text x="558.0" y="135.0" class="num" text-anchor="middle" xml:space="preserve">0</text><text x="586" y="135" class="tiny" text-anchor="start" xml:space="preserve">row 1</text><rect x="500" y="148" width="36" height="26" rx="2" class="zero" fill-opacity="1.00"/><text x="518.0" y="165.0" class="num" text-anchor="middle" xml:space="preserve">0</text><rect x="540" y="148" width="36" height="26" rx="2" class="neg" fill-opacity="0.48"/><text x="558.0" y="165.0" class="num" text-anchor="middle" xml:space="preserve">−0.5</text><text x="586" y="165" class="tiny" text-anchor="start" xml:space="preserve">row 2</text><rect x="496" y="84" width="44" height="94" rx="4" class="sel"/><text x="500" y="200" class="code" text-anchor="start" xml:space="preserve">s2 = W2 @ u = [0, 0, 0]</text><text x="500" y="227" class="tiny" text-anchor="start" xml:space="preserve">unit 0</text><rect x="546" y="214" width="1.5" height="16" rx="2" class="zero" fill-opacity="0.85"/><text x="552.0" y="227" class="num" text-anchor="start" xml:space="preserve">0</text><text x="500" y="251" class="tiny" text-anchor="start" xml:space="preserve">unit 1</text><rect x="546" y="238" width="1.5" height="16" rx="2" class="zero" fill-opacity="0.85"/><text x="552.0" y="251" class="num" text-anchor="start" xml:space="preserve">0</text><text x="500" y="275" class="tiny" text-anchor="start" xml:space="preserve">unit 2</text><rect x="546" y="262" width="1.5" height="16" rx="2" class="zero" fill-opacity="0.85"/><text x="552.0" y="275" class="num" text-anchor="start" xml:space="preserve">0</text><line x1="546" y1="210" x2="546" y2="286" class="axis"/><text x="500" y="310" class="s" text-anchor="start" xml:space="preserve">layer 2 part = 0</text><text x="500" y="330" class="s" text-anchor="start" xml:space="preserve">logit(Wait) = 2</text><text x="0" y="368" class="tiny" text-anchor="start" xml:space="preserve">Zeroing a row sets one entry of s to 0. Removing direction u, W − (W @ u) uᵀ, sets every entry of s to 0:</text><text x="0" y="386" class="tiny" text-anchor="start" xml:space="preserve">layer 2 can no longer change the "Wait" logit at all, whatever its activations.</text></svg></div><figcaption><b>3.</b> Two edits to layer 2. The activations stay the same; the logit of "Wait" drops from 4.5 to 3 and to 2.</figcaption></figure>
+<script>
+(function () {
+  const W0 = [[0.5, 0, 1], [-1, 0.5, 0], [2, 1, 0.5], [0, -1, 1]], u = [1, 0.5, 0], x = [1, 2, 1.5, 0.5];
+  const uu = u.reduce((a, v) => a + v * v, 0);
+  const edits = {
+    orig: { code: 'no edit', f: W => W },
+    zero: { code: 'W[2] = 0', f: W => W.map((r, j) => j === 2 ? r.map(() => 0) : r) },
+    flip: { code: 'W[1] = −W[1]', f: W => W.map((r, j) => j === 1 ? r.map(v => -v) : r) },
+    dir: { code: 'W = W − outer(W @ u, u) / (u · u)     every row loses its part along u', f: W => W.map(r => { const s = r.reduce((a, v, d) => a + v * u[d], 0) / uu; return r.map((v, d) => v - s * u[d]); }) },
+  };
+  const fmt = v => (Math.abs(v) < 1e-9 ? 0 : Math.round(v * 100) / 100).toString().replace('-', '−');
+  const tint = (v, vmax) => Math.abs(v) < 1e-9 ? 'var(--code)' :
+    `color-mix(in srgb, ${v > 0 ? 'var(--pos)' : 'var(--neg)'} ${Math.round(20 + 70 * Math.min(1, Math.abs(v) / vmax))}%, transparent)`;
+  const $ = id => document.getElementById(id);
+  const mk = (parent, n) => Array.from({ length: n }, () => { const c = document.createElement('div'); c.className = 'c'; parent.appendChild(c); return c; });
+  mk($('we-X'), 4).forEach((c, j) => { c.textContent = fmt(x[j]); });
+  const cW = mk($('we-W'), 12), cC = mk($('we-C'), 12), cS = mk($('we-S'), 4);
+  const total0 = W0.reduce((a, r, j) => a + x[j] * r.reduce((b, v, d) => b + v * u[d], 0), 0);
+  function show(k) {
+    const W = edits[k].f(W0);
+    const C = W.map((r, j) => r.map(v => x[j] * v));
+    const S = C.map(r => r.reduce((a, v, d) => a + v * u[d], 0)), tot = S.reduce((a, b) => a + b, 0);
+    W.forEach((r, j) => r.forEach((v, d) => {
+      const i = j * 3 + d, ch = Math.abs(v - W0[j][d]) > 1e-9;
+      cW[i].textContent = fmt(v); cW[i].style.background = tint(v, 2); cW[i].classList.toggle('chg', ch);
+      cC[i].textContent = fmt(C[j][d]); cC[i].style.background = tint(C[j][d], 3); cC[i].classList.toggle('chg', ch);
+    }));
+    S.forEach((v, j) => { cS[j].textContent = fmt(v); cS[j].style.background = tint(v, 3); });
+    $('we-code').textContent = edits[k].code;
+    $('we-total').innerHTML = `Layer total: <b>${fmt(tot)}</b>` + (k === 'orig' ? '.' : `, was ${fmt(total0)}. The "Wait" logit changes by ${fmt(tot - total0)}.`);
+    document.querySelectorAll('#we .we-btns button').forEach(b => b.setAttribute('aria-pressed', b.dataset.k === k));
+  }
+  document.querySelectorAll('#we .we-btns button').forEach(b => b.addEventListener('click', () => show(b.dataset.k)));
+  show('orig');
+})();
+</script><figcaption><b>3.</b> The same layer as figure 2. Changed cells are outlined. Removing the direction <code>u</code> leaves nonzero cells, but every row dotted with <code>u</code> is now 0, so the layer no longer changes the "Wait" logit.</figcaption></figure>
 
 <div class="tw"><table>
-<tr><th>Edit to layer <code>L</code>, rows = units</th><th>New <code>s_L = W_L @ u</code></th></tr>
-<tr><td>zero row <code>j</code></td><td><code>s_L[j] = 0</code></td></tr>
-<tr><td>flip row <code>j</code></td><td><code>s_L[j]</code> changes sign</td></tr>
-<tr><td>scale row <code>j</code> by <code>c</code></td><td><code>s_L[j]</code> times <code>c</code></td></tr>
-<tr><td>remove direction <code>u</code>: <code>W − (W @ u) uᵀ</code></td><td>every entry 0</td></tr>
-<tr><td>amplify direction <code>u</code>: <code>W + α (W @ u) uᵀ</code></td><td>every entry times <code>1 + α</code></td></tr>
+<tr><th>Edit</th><th>Unit totals after the edit</th></tr>
+<tr><td>zero row <code>j</code></td><td>unit <code>j</code>'s total becomes 0</td></tr>
+<tr><td>flip row <code>j</code></td><td>unit <code>j</code>'s total changes sign</td></tr>
+<tr><td>scale row <code>j</code> by <code>c</code></td><td>unit <code>j</code>'s total times <code>c</code></td></tr>
+<tr><td>remove direction <code>u</code> from every row</td><td>every total becomes 0</td></tr>
+<tr><td>amplify direction <code>u</code> in every row by <code>α</code></td><td>every total times <code>1 + α</code></td></tr>
 </table></div>
 
 <h3>The steps on the real model</h3>
