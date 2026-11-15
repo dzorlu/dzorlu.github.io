@@ -689,8 +689,12 @@ fromHash(); draw();
 
 <h2 id="take-away">Take-away</h2>
 <ul>
-<li>The teachers attacked one failure: Qwen does not stop reasoning, so most wrong answers are cut off at the token limit.</li>
-<li>They attacked it from two sides: lower "Wait" and raise "&lt;/think&gt;". Some removed a "looping" direction found by difference of means, which aims at the same failure.</li>
+<li>The teachers found only two error modes, and every edit targets one of them:
+<ul>
+<li>the model re-checks its work in a loop ("Wait");</li>
+<li>the model never ends its reasoning ("&lt;/think&gt;").</li>
+</ul></li>
+<li>Both have the same result: most wrong answers are cut off at the token limit.</li>
 <li>No edit targeted any other error, such as arithmetic mistakes or wrong answers in finished solutions.</li>
 <li>Likely reason: the summary of the original model's answers, given to the teacher at the start, points straight at "Wait".</li>
 </ul>
