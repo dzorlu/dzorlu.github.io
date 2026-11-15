@@ -8,3 +8,8 @@
   description: "Every RL-for-LLM weighting rule, from REINFORCE to DPPO, measured on a toy where the true gradient is exact: bias, variance, the cap, and why a trust region is needed."
   path: posts/bias-variance/index.html
   categories: [rl]
+- title: "A map of weight edits"
+  date: "2026-11-14"
+  description: "How Claude Opus 5.5 and Inkling 2 Small diagnose and edit Qwen3.5-0.8B's weights to stop it looping on math: direct logit attribution, difference of means, token directions, and every edit tried so far."
+  path: posts/weight-edits/index.html
+  categories: [interpretability, rl]
