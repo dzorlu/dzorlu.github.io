@@ -11,5 +11,5 @@
 - title: "Weight-space programming"
   date: "2026-11-14"
   description: "How Claude Opus 5.5 and Inkling 2 Small diagnose and edit Qwen3.5-0.8B's weights to stop it looping on math: direct logit attribution, difference of means, token directions, and every edit tried so far."
-  path: posts/weight-edits/index.html
+  path: posts/weight-space-programming/index.html
   categories: [interpretability, rl]

@@ -23,6 +23,7 @@ resources:
   - posts/bias-variance/**
   - posts/score-centering/**
   - posts/weight-edits/**
+  - posts/weight-space-programming/**
 
 format:
   html:
