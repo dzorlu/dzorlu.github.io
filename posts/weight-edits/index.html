@@ -300,7 +300,13 @@ text{font-family:-apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif;f
 
 <h3 id="diff-means">2. Difference of means <a class="cite" href="#ref-6">[6]</a> <a class="cite" href="#ref-7">[7]</a></h3>
 
-<p>Average a layer's activations at positions before "Wait", subtract their average at other positions, and take the units, or the direction, with the largest difference. It needs two sets of positions and no column of <code>U</code>.</p>
+<p>Method 1 asks which unit <em>writes</em> "Wait". This method asks which unit <em>fires differently</em> before a "Wait". It uses only the activations <code>x</code>, not <code>W</code> or <code>U</code>, at two sets of positions:</p>
+<ul>
+<li><code>P</code>: positions whose next token is "Wait", as in method 1.</li>
+<li><code>Q</code>: positions to compare against. Either the rest of the same answer (every position whose next token is not "Wait"), or positions in answers that finished cleanly.</li>
+</ul>
+<div class="tex">$$d[j] = \text{mean}_{p \in P}\, x[p, j] \;-\; \text{mean}_{q \in Q}\, x[q, j]$$</div>
+<p>For example, if unit 2 has activations 3 and 2 at the positions in <code>P</code> and 0 and 1 at those in <code>Q</code>, then <code>d[2] = 2.5 − 0.5 = 2</code>: it fires mostly before "Wait". The units with the largest <code>d[j]</code> are the candidates. Computed on the residual stream <code>h</code> instead of <code>x</code>, the difference is a direction, which can be removed from the output matrices <a class="cite" href="#ref-6">[6]</a>.</p>
 
 <h3 id="token-directions">3. Token directions</h3>
 
