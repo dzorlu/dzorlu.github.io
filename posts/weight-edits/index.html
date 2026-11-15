@@ -238,7 +238,8 @@ text{font-family:-apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif;f
 <ul>
 <li>Figure 2 is one position <code>p</code>: one token of the answer, where the next token is "Wait".</li>
 <li>A looping answer writes "Wait" many times. <code>P</code> is all those positions; our example answer has 5.</li>
-<li>For every layer <code>L</code> and unit <code>j</code>, add the unit's row contribution over those positions:</li>
+<li>Unit <code>j</code> is one MLP neuron: entry <code>j</code> of <code>x</code>, row <code>j</code> of <code>W</code>. Each layer has 3584.</li>
+<li>For every layer <code>L</code> and unit <code>j</code>, add the row contribution over those positions:</li>
 </ul>
 
 <div class="tex">$$C_L[j] = \sum_{p \in P} x_L[p, j]\,\bigl(W_L[j] \cdot u\bigr) \,/\, \text{rms}(h[p])$$</div>
