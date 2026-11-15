@@ -120,9 +120,17 @@ p.who2{font-size:13.5px;color:var(--muted);margin:4px 0 8px}
 <h1>Weight-space programming</h1>
 <div class="meta">State on 14 November 2026, 19:10 · <a href="run/">live RL run</a> · <a href="traces/">step through the trajectories</a> · <a href="changelog/">changelog</a> · <a href="https://github.com/dzorlu/weight-edit-rl">code</a></div>
 
-<p>A language model can improve a smaller model by reading its weights and activations and overwriting a few values, with no gradients <a class="cite" href="#ref-1">[1]</a> <a class="cite" href="#ref-2">[2]</a>. This page lists every edit our editor models have tried on one target, Qwen3.5-0.8B, sorted by what kind of change it is and what it was aimed at.</p>
+<p>Can a model improve another model by editing its weights directly, with no gradients <a class="cite" href="#ref-1">[1]</a> <a class="cite" href="#ref-2">[2]</a>? We set this up as a teacher and a student.</p>
 
-<p>The target fails at math in one way. It writes "Wait..." and rechecks its work until it runs out of tokens, in about 95% of answers. Each edit below tries to stop that. Scores are the share of correct final answers.</p>
+<ul>
+<li><b>Student:</b> Qwen3.5-0.8B. It solves math problems from MATH and GSM8K. This is the inner loop.</li>
+<li><b>Teacher:</b> Claude Opus 5.5 or Inkling 2 Small. It works in many steps. It runs the student, reads its answers and activations, writes an edit to its weights in code, and tests the edit on problems. At the end it submits its best edit.</li>
+<li><b>Training the teacher:</b> we train Inkling 2 Small with RL. The reward is how much its submitted edit improves the student's accuracy on problems it never saw.</li>
+</ul>
+
+<p>The student fails at math mostly in one way. It writes "Wait..." and rechecks its work until it runs out of tokens, in about 95% of answers. So every edit below tries to stop that. Scores are the share of correct final answers.</p>
+
+<p>This page covers how the teacher finds what to change (How to diagnose), how it changes it (How to update), and every edit tried so far.</p>
 
 <h2 id="how-to-diagnose">How to diagnose</h2>
 
