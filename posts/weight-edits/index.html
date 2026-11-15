@@ -91,9 +91,9 @@ window.toggleMode = function () {
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/katex.min.js"></script>
 <script defer src="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.16.9/contrib/auto-render.min.js" onload="renderMathInElement(document.body,{delimiters:[{left:'$$',right:'$$',display:true}]})"></script>
 <style>.tex{overflow-x:auto;margin:10px 0 14px}.dfig.wide1{overflow:visible}.wide1 .dscroll{position:relative;width:min(1000px,calc(100vw - 32px));left:50%;transform:translateX(-50%);box-sizing:border-box}</style>
-<style>.toc{display:none}@media (min-width:1240px){.toc{display:block;position:fixed;top:84px;left:max(12px,calc(50% - 640px));width:180px;max-height:calc(100vh - 110px);overflow:auto;font-size:13px;line-height:1.4}.toc-h{font-weight:600;color:var(--ink);margin-bottom:8px}.toc a{display:block;color:var(--muted);text-decoration:none;padding:3px 0}.toc a:hover{color:var(--accent)}.toc a.toc3{padding-left:12px;font-size:12.5px}.toc a.on{color:var(--accent)}}</style><style>@media (min-width:1240px){.wu,.wide1 .dscroll{left:0!important;transform:none!important;width:min(1000px,calc(50vw + 430px - 24px))!important}}</style></head><body>
+<style>.toc{display:none}@media (min-width:1240px){.toc{display:block;position:fixed;top:84px;left:max(12px,calc(50% - 640px));width:180px;max-height:calc(100vh - 110px);overflow:auto;font-size:13px;line-height:1.4}.toc-h{font-weight:600;color:var(--ink);margin-bottom:8px}.toc a{display:block;color:var(--muted);text-decoration:none;padding:3px 0}.toc a:hover{color:var(--accent)}.toc a.toc3{padding-left:12px;font-size:12.5px}.toc a.toc4{padding-left:24px;font-size:12px}.toc a.on{color:var(--accent)}}</style><style>@media (min-width:1240px){.wu,.wide1 .dscroll{left:0!important;transform:none!important;width:min(1000px,calc(50vw + 430px - 24px))!important}}</style><style>main h4{font-size:15px;margin:1.4em 0 .4em}</style></head><body>
 <header class="topbar"><a class="brand" href="../../">Tinkerings</a><span class="tools"><a href="https://github.com/dzorlu/weight-edit-rl" aria-label="GitHub"><i class="bi bi-github"></i></a><a class="mode" href="#" onclick="toggleMode(); return false;" title="Toggle dark mode"><i class="bi"></i></a></span></header>
-<nav class="toc" aria-label="Contents"><div class="toc-h">Contents</div><a class="toc2" href="#how-to-diagnose">How to diagnose</a><a class="toc3" href="#a-small-network">A small network</a><a class="toc3" href="#where-a-logit-comes-from">Where a logit comes from</a><a class="toc3" href="#from-one-position-to-the-whole-model">From one position to the whole model</a><a class="toc3" href="#other-methods">Other methods the editors used</a><a class="toc2" href="#how-to-update">How to update</a><a class="toc2" href="#every-edit-tried-so-far">Every edit tried so far</a><a class="toc2" href="#what-the-map-shows">What the map shows</a><a class="toc2" href="#references">References</a></nav><main>
+<nav class="toc" aria-label="Contents"><div class="toc-h">Contents</div><a class="toc2" href="#how-to-diagnose">How to diagnose</a><a class="toc3" href="#dla">1. Direct logit attribution</a><a class="toc4" href="#a-small-network">A small network</a><a class="toc4" href="#where-a-logit-comes-from">Where a logit comes from</a><a class="toc4" href="#across-positions-and-layers">Across positions and layers</a><a class="toc4" href="#dla-in-our-runs">In our runs</a><a class="toc3" href="#diff-means">2. Difference of means</a><a class="toc3" href="#token-directions">3. Token directions</a><a class="toc2" href="#how-to-update">How to update</a><a class="toc2" href="#every-edit-tried-so-far">Every edit tried so far</a><a class="toc2" href="#what-the-map-shows">What the map shows</a><a class="toc2" href="#references">References</a></nav><main>
 <h1>A map of weight edits</h1>
 <div class="meta">State on 14 November 2026, 19:10 · <a href="run/">live RL run</a> · <a href="traces/">step through the trajectories</a> · <a href="changelog/">changelog</a> · <a href="https://github.com/dzorlu/weight-edit-rl">code</a></div>
 
@@ -103,9 +103,15 @@ window.toggleMode = function () {
 
 <h2 id="how-to-diagnose">How to diagnose</h2>
 
-<p>A diagnosis finds the units that make the model write the wrong next token. The main method is <b>direct logit attribution</b> [3] [4]: split that token's logit into one contribution per layer and per unit, and edit the largest. This section builds it up on a one-layer network.</p>
+<ul>
+<li>A diagnosis finds the units that make the model write the wrong next token, here "Wait".</li>
+<li>The editors used three methods, each from the interpretability literature: direct logit attribution, difference of means, and token directions.</li>
+<li>Method 1 is built up below on a one-layer network.</li>
+</ul>
 
-<h3 id="a-small-network">A small network</h3>
+<h3 id="dla">1. Direct logit attribution <a class="cite" href="#ref-3">[3]</a> <a class="cite" href="#ref-4">[4]</a></h3>
+
+<h4 id="a-small-network">A small network</h4>
 
 <p>One layer, with a residual stream of 3 numbers (1024 in the model) and 4 MLP units (3584).</p>
 
@@ -126,7 +132,7 @@ text{font-family:-apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif;f
 
 <p>Figure 2 shows each term of the sum.</p>
 
-<h3 id="where-a-logit-comes-from">Where a logit comes from</h3>
+<h4 id="where-a-logit-comes-from">Where a logit comes from</h4>
 
 <figure class="dfig"><!-- Interactive single-layer figure: x [M] * W [M, D] * u [D] = contribution of each weight to the "Wait" logit [M, D], with row sums. Spliced into posts/weight-edits/index.html. -->
 <div class="wu" id="wu">
@@ -227,25 +233,37 @@ text{font-family:-apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif;f
 </script>
 <figcaption><b>2.</b> Each weight contributes <code>x[j] × W[j][d] × U[d][Wait]</code>. Each row adds up to one unit's contribution, and all rows to 2.5, the MLP term of the sum above. With the residual's 0.5 that is the "Wait" logit, 3.</figcaption></figure>
 
-<h3 id="from-one-position-to-the-whole-model">From one position to the whole model</h3>
+<h4 id="across-positions-and-layers">Across positions and layers</h4>
 
-<p>The toy is one layer at one position. The real measurement repeats it at every position just before a "Wait" (set <code>P</code>) and adds the results, for every one of the 24 MLP layers:</p>
+<ul>
+<li>Figure 2 is one position <code>p</code>: one token of the answer, where the next token is "Wait".</li>
+<li>A looping answer writes "Wait" many times. <code>P</code> is all those positions; our example answer has 5.</li>
+<li>For every layer <code>L</code> and unit <code>j</code>, add the unit's row contribution over those positions:</li>
+</ul>
 
-<div class="tex">$$\text{table}[L, j] \;=\; \sum_{p \in P} x_L[p, j]\,\bigl(W_L[j] \cdot u\bigr) \,/\, \text{rms}(h[p])$$</div>
+<div class="tex">$$C_L[j] = \sum_{p \in P} x_L[p, j]\,\bigl(W_L[j] \cdot u\bigr) \,/\, \text{rms}(h[p])$$</div>
 
-<p>That is a [24 layers × 3584 units] table. Its row sums say which layer adds most to "Wait"; its largest entry says which unit. The division by <code>rms(h[p])</code> is the final norm, which scales every term at a position by the same number. On one of Qwen3.5-0.8B's looping answers, with 5 positions before "Wait", layer 16 adds the most, +17.75, and almost all of it comes from one unit: unit 998, +16.69.</p>
+<ul>
+<li><code>C</code> has one number per unit per layer: [24 layers × 3584 units].</li>
+<li><code>rms(h[p])</code> is the final norm. It divides every term at a position by the same number.</li>
+<li>Pick the layer with the largest total, then the unit with the largest <code>C_L[j]</code>. On Qwen3.5-0.8B: layer 16, total +17.75, and in it unit 998, +16.69.</li>
+<li><code>C</code> counts only what a unit writes straight into the final vector. So a candidate is confirmed by editing it and generating answers.</li>
+</ul>
 
-<p>The table counts only what a unit writes straight into the final vector, not what later layers do with it. So a candidate is confirmed by editing it and generating answers.</p>
+<h4 id="dla-in-our-runs">In our runs</h4>
 
-<p>In our runs, Claude Opus 5.5 ran it for "Wait" and found unit 998 of the layer-16 MLP. Zeroing its row of <code>W</code> raised train accuracy from 7.0% to 14.5%; negating it gave 17.6%. Inkling 2 Small ran it per layer for "Wait" and "&lt;/think&gt;" and found that layers 15 to 21 lower "&lt;/think&gt;". It edited the direction of "&lt;/think&gt;" in layers 20 to 23, and test accuracy went from 6.6% to 20.2%.</p>
+<ul>
+<li>Claude Opus 5.5 found unit 998 of layer 16. Zeroing its row of <code>W</code>: train accuracy 7.0% → 14.5%. Negating it: 17.6%.</li>
+<li>Inkling 2 Small found that layers 15 to 21 lower "&lt;/think&gt;". It added the "&lt;/think&gt;" direction in layers 20 to 23: test accuracy 6.6% → 20.2%.</li>
+</ul>
 
-<h3 id="other-methods">Other methods the editors used</h3>
+<h3 id="diff-means">2. Difference of means <a class="cite" href="#ref-6">[6]</a> <a class="cite" href="#ref-7">[7]</a></h3>
 
+<p>Average a layer's activations at positions before "Wait", subtract their average at other positions, and take the units, or the direction, with the largest difference. It needs two sets of positions and no column of <code>U</code>.</p>
 
+<h3 id="token-directions">3. Token directions</h3>
 
-<p><b>Difference of means</b> [6] [7]: average a layer's activations at the positions before "Wait", subtract the average at other positions, and take the units with the largest difference. It needs no token column of <code>U</code>, only two sets of positions. Inkling 2 Small used it in an RL test rollout (<code>smoke3</code>), next to direct logit attribution. Opus chose its set of layers to edit the same way, comparing their output at positions where the model wraps up with other positions.</p>
-
-<p><b>No unit choice</b>: take a token's column of <code>U</code> and edit it in every output matrix. The two best rollouts of the hero run's first step removed the "Wait" direction and added the "&lt;/think&gt;" direction in all 48 output matrices. Their edits gained 32.8 and 29.4 points on the test set.</p>
+<p>Skip the measurement. Take a token's column of <code>U</code> as a direction and remove it from, or add it to, the output matrices of every layer. Removing a direction from every layer is directional ablation <a class="cite" href="#ref-6">[6]</a>.</p>
 
 <h2 id="how-to-update">How to update</h2>
 
