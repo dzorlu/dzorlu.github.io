@@ -1,5 +1,5 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>A map of weight edits</title>
+<title>Weight-space programming</title>
 <style>
 :root { --ink:#1d1d1b; --muted:#5f5e5a; --line:#e4e3df; --bg:#fcfcfb; --code:#f2f1ee; --accent:#2a78d6; --th:#f0efec; --good:#1f7a55; --bad:#b3261e; --pos:#2a6fc9; --neg:#d2601f; }
 html.dark { --ink:#e8e6e1; --muted:#9c9a92; --line:#2c2c2a; --bg:#151514; --code:#1f1f1d; --accent:#7fb2f0; --th:#242422; --good:#6fcf9f; --bad:#ff8f85; --pos:#5b9ef2; --neg:#f0894a; color-scheme:dark; }
@@ -108,7 +108,7 @@ p.who2{font-size:13.5px;color:var(--muted);margin:4px 0 8px}
 }
 </style></head><body>
 <header class="topbar"><a class="brand" href="../../">Tinkerings</a><span class="tools"><a href="https://github.com/dzorlu/weight-edit-rl" aria-label="GitHub"><i class="bi bi-github"></i></a><a class="mode" href="#" onclick="toggleMode(); return false;" title="Toggle dark mode"><i class="bi"></i></a></span></header>
-<nav class="toc" aria-label="Contents"><div class="toc-h">Contents</div><a class="toc2" href="#how-to-diagnose">How to diagnose</a><a class="toc3" href="#dla">1. Direct logit attribution</a><a class="toc4" href="#a-small-network">A small network</a><a class="toc4" href="#where-a-logit-comes-from">Where a logit comes from</a><a class="toc4" href="#across-positions-and-layers">Across positions and layers</a><a class="toc4" href="#dla-in-our-runs">In our runs</a><a class="toc3" href="#diff-means">2. Difference of means</a><a class="toc3" href="#token-directions">3. Token directions</a><a class="toc2" href="#how-to-update">How to update</a><a class="toc2" href="#every-edit-tried-so-far">Every edit tried so far</a><a class="toc2" href="#what-the-map-shows">What the map shows</a><a class="toc2" href="#references">References</a></nav><aside class="refpanel" aria-label="References"><div class="toc-h">References</div><ol class="refs">
+<nav class="toc" aria-label="Contents"><div class="toc-h">Contents</div><a class="toc2" href="#how-to-diagnose">How to diagnose</a><a class="toc3" href="#dla">1. Direct logit attribution</a><a class="toc4" href="#a-small-network">A small network</a><a class="toc4" href="#where-a-logit-comes-from">Where a logit comes from</a><a class="toc4" href="#across-positions-and-layers">Across positions and layers</a><a class="toc4" href="#dla-in-our-runs">In our runs</a><a class="toc3" href="#diff-means">2. Difference of means</a><a class="toc3" href="#token-directions">3. Token directions</a><a class="toc2" href="#how-to-update">How to update</a><a class="toc2" href="#every-edit-tried-so-far">Every edit tried so far</a><a class="toc2" href="#take-away">Take-away</a><a class="toc2" href="#what-the-map-shows">What the map shows</a><a class="toc2" href="#references">References</a></nav><aside class="refpanel" aria-label="References"><div class="toc-h">References</div><ol class="refs">
 <li data-ref=\"1\">Takehi, Teoh, Zhang and Khattab. <a href="https://rikiyat.github.io/blog/weight-space-programming/">Sparks of Weight-Space Programming</a>. blog post, 2026.</li>
 <li data-ref=\"2\">Hu et al.. <a href="https://arxiv.org/abs/2611.09382">Exploring Weight-Space Programming: Capabilities, Generalization, and Limitations</a>. arXiv 2611.09382, 2026.</li>
 <li data-ref=\"3\">Elhage et al.. <a href="https://transformer-circuits.pub/2021/framework/index.html">A Mathematical Framework for Transformer Circuits</a>. Transformer Circuits Thread, 2021.</li>
@@ -117,7 +117,7 @@ p.who2{font-size:13.5px;color:var(--muted);margin:4px 0 8px}
 <li data-ref=\"6\">Arditi et al.. <a href="https://arxiv.org/abs/2406.11717">Refusal in Language Models Is Mediated by a Single Direction</a>. arXiv 2406.11717, 2024.</li>
 <li data-ref=\"7\">Turner et al.. <a href="https://arxiv.org/abs/2308.10248">Steering Language Models With Activation Engineering</a>. arXiv 2308.10248, 2023.</li>
 </ol></aside><main>
-<h1>A map of weight edits</h1>
+<h1>Weight-space programming</h1>
 <div class="meta">State on 14 November 2026, 19:10 · <a href="run/">live RL run</a> · <a href="traces/">step through the trajectories</a> · <a href="changelog/">changelog</a> · <a href="https://github.com/dzorlu/weight-edit-rl">code</a></div>
 
 <p>A language model can improve a smaller model by reading its weights and activations and overwriting a few values, with no gradients <a class="cite" href="#ref-1">[1]</a> <a class="cite" href="#ref-2">[2]</a>. This page lists every edit our editor models have tried on one target, Qwen3.5-0.8B, sorted by what kind of change it is and what it was aimed at.</p>
@@ -602,9 +602,18 @@ fromHash(); draw();
 
 <h2 id="every-edit-tried-so-far">Every edit tried so far</h2>
 
-<p>Problems come in four sets. <b>Train:</b> MATH and GSM8K training problems the editor uses during its search to diagnose and to choose between edits. <b>Validation:</b> train problems it set aside to check its final edit, never used for a choice. <b>Test:</b> MATH-500, run once after the search on the submitted edit; the editor never sees it. <b>Reward set:</b> 128 hidden MATH training problems that score each RL rollout. All numbers are accuracy changes in points, edited minus original, on the same problems.</p>
-
-<p>Each row is a single search or rollout, and results vary a lot between runs of the same editor.</p>
+<p>A teacher model, Claude Opus 5.5 or Inkling 2 Small, proposes edits to the weights of Qwen3.5-0.8B and tests them on math problems:</p>
+<ul>
+<li><b>Train:</b> MATH and GSM8K training problems, used during the search.</li>
+<li><b>Test:</b> MATH-500, scored once on the submitted edit.</li>
+<li><b>Reward:</b> 128 other MATH training problems, used to score each RL rollout.</li>
+</ul>
+<p>Every edit the teachers proposed does one of two things:</p>
+<ul>
+<li><b>Lower "Wait"</b>, so the model stops re-checking its work.</li>
+<li><b>Raise "&lt;/think&gt;"</b>, so the model ends its reasoning and gives an answer.</li>
+</ul>
+<p>Numbers are accuracy changes in points: edited minus original, on the same problems.</p>
 
 <details class="fold"><summary>Claude Opus 5.5 <span class="cnt">1 search</span></summary>
 <p class="who2">Claude Opus 5.5 · <a href="traces/#opus">trajectory</a></p><div class="tw"><table>
@@ -677,6 +686,14 @@ fromHash(); draw();
 </table></div>
 </details>
 
+
+<h2 id="take-away">Take-away</h2>
+<ul>
+<li>The teachers attacked one failure: Qwen does not stop reasoning, so most wrong answers are cut off at the token limit.</li>
+<li>They attacked it from two sides: lower "Wait" and raise "&lt;/think&gt;". Some removed a "looping" direction found by difference of means, which aims at the same failure.</li>
+<li>No edit targeted any other error, such as arithmetic mistakes or wrong answers in finished solutions.</li>
+<li>Likely reason: the summary of the original model's answers, given to the teacher at the start, points straight at "Wait".</li>
+</ul>
 
 <h2 id="what-the-map-shows">What the map shows</h2>
 
