@@ -247,9 +247,20 @@ text{font-family:-apple-system,system-ui,"Segoe UI",Helvetica,Arial,sans-serif;f
 <ul>
 <li><code>C</code> has one number per unit per layer: [24 layers × 3584 units].</li>
 <li><code>rms(h[p])</code> is the final norm. It divides every term at a position by the same number.</li>
-<li>Pick the layer with the largest total, then the unit with the largest <code>C_L[j]</code>. On Qwen3.5-0.8B: layer 16, total +17.75, and in it unit 998, +16.69.</li>
+<li>Rank the units by <code>C_L[j]</code>. The largest is the candidate to edit.</li>
 <li><code>C</code> counts only what a unit writes straight into the final vector. So a candidate is confirmed by editing it and generating answers.</li>
 </ul>
+
+<p>On Qwen3.5-0.8B, one looping answer, 5 positions before "Wait":</p>
+<div class="tw"><table>
+<tr><th>Rank</th><th>Layer <code>L</code></th><th>Unit <code>j</code></th><th><code>C_L[j]</code></th><th>Layer total</th></tr>
+<tr><td>1</td><td>16</td><td>998</td><td>+16.69</td><td>+17.75</td></tr>
+<tr><td>2</td><td>21</td><td>44</td><td>+2.57</td><td>+8.77</td></tr>
+<tr><td>3</td><td>19</td><td>663</td><td>+1.96</td><td>+6.22</td></tr>
+<tr><td>4</td><td>18</td><td>1261</td><td>+1.80</td><td>+3.03</td></tr>
+<tr><td>5</td><td>20</td><td>1111</td><td>+1.51</td><td>+3.59</td></tr>
+</table></div>
+<p>Unit 998 alone gives almost all of layer 16's +17.75. The other layers' totals are spread over many small units.</p>
 
 <h4 id="dla-in-our-runs">In our runs</h4>
 
