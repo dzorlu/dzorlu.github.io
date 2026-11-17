@@ -108,7 +108,7 @@ p.who2{font-size:13.5px;color:var(--muted);margin:4px 0 8px}
 }
 </style><style>.authors{font-size:17px;color:var(--ink);margin:.3rem 0 .4rem}</style><style>ul.links{margin:.3rem 0 1rem;padding-left:1.2rem;font-size:15px;line-height:1.7}</style></head><body>
 <header class="topbar"><a class="brand" href="../../">Tinkerings</a><span class="tools"><a href="https://github.com/dzorlu/weight-edit-rl" aria-label="GitHub"><i class="bi bi-github"></i></a><a class="mode" href="#" onclick="toggleMode(); return false;" title="Toggle dark mode"><i class="bi"></i></a></span></header>
-<nav class="toc" aria-label="Contents"><div class="toc-h">Contents</div><a class="toc2" href="#results">Results</a><a class="toc2" href="#checkpoint">Checkpoint</a><a class="toc2" href="#how-to-diagnose">How to diagnose</a><a class="toc3" href="#dla">1. Direct logit attribution</a><a class="toc4" href="#a-small-network">A small network</a><a class="toc4" href="#where-a-logit-comes-from">Where a logit comes from</a><a class="toc4" href="#across-positions-and-layers">Across positions and layers</a><a class="toc4" href="#dla-in-our-runs">In our runs</a><a class="toc3" href="#diff-means">2. Difference of means</a><a class="toc3" href="#token-directions">3. Token directions</a><a class="toc2" href="#how-to-update">How to update</a><a class="toc3" href="#kind-8">8. Change what a unit reads</a><a class="toc3" href="#variants">Variants seen in later runs</a><a class="toc2" href="#every-edit-tried-so-far">Every edit tried so far</a><a class="toc2" href="#what-the-edits-show">What the edits show</a><a class="toc2" href="#references">References</a></nav><aside class="refpanel" aria-label="References"><div class="toc-h">References</div><ol class="refs">
+<nav class="toc" aria-label="Contents"><div class="toc-h">Contents</div><a class="toc2" href="#results">Results</a><a class="toc3" href="#ban-baseline">Is the edit just a “Wait” ban?</a><a class="toc2" href="#checkpoint">Checkpoint</a><a class="toc2" href="#how-to-diagnose">How to diagnose</a><a class="toc3" href="#dla">1. Direct logit attribution</a><a class="toc4" href="#a-small-network">A small network</a><a class="toc4" href="#where-a-logit-comes-from">Where a logit comes from</a><a class="toc4" href="#across-positions-and-layers">Across positions and layers</a><a class="toc4" href="#dla-in-our-runs">In our runs</a><a class="toc3" href="#diff-means">2. Difference of means</a><a class="toc3" href="#token-directions">3. Token directions</a><a class="toc2" href="#how-to-update">How to update</a><a class="toc3" href="#kind-8">8. Change what a unit reads</a><a class="toc3" href="#variants">Variants seen in later runs</a><a class="toc2" href="#every-edit-tried-so-far">Every edit tried so far</a><a class="toc2" href="#what-the-edits-show">What the edits show</a><a class="toc2" href="#references">References</a></nav><aside class="refpanel" aria-label="References"><div class="toc-h">References</div><ol class="refs">
 <li data-ref=\"1\">Takehi, Teoh, Zhang and Khattab. <a href="https://rikiyat.github.io/blog/weight-space-programming/">Sparks of Weight-Space Programming</a>. blog post, 2026.</li>
 <li data-ref=\"2\">Hu et al.. <a href="https://arxiv.org/abs/2611.09382">Exploring Weight-Space Programming: Capabilities, Generalization, and Limitations</a>. arXiv 2611.09382, 2026.</li>
 <li data-ref=\"3\">Elhage et al.. <a href="https://transformer-circuits.pub/2021/framework/index.html">A Mathematical Framework for Transformer Circuits</a>. Transformer Circuits Thread, 2021.</li>
@@ -171,6 +171,24 @@ p.who2{font-size:13.5px;color:var(--muted);margin:4px 0 8px}
 <li>After 8 steps, the teacher's edits gain about 10 points more on both sets. All four of its edits are above +19.</li>
 <li>This is preliminary: 4 sessions per trained teacher. The best edit is chosen on the reward set and scored on MATH-500.</li>
 <li>Built into the student and rescored on 1,000 answers, the 8-step teacher’s best edit gives 39.5% on MATH-500. That is the same as the untrained teacher’s best single edit (39.4%), and below the student with several edits stacked (42.5%). So training raised the average edit more than the best one.</li>
+</ul>
+
+<h3 id="ban-baseline">Is the edit just a “Wait” ban?</h3>
+
+<p>A simpler fix is to forbid the word at decoding time, with no weight change. On our setup (MATH-500, 1,000 answers, 8,192-token limit):</p>
+<div class="tw"><table>
+<tr><th>Student</th><th>MATH-500</th><th>Answers cut at the limit</th></tr>
+<tr><td>Original</td><td>6.6%</td><td></td></tr>
+<tr><td>Ban “Wait” while decoding</td><td>22.9%</td><td>77.8%</td></tr>
+<tr><td>Ban “Wait”, “Hmm”, “Actually”</td><td>23.1%</td><td></td></tr>
+<tr><td>Best edit from the 8-step teacher</td><td>39.5%</td><td>34.0%</td></tr>
+<tr><td>That edit plus the ban</td><td>40.9%</td><td></td></tr>
+</table></div>
+<ul>
+<li>The edit beats the ban by about 17 points. It is not just a ban written into the weights.</li>
+<li>The ban removes one word, but the model keeps rechecking with others. The edit shortens the answers: 4,041 tokens on average, against 7,367.</li>
+<li>The two do not add up: edit plus ban is +1.4 ± 1.4 over the edit alone.</li>
+<li>Caveat: WSP-Gym reports 38.8% for the ban with a 32,768-token limit. With that larger budget the ban does better, and we have not compared the two there.</li>
 </ul>
 
 <h2 id="checkpoint">Checkpoint</h2>
