@@ -168,7 +168,7 @@ p.who2{font-size:13.5px;color:var(--muted);margin:4px 0 8px}
 <tr><td>After 8 RL steps</td><td>4</td><td>+23.8</td><td>+24.5</td><td>38.5%</td></tr>
 </table></div>
 <ul>
-<li>After 8 steps, the teacher's edits gain about 10 points more on both sets. All four of its edits are above +19.</li>
+<li>On the same harness, after the 17 Nov fixes, with 8 rollouts each, RL training adds about 4 points per edit: +20.9 against +16.6, within noise. The untrained row above was run earlier, with a 90-minute cap, which is why its gap looks larger.</li>
 <li>This is preliminary: 4 sessions per trained teacher. The best edit is chosen on the reward set and scored on MATH-500.</li>
 <li>Built into the student and rescored on 1,000 answers, the 8-step teacher’s best edit gives 39.5% on MATH-500. That is the same as the untrained teacher’s best single edit (39.4%), and below the student with several edits stacked (42.5%). So training raised the average edit more than the best one.</li>
 </ul>
@@ -193,21 +193,32 @@ p.who2{font-size:13.5px;color:var(--muted);margin:4px 0 8px}
 
 <h3 id="vs-fine-tuning">Editing against fine-tuning</h3>
 
-<p>Qwen3.5-0.8B as downloaded gets 7.8% on these problems. Gain on MATH-500, first 250 problems × 2 answers. Compute is counted on Qwen only.</p>
+<p>Qwen3.5-0.8B as downloaded gets 7.8% on these problems. Gain on MATH-500, first 250 problems × 2 answers. Compute is counted on Qwen only. Editor rows: 8 rollouts each on the same harness (120-minute cap, no gradient request). “3 rollouts, best by reward” averages over every way of drawing 3 of the 8 and keeping the one with the highest reward-set score.</p>
 <div class="tw"><table>
 <tr><th>Route</th><th>What is counted</th><th>Qwen FLOPs</th><th>Relative</th><th>MATH-500 gain</th></tr>
 <tr><td>Fine-tuning, no editor</td><td>forward and backward passes of training</td><td>2.4e16</td><td>1×</td><td>+23.6</td></tr>
-<tr><td>Trained editor, rollouts only</td><td>3 rollouts, best by reward</td><td>6e16</td><td>2.5×</td><td>+27.3</td></tr>
-<tr><td>Trained editor, training + rollouts</td><td>128 training rollouts + 3 rollouts</td><td>1.7e18</td><td>70×</td><td>+27.3</td></tr>
+<tr><td>Untrained editor, rollouts only</td><td>3 rollouts, best by reward</td><td>6e16</td><td>2.5×</td><td>+26.3</td></tr>
+<tr><td>Trained editor, rollouts only</td><td>3 rollouts, best by reward</td><td>6e16</td><td>2.5×</td><td>+30.5</td></tr>
+<tr><td>Trained editor, training + rollouts</td><td>128 training rollouts + 3 rollouts</td><td>1.7e18</td><td>70×</td><td>+30.5</td></tr>
 </table></div>
 <ul>
-<li><b>Fine-tuning, no editor:</b> Qwen is trained on 122 of its own correct answers (3 learning rates × 144 steps × 4 answers). The best of 9 checkpoints, chosen on practice problems, is scored.</li>
-<li><b>Trained editor, rollouts only:</b> the editor after 8 RL steps edits Qwen’s weights in 3 separate rollouts, and the edit with the highest reward-set score is kept. The cost of training the editor is not counted.</li>
-<li><b>Trained editor, training + rollouts:</b> the same 3 rollouts, plus the 128 rollouts on Qwen that trained the editor.</li>
+<li><b>Fine-tuning, no editor:</b> Qwen is trained on 122 of its own correct answers. The best of 9 checkpoints, chosen on practice problems, is scored.</li>
+<li><b>Untrained editor:</b> the editor before any RL step (a fresh LoRA on Inkling 2 Small) edits Qwen in 3 separate rollouts. The edit with the highest reward-set score is kept.</li>
+<li><b>Trained editor, rollouts only:</b> the same with the editor after 8 RL steps. The cost of training it is not counted.</li>
+<li><b>Trained editor, training + rollouts:</b> the same, plus the 128 rollouts on Qwen that trained it.</li>
 </ul>
-<p>On this model and this failure, a trained editor’s targeted edits match or slightly beat a small fine-tune (+27.3 against +23.6, within noise). Its best edits beat it clearly: 40–43% accuracy against 31.4%, with 31–48% of answers still cut at the token limit against 69%. This does not show that editing beats fine-tuning in general. The fine-tune was small (122 answers, one run), and the editor costs 2.5× the compute, or 70× with its training counted.</p>
-<p>Giving the editor full weight gradients did not help: +18.9 with them against +16.5 without, 12 rollouts each. It called for gradients in 4 of its 12 rollouts.</p>
-<p class="mut" style="font-size:14px">Not counted for fine-tuning: generating the 2,048 answers the training set was picked from (2.4e16) and scoring the 9 checkpoints (1.4e16). Not counted for the editor: the editor model’s own compute. FLOPs are estimates, about ±30%. +27.3 is the average over every way of drawing 3 of 12 rollouts without the gradient request. Sources: results/eval/SUMMARY.md, sft_baseline.md, grad_tool_armC.md in the <a href="https://github.com/dzorlu/weight-edit-rl">repo</a>.</p>
+<p>On this model and this failure, an editor that picks the best of 3 rollouts matches or beats a small fine-tune, with or without RL training: untrained +26.3, trained +30.5, fine-tune +23.6. RL training adds about 4 points (mean per rollout +20.9 against +16.6, standard error about 4 each, so within noise at 8 rollouts per editor). The best edits reach 40–43% accuracy, against 31.4% for the fine-tuned model. This does not show that editing beats fine-tuning in general: the fine-tune was small (122 answers, one run), and the editor costs 2.5× the compute, or 70× with its training counted.</p>
+
+<p>With and without the gradient request, 8 rollouts per cell:</p>
+<div class="tw"><table>
+<tr><th>Editor</th><th>Tools</th><th>Mean gain</th><th>Best of 3</th><th>Largest gain</th><th>Called the gradient request</th></tr>
+<tr><td>Untrained</td><td>current</td><td>+16.6 (SE 4.0)</td><td>+26.3</td><td>+31.8</td><td>–</td></tr>
+<tr><td>Untrained</td><td>+ weight gradients</td><td>+18.5 (SE 3.0)</td><td>+26.2</td><td>+34.0</td><td>6 of 8</td></tr>
+<tr><td>Trained (step 8)</td><td>current</td><td>+20.9 (SE 4.4)</td><td>+30.5</td><td>+35.2</td><td>–</td></tr>
+<tr><td>Trained (step 8)</td><td>+ weight gradients</td><td>+17.4 (SE 4.1)</td><td>+28.0</td><td>+34.8</td><td>2 of 8</td></tr>
+</table></div>
+<p>The gradient request changes neither editor’s result. The untrained editor calls it three times as often as the trained one.</p>
+<p class="mut" style="font-size:14px">Not counted for fine-tuning: generating the 2,048 answers the training set was picked from (2.4e16) and scoring the 9 checkpoints (1.4e16). Not counted for the editor: the editor model’s own compute. FLOPs are estimates, about ±30%. Sources: results/eval/SUMMARY.md, sft_baseline.md, grad_tool_armC.md in the <a href="https://github.com/dzorlu/weight-edit-rl">repo</a>.</p>
 
 <h2 id="checkpoint">Checkpoint</h2>
 
