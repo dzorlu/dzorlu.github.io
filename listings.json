@@ -7,5 +7,11 @@
       "/posts/context_parallel.html",
       "/posts/expert_parallel.html"
     ]
+  },
+  {
+    "listing": "/drafts.html",
+    "items": [
+      "/drafts/linear_attention.html"
+    ]
   }
 ]
