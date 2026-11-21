@@ -504,6 +504,11 @@ S_new = [[18, 1.8], [24, 2.4]]    k @ S_new = [30, 3] = v</code></pre>
 <span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>v <span class="op">=</span> x <span class="op">@</span> Wv                                  <span class="co"># [T, dv]</span></span>
 <span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>alpha <span class="op">=</span> torch.sigmoid(x <span class="op">@</span> Wa)               <span class="co"># [T, dk]</span></span>
 <span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>beta  <span class="op">=</span> torch.sigmoid(x <span class="op">@</span> Wb).squeeze(<span class="op">-</span><span class="dv">1</span>)   <span class="co"># [T]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>So two things are learned, at two speeds.</p>
+<ul>
+<li>Training learns <code>Wa</code> and <code>Wb</code> by backprop, together with <code>Wq</code>, <code>Wk</code>, <code>Wv</code>. This is where the model learns when to forget and how strongly to write.</li>
+<li>At inference those weights are frozen. <code>S</code> is learned from the context, one token at a time, with <code>alpha</code> and <code>beta</code> deciding each step.</li>
+</ul>
 </section>
 <section id="fast-weights-and-the-link-to-continual-learning" class="level2">
 <h2 class="anchored" data-anchor-id="fast-weights-and-the-link-to-continual-learning">Fast weights, and the link to continual learning</h2>
