@@ -210,6 +210,13 @@ alpha = torch.sigmoid(x @ Wa)               # [T, dk]
 beta  = torch.sigmoid(x @ Wb).squeeze(-1)   # [T]
 ```
 
+So two things are learned, at two speeds.
+
+- Training learns `Wa` and `Wb` by backprop, together with `Wq`, `Wk`, `Wv`. This is where the model learns
+  when to forget and how strongly to write.
+- At inference those weights are frozen. `S` is learned from the context, one token at a time, with `alpha` and
+  `beta` deciding each step.
+
 ## Fast weights, and the link to continual learning
 
 This idea is from 1992. Schmidhuber described two networks: a slow network with trained weights, and a fast
