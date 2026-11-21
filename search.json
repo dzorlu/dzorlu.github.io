@@ -9,77 +9,77 @@
   {
     "objectID": "drafts/linear_attention.html",
     "href": "drafts/linear_attention.html",
-    "title": "Linear attention: a memory that learns while it reads",
+    "title": "Linear attention: a memory that is learned",
     "section": "",
     "text": "Note\n\n\n\nThis is a draft. It can change.\nLinear attention replaces the growing KV cache with one small matrix of fixed size. Each token reads the matrix, then updates it with one gradient step. Memory and compute stop growing with the length of the context. The price is that recall is less exact.\nThis post shows the idea with small matrices and a few lines of Python. Shapes are written in brackets, like [T, dk]: T rows, dk columns."
   },
   {
     "objectID": "drafts/linear_attention.html#what-softmax-attention-keeps",
     "href": "drafts/linear_attention.html#what-softmax-attention-keeps",
-    "title": "Linear attention: a memory that learns while it reads",
+    "title": "Linear attention: a memory that is learned",
     "section": "What softmax attention keeps",
     "text": "What softmax attention keeps\nTake one attention head. A new token arrives with a query q, shape [1, dk]. The past is two matrices with one row per earlier token: keys K [T, dk] and values V [T, dv].\np = softmax(q @ K.T)      # [1, dk] @ [dk, T] -&gt; [1, T]    one weight per past token\no = p @ V                 # [1, T]  @ [T, dv] -&gt; [1, dv]\nq has to touch every row of K, and the softmax needs all T scores at the same time. So the model keeps every past key and value. This is the KV cache. It grows by one row per token, and every new token reads all of it again."
   },
   {
     "objectID": "drafts/linear_attention.html#remove-the-softmax",
     "href": "drafts/linear_attention.html#remove-the-softmax",
-    "title": "Linear attention: a memory that learns while it reads",
+    "title": "Linear attention: a memory that is learned",
     "section": "Remove the softmax",
     "text": "Remove the softmax\nWithout the softmax, the output is two matrix products. We can move the brackets:\no = (q @ K.T) @ V   =   q @ (K.T @ V)\nLook at K.T @ V. Its shape is [dk, T] @ [T, dv] -&gt; [dk, dv]. There is no T in the result, and there is no q in it. Call it S. It is built from the past only, so it exists before the new token arrives. The new token only does q @ S."
   },
   {
     "objectID": "drafts/linear_attention.html#the-loop",
     "href": "drafts/linear_attention.html#the-loop",
-    "title": "Linear attention: a memory that learns while it reads",
+    "title": "Linear attention: a memory that is learned",
     "section": "The loop",
     "text": "The loop\nK.T @ V is a sum with one term per token. The term for one token is the outer product of its key and its value. So we can build S one token at a time:\nS = zeros(dk, dv)                 # [dk, dv], never grows\nfor each new token:\n    S += outer(k, v)              # [dk] x [dv] -&gt; [dk, dv]    write\n    o  = q @ S                    # [1, dk] @ [dk, dv] -&gt; [1, dv]    read\nThree tokens, dk = dv = 2:\nK  [3, 2]         V  [3, 2]\n[[1, 0],          [[10, 1],\n [0, 1],           [20, 2],\n [1, 1]]           [30, 3]]\n\nafter token 0:  S = [[10, 1], [ 0, 0]]\nafter token 1:  S = [[10, 1], [20, 2]]\nafter token 2:  S = [[40, 4], [50, 5]]\nToken 1 has q = [1, 1]. It reads q @ S = [30, 3]. Softmax-free attention over tokens 0 and 1 gives the same answer: (q @ K[:2].T) @ V[:2] = [30, 3].\nEach token reads S right after its own write. At that moment S holds tokens 0 to t and nothing later. That is how the loop stays causal without a mask."
   },
   {
     "objectID": "drafts/linear_attention.html#what-it-saves",
     "href": "drafts/linear_attention.html#what-it-saves",
-    "title": "Linear attention: a memory that learns while it reads",
+    "title": "Linear attention: a memory that is learned",
     "section": "What it saves",
     "text": "What it saves\nThere is no KV cache. The only state is S, and it has the same size at token 10 and at token 1,000,000.\nFor one head with dk = dv = d, and one new token:\n\n\n\n\nsoftmax\nlinear\n\n\n\n\nstate kept between tokens\nK and V, 2·T·d numbers\nS, d² numbers\n\n\nnumbers read per token\n2·T·d\nd²\n\n\nFLOPs per token\n4·T·d\n4·d²\n\n\n\nWith d = 128 and T = 32,000, softmax reads about 8 million numbers per token. Linear attention reads 16,384. That is about 500 times less.\nFor a full prompt of T tokens, softmax attention builds a [T, T] matrix of scores and costs 4·T²·d FLOPs. Linear attention costs 4·T·d². The cost grows in a straight line with T. That is where the name comes from."
   },
   {
     "objectID": "drafts/linear_attention.html#what-it-costs",
     "href": "drafts/linear_attention.html#what-it-costs",
-    "title": "Linear attention: a memory that learns while it reads",
+    "title": "Linear attention: a memory that is learned",
     "section": "What it costs",
     "text": "What it costs\nSoftmax makes the weights sharp. A score that is 3 higher gets about 20 times the weight (e³), not 3 times. Without it, picking one token out of thousands is less exact.\nS is also small. It can hold about dk key-value pairs before they mix. Schlag, Irie and Schmidhuber (2021) measured this: with keys of 64 numbers, reads start to fail at 60 or more stored pairs.\nThere is a second problem. Writing twice under the same key does not replace the old value. It adds to it.\nk = [0.6, 0.8]\nwrite (k, [10, 1]):   k @ S = [10, 1]\nwrite (k, [30, 3]):   k @ S = [40, 4]     we wanted [30, 3]"
   },
   {
     "objectID": "drafts/linear_attention.html#the-delta-rule",
     "href": "drafts/linear_attention.html#the-delta-rule",
-    "title": "Linear attention: a memory that learns while it reads",
+    "title": "Linear attention: a memory that is learned",
     "section": "The delta rule",
     "text": "The delta rule\nThe fix is one changed line in the loop.\nS += outer(k, v)                  # before\nS += outer(k, v - k @ S)          # after\nIn two steps:\npred = k @ S                      # [dk] @ [dk, dv] -&gt; [dv]    what S returns for this key now\nerr  = v - pred                   # [dv]                       the gap to the new value\nS   += outer(k, err)              # write the gap, not the value\nWhy is the gap the right thing to write? Think of S as a key-value store. The rule we want: after we store (k, v), reading with k returns v.\nEvery write in linear attention has the form S + outer(k, c), where c is the vector written under k:\nS_new = S + outer(k, c)\nRead the new memory with k:\nk @ S_new = k @ S + k @ outer(k, c)\nThe second term is (k·k) * c. If k is normalized, k·k = 1, so k @ outer(k, c) = c.\nk = [0.6, 0.8]    c = [10, 1]\nouter(k, c)     = [[6, 0.6], [8, 0.8]]\nk @ outer(k, c) = [0.6*6 + 0.8*8, 0.6*0.6 + 0.8*0.8] = [10, 1] = c\nSo the read is k @ S + c. We want the read to be v:\nv = k @ S + c\nc = v - k @ S\nPut c back into the write:\nS_new = S + outer(k, v - k @ S)\nk @ S is pred, so c is the error. Now the second write from the example above works:\nS = [[6, 0.6], [8, 0.8]]          k @ S = [10, 1]\nnew v = [30, 3]                   c = [20, 2]\nS_new = [[18, 1.8], [24, 2.4]]    k @ S_new = [30, 3] = v\nThis only works if the keys have length 1. So these models normalize each key before the write: k = k / k.norm()."
   },
   {
     "objectID": "drafts/linear_attention.html#it-is-a-gradient-step",
     "href": "drafts/linear_attention.html#it-is-a-gradient-step",
-    "title": "Linear attention: a memory that learns while it reads",
+    "title": "Linear attention: a memory that is learned",
     "section": "It is a gradient step",
     "text": "It is a gradient step\nThe delta rule is one step of gradient descent on the loss ½ ||k @ S - v||², taken with respect to S (Gated DeltaNet, section 3.1). The step size is 1 in the code above.\nSo S is not only a cache. It is a small weight matrix, and the model trains it on its own context, one token at a time, during the forward pass. No backprop is running. The rule is written in closed form."
   },
   {
     "objectID": "drafts/linear_attention.html#two-gates",
     "href": "drafts/linear_attention.html#two-gates",
-    "title": "Linear attention: a memory that learns while it reads",
+    "title": "Linear attention: a memory that is learned",
     "section": "Two gates",
     "text": "Two gates\nReal layers add two learned numbers per token.\nfor t in range(T):\n    S    = alpha[t][:, None] * S          # [dk, 1] * [dk, dv]   forget: shrink every row a little\n    pred = k[t] @ S                       # [dv]\n    err  = v[t] - pred                    # [dv]\n    S   += beta[t] * outer(k[t], err)     # write the gap, with strength beta\n    o[t] = q[t] @ S                       # [dv]\n\nalpha is the forget gate, shape [T, dk]. Near 0 clears the memory.\nbeta is the step size, shape [T]. Near 0 skips the token.\n\nBoth come from the token itself through trained weights and a sigmoid, so they are between 0 and 1.\nq = x @ Wq                                  # [T, dk]\nk = F.normalize(x @ Wk, dim=-1)             # [T, dk]   length 1, so k·k = 1\nv = x @ Wv                                  # [T, dv]\nalpha = torch.sigmoid(x @ Wa)               # [T, dk]\nbeta  = torch.sigmoid(x @ Wb).squeeze(-1)   # [T]"
   },
   {
     "objectID": "drafts/linear_attention.html#fast-weights-and-the-link-to-continual-learning",
     "href": "drafts/linear_attention.html#fast-weights-and-the-link-to-continual-learning",
-    "title": "Linear attention: a memory that learns while it reads",
+    "title": "Linear attention: a memory that is learned",
     "section": "Fast weights, and the link to continual learning",
     "text": "Fast weights, and the link to continual learning\nThis idea is from 1992. Schmidhuber described two networks: a slow network with trained weights, and a fast network whose weights the slow network rewrites at every step. In 2021, Schlag, Irie and Schmidhuber showed that linear attention is this scheme. Wq, Wk, Wv, Wa, Wb are the slow weights. They are trained by backprop and then frozen. S is the fast weight matrix. It changes at every token.\nA 2025 primer by Irie and Gershman puts RetNet, Mamba2, GLA and DeltaNet in one family. They differ only in the write line, and each write line is one gradient step on a small local loss.\nSo here is a model that learns after training has ended. That is why people who work on continual learning look at it. But there is a limit. S is set to zero at the start of every sequence. The model learns inside one context and forgets it at the end. The 2021 paper and the primer do not study forgetting across sessions."
   },
   {
     "objectID": "drafts/linear_attention.html#papers",
     "href": "drafts/linear_attention.html#papers",
-    "title": "Linear attention: a memory that learns while it reads",
+    "title": "Linear attention: a memory that is learned",
     "section": "Papers",
     "text": "Papers\n\nSchmidhuber, “Learning to Control Fast-Weight Memories”, Neural Computation 4(1), 1992.\nSchlag, Irie, Schmidhuber, “Linear Transformers Are Secretly Fast Weight Programmers”, arXiv 2102.11174, 2021.\nYang, Kautz, Hatamizadeh, “Gated Delta Networks: Improving Mamba2 with Delta Rule”, arXiv 2412.06464, 2024.\nIrie, Gershman, “Fast weight programming and linear transformers: from machine learning to neurobiology”, arXiv 2508.08435, 2025."
   },
@@ -249,6 +249,6 @@
     "href": "drafts.html",
     "title": "Drafts",
     "section": "",
-    "text": "Posts I am still working on. They can change or have mistakes.\n\n\n\n\n\n\n\n\n\nLinear attention: a memory that learns while it reads\n\n\n\nattention\n\n\n\nRemove the softmax and the KV cache becomes one small matrix. Each token reads it, then updates it with a gradient step.\n\n\n\n\n\nNov 20, 2026\n\n\n\n\n\nNo matching items"
+    "text": "Posts I am still working on. They can change or have mistakes.\n\n\n\n\n\n\n\n\n\nLinear attention: a memory that is learned\n\n\n\nattention\n\n\n\nRemove the softmax and the KV cache becomes one small matrix. Each token reads it, then updates it with a gradient step.\n\n\n\n\n\nNov 20, 2026\n\n\n\n\n\nNo matching items"
   }
 ]
