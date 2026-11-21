@@ -109,23 +109,13 @@ write (k, [30, 3]):   k @ S = [40, 4]     we wanted [30, 3]
 
 ## The delta rule
 
-The fix is one changed line in the loop.
+`S` is a key-value store. So one thing must be true: after we store `(k, v)`, reading with `k` returns `v`.
 
-```python
-S += outer(k, v)                  # before
-S += outer(k, v - k @ S)          # after
+```
+k @ S_new = v
 ```
 
-In two steps:
-
-```python
-pred = k @ S                      # [dk] @ [dk, dv] -> [dv]    what S returns for this key now
-err  = v - pred                   # [dv]                       the gap to the new value
-S   += outer(k, err)              # write the gap, not the value
-```
-
-Why is the gap the right thing to write? Think of `S` as a key-value store. The rule we want: after we store
-`(k, v)`, reading with `k` returns `v`.
+Everything in this section comes from that one equation.
 
 Every write in linear attention has the form `S + outer(k, c)`, where `c` is the vector written under `k`:
 
@@ -160,7 +150,22 @@ Put `c` back into the write:
 S_new = S + outer(k, v - k @ S)
 ```
 
-`k @ S` is `pred`, so `c` is the error. Now the second write from the example above works:
+So the fix is one changed line in the loop:
+
+```python
+S += outer(k, v)                  # before
+S += outer(k, v - k @ S)          # after
+```
+
+In two steps:
+
+```python
+pred = k @ S                      # [dk] @ [dk, dv] -> [dv]    what S returns for this key now
+err  = v - pred                   # [dv]                       the gap to the new value
+S   += outer(k, err)              # write the gap, not the value
+```
+
+`c` is `err`. Now the second write from the example above works:
 
 ```
 S = [[6, 0.6], [8, 0.8]]          k @ S = [10, 1]
