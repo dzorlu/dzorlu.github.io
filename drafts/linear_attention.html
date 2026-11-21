@@ -451,14 +451,9 @@ write (k, [30, 3]):   k @ S = [40, 4]     we wanted [30, 3]</code></pre>
 </section>
 <section id="the-delta-rule" class="level2">
 <h2 class="anchored" data-anchor-id="the-delta-rule">The delta rule</h2>
-<p>The fix is one changed line in the loop.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a>S <span class="op">+=</span> outer(k, v)                  <span class="co"># before</span></span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>S <span class="op">+=</span> outer(k, v <span class="op">-</span> k <span class="op">@</span> S)          <span class="co"># after</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>In two steps:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a>pred <span class="op">=</span> k <span class="op">@</span> S                      <span class="co"># [dk] @ [dk, dv] -&gt; [dv]    what S returns for this key now</span></span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>err  <span class="op">=</span> v <span class="op">-</span> pred                   <span class="co"># [dv]                       the gap to the new value</span></span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a>S   <span class="op">+=</span> outer(k, err)              <span class="co"># write the gap, not the value</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Why is the gap the right thing to write? Think of <code>S</code> as a key-value store. The rule we want: after we store <code>(k, v)</code>, reading with <code>k</code> returns <code>v</code>.</p>
+<p><code>S</code> is a key-value store. So one thing must be true: after we store <code>(k, v)</code>, reading with <code>k</code> returns <code>v</code>.</p>
+<pre><code>k @ S_new = v</code></pre>
+<p>Everything in this section comes from that one equation.</p>
 <p>Every write in linear attention has the form <code>S + outer(k, c)</code>, where <code>c</code> is the vector written under <code>k</code>:</p>
 <pre><code>S_new = S + outer(k, c)</code></pre>
 <p>Read the new memory with <code>k</code>:</p>
@@ -472,7 +467,14 @@ k @ outer(k, c) = [0.6*6 + 0.8*8, 0.6*0.6 + 0.8*0.8] = [10, 1] = c</code></pre>
 c = v - k @ S</code></pre>
 <p>Put <code>c</code> back into the write:</p>
 <pre><code>S_new = S + outer(k, v - k @ S)</code></pre>
-<p><code>k @ S</code> is <code>pred</code>, so <code>c</code> is the error. Now the second write from the example above works:</p>
+<p>So the fix is one changed line in the loop:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a>S <span class="op">+=</span> outer(k, v)                  <span class="co"># before</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>S <span class="op">+=</span> outer(k, v <span class="op">-</span> k <span class="op">@</span> S)          <span class="co"># after</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>In two steps:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb13"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>pred <span class="op">=</span> k <span class="op">@</span> S                      <span class="co"># [dk] @ [dk, dv] -&gt; [dv]    what S returns for this key now</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>err  <span class="op">=</span> v <span class="op">-</span> pred                   <span class="co"># [dv]                       the gap to the new value</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>S   <span class="op">+=</span> outer(k, err)              <span class="co"># write the gap, not the value</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><code>c</code> is <code>err</code>. Now the second write from the example above works:</p>
 <pre><code>S = [[6, 0.6], [8, 0.8]]          k @ S = [10, 1]
 new v = [30, 3]                   c = [20, 2]
 S_new = [[18, 1.8], [24, 2.4]]    k @ S_new = [30, 3] = v</code></pre>
@@ -486,22 +488,22 @@ S_new = [[18, 1.8], [24, 2.4]]    k @ S_new = [30, 3] = v</code></pre>
 <section id="two-gates" class="level2">
 <h2 class="anchored" data-anchor-id="two-gates">Two gates</h2>
 <p>Real layers add two learned numbers per token.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> t <span class="kw">in</span> <span class="bu">range</span>(T):</span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>    S    <span class="op">=</span> alpha[t][:, <span class="va">None</span>] <span class="op">*</span> S          <span class="co"># [dk, 1] * [dk, dv]   forget: shrink every row a little</span></span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a>    pred <span class="op">=</span> k[t] <span class="op">@</span> S                       <span class="co"># [dv]</span></span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a>    err  <span class="op">=</span> v[t] <span class="op">-</span> pred                    <span class="co"># [dv]</span></span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a>    S   <span class="op">+=</span> beta[t] <span class="op">*</span> outer(k[t], err)     <span class="co"># write the gap, with strength beta</span></span>
-<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a>    o[t] <span class="op">=</span> q[t] <span class="op">@</span> S                       <span class="co"># [dv]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> t <span class="kw">in</span> <span class="bu">range</span>(T):</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>    S    <span class="op">=</span> alpha[t][:, <span class="va">None</span>] <span class="op">*</span> S          <span class="co"># [dk, 1] * [dk, dv]   forget: shrink every row a little</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>    pred <span class="op">=</span> k[t] <span class="op">@</span> S                       <span class="co"># [dv]</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>    err  <span class="op">=</span> v[t] <span class="op">-</span> pred                    <span class="co"># [dv]</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>    S   <span class="op">+=</span> beta[t] <span class="op">*</span> outer(k[t], err)     <span class="co"># write the gap, with strength beta</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a>    o[t] <span class="op">=</span> q[t] <span class="op">@</span> S                       <span class="co"># [dv]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <ul>
 <li><code>alpha</code> is the forget gate, shape <code>[T, dk]</code>. Near 0 clears the memory.</li>
 <li><code>beta</code> is the step size, shape <code>[T]</code>. Near 0 skips the token.</li>
 </ul>
 <p>Both come from the token itself through trained weights and a sigmoid, so they are between 0 and 1.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb15"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a>q <span class="op">=</span> x <span class="op">@</span> Wq                                  <span class="co"># [T, dk]</span></span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>k <span class="op">=</span> F.normalize(x <span class="op">@</span> Wk, dim<span class="op">=-</span><span class="dv">1</span>)             <span class="co"># [T, dk]   length 1, so k·k = 1</span></span>
-<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a>v <span class="op">=</span> x <span class="op">@</span> Wv                                  <span class="co"># [T, dv]</span></span>
-<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a>alpha <span class="op">=</span> torch.sigmoid(x <span class="op">@</span> Wa)               <span class="co"># [T, dk]</span></span>
-<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a>beta  <span class="op">=</span> torch.sigmoid(x <span class="op">@</span> Wb).squeeze(<span class="op">-</span><span class="dv">1</span>)   <span class="co"># [T]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb16"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>q <span class="op">=</span> x <span class="op">@</span> Wq                                  <span class="co"># [T, dk]</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>k <span class="op">=</span> F.normalize(x <span class="op">@</span> Wk, dim<span class="op">=-</span><span class="dv">1</span>)             <span class="co"># [T, dk]   length 1, so k·k = 1</span></span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>v <span class="op">=</span> x <span class="op">@</span> Wv                                  <span class="co"># [T, dv]</span></span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>alpha <span class="op">=</span> torch.sigmoid(x <span class="op">@</span> Wa)               <span class="co"># [T, dk]</span></span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>beta  <span class="op">=</span> torch.sigmoid(x <span class="op">@</span> Wb).squeeze(<span class="op">-</span><span class="dv">1</span>)   <span class="co"># [T]</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
 <section id="fast-weights-and-the-link-to-continual-learning" class="level2">
 <h2 class="anchored" data-anchor-id="fast-weights-and-the-link-to-continual-learning">Fast weights, and the link to continual learning</h2>
