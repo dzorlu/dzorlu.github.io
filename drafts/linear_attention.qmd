@@ -1,5 +1,5 @@
 ---
-title: "Linear attention: a memory that learns while it reads"
+title: "Linear attention: a memory that is learned"
 date: "2026-11-20"
 categories: [attention]
 description: "Remove the softmax and the KV cache becomes one small matrix. Each token reads it, then updates it with a gradient step."
