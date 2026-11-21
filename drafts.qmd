@@ -1,0 +1,12 @@
+---
+title: "Drafts"
+page-layout: full
+toc: false
+listing:
+  contents: drafts
+  sort: "date desc"
+  type: default
+  fields: [date, title, description, categories]
+---
+
+Posts I am still working on. They can change or have mistakes.

@@ -6,6 +6,8 @@ website:
   site-url: https://tinkerings.dev
   navbar:
     right:
+      - text: Drafts
+        href: drafts.qmd
       - icon: github
         href: https://github.com/dzorlu
         aria-label: GitHub
