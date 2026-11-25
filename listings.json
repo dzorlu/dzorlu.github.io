@@ -11,6 +11,7 @@
   {
     "listing": "/drafts.html",
     "items": [
+      "/drafts/rl-training-data.html",
       "/drafts/linear_attention.html"
     ]
   }
