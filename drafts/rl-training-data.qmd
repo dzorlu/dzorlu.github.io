@@ -2,7 +2,7 @@
 title: "Teaching a model to babysit its own training runs: the data"
 date: "2026-11-24"
 categories: [rl, data, agents]
-description: "We want a model that watches an RL training run and makes it better. We looked at about 175 public datasets and benchmarks to find training tasks. We kept seven. Here is how we sort them, what each group teaches, and what broke along the way."
+description: "We want a model that watches an RL training run and makes it better. We looked at about 175 public datasets and benchmarks to find training tasks. We kept seven. Here is how we sort them, and what each group teaches."
 ---
 
 ::: {.callout-note}
@@ -204,52 +204,20 @@ We ran the untrained model on a few tasks from each set, mostly to find out whet
 
 That is the right shape for training tasks: some too easy, some too hard, most in between.
 
-## Things that went wrong, so you can avoid them
+## What comes next
 
-1. **Read the tasks, not the dataset card.** We looked at about 175 public datasets and benchmarks and kept 7.
-   We judged many from the paper or card alone, and read task by task only the candidates. Cards did not mention that one set
-   ships the solution in the starting files, another keeps the answer key next to the data, and a third wants 8
-   hours per try.
-2. **A task named after its own bug is not a diagnosis task.** One benchmark's task folders had names like
-   `verl_grpo_adamw_eps_too_large`. We renamed all of them to numbers.
-3. **If the model can trick the grader, it will be rewarded for it.** A speed task timed the same input ten
-   times, so a solver that remembered its answer was scored as faster. A research task let the edited file print
-   its own score; we found it by reading the code, so we held that set out. The final score is now always
-   computed in a separate box. In AutoResearchExam a walled-off grader also runs beside the model to return
-   validation scores. The model's box reaches only the model through a relay (DNS lookups still work).
-4. **Check that a "verified" label means what you think.** In one dataset the flag meant the final score fell,
-   not that the fault shows in the logs.
-5. **Partial scores beat pass or fail.** A small model rarely solves a hard task fully. The share of tests passed,
-   or the gain over a baseline, still tells it which attempt was better.
-6. **Look at the time of one experiment, not the published budget.** A task with a 24-hour budget works in one
-   hour if one try takes a few minutes.
-7. **These tasks are hard for the best models too.** On AgenticRL-Bench the top model solves 22.8% of attempts.
-8. **Judge a dataset per use.** A set that fails as training data can still be a good test. We got this wrong more
-   than once and had to redo the work.
+The data is ready. The experiment is not designed yet. We know the question: does a run that the model watches
+over end better than the same run without it? We do not yet know the setup that answers it cleanly. The open
+points:
 
-## How the experiment will work
-
-One inner run uses one dataset. AutoRL does the same: its Qwen runs train on DAPO-Math-17K. The model, acting as supervisor, looks at the run at fixed points
-and may change three things: the **data** (which tasks, in what order, with what reward), the **harness** (prompt,
-tools, turn limit, effort) and the **model** side (learning rate, loss, adapter size). It has a small budget of
-changes per run, so it has to choose.
-
-Did a change help? We copy the run at that point into two branches: one with the change and one without. Both
-run a short window and are scored on held-out data. The reward is the difference. We also check a sample of the
-moments where the supervisor chose to do nothing, to see what a change would have done.
-
-The supervisor is not a special model. Its decisions are rollouts like any other. They go to the same trainer
-and update the same weights, only less often.
-
-![One model, one trainer. Blue: rollouts. Orange: training. Black lines: weight syncs. Purple: a supervisor decision, whose reward arrives later from the two branches.](rollout_timeline.jpg)
-
-Three arms tell us what happened:
-
-| Arm | Setup | What it shows |
-|---|---|---|
-| A | fixed recipe, no supervisor | the baseline |
-| B | the supervisor acts, but is not trained on its decisions | whether its changes help |
-| C | the supervisor acts, and is trained on its decisions | whether learning to supervise helps |
+- **What the model may change.** The search space is the data, the harness and the model side of a run. Which
+  changes it gets first is open.
+- **How a change is scored.** One option is to copy the run at the moment of the change into two branches, one
+  with the change and one without, and to compare them on held-out data.
+- **How often it may act.** A small budget of changes per run would make it choose.
+- **One model or two.** We want the same weights to do the tasks and to watch the run. Published systems use a
+  separate model for the watching.
+- **What the run trains on.** One dataset per run, as AutoRL does with DAPO-Math-17K, or a mix.
 
 ## Every dataset we read
 
