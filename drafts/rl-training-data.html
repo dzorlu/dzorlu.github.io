@@ -120,7 +120,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 </head>
 
-<body class="nav-fixed fullcontent quarto-light"><script id="quarto-html-before-body" type="application/javascript">
+<body class="nav-fixed quarto-light"><script id="quarto-html-before-body" type="application/javascript">
     const toggleBodyColorMode = (bsSheetEl) => {
       const mode = bsSheetEl.getAttribute("data-mode");
       const bodyEl = window.document.querySelector("body");
@@ -319,12 +319,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     </nav>
 </header>
 <!-- content -->
-<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-full page-navbar">
 <!-- sidebar -->
 <!-- margin-sidebar -->
     
 <!-- main -->
-<main class="content" id="quarto-document-content">
+<main class="content column-page" id="quarto-document-content">
 
 
 <header id="title-block-header" class="quarto-title-block default">
@@ -344,7 +344,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </div>
 
 
-<div class="quarto-title-meta">
+<div class="quarto-title-meta column-page">
 
     
     <div>
@@ -397,6 +397,7 @@ Note
 <h2 class="anchored" data-anchor-id="the-data-we-kept">The data we kept</h2>
 <p>Seven datasets, in four groups. In each group, some tasks are for training and some are held back for testing. A model never trains on a test task.</p>
 <p>One rule sets the cost of checking an answer: how much of a real training run do we execute to know that the answer was right?</p>
+<p>We also chose the tasks to be fast. An RL run needs many attempts per step, so a slow task makes every step slow and costly. Every attempt stops at 30 minutes and 128 turns (60 minutes for AutoResearchExam). We kept tasks where one experiment takes a few minutes, whatever budget the dataset shipped with: AutoResearchExam ships a 24-hour budget, and RSI Bench tasks give the agent 1.5 to 12 hours and stay test only. The median time of one attempt by Inkling 2 Mini was about 3 minutes on RFT-FaultBench, 4 on AutoRLBench diagnosis, 7 on AutoRLBench repair, 7 on HF_ML_Tasksmith, 18 on DiscoGen, and 29 on AutoResearchExam under the earlier 30-minute stop.</p>
 <section id="predict" class="level3">
 <h3 class="anchored" data-anchor-id="predict">Predict</h3>
 <p>The model sees the start of a training run and forecasts the rest. This is the cheapest skill to train, and the one a supervisor uses before every change: “if I do this, where does the run end?”</p>
