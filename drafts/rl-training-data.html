@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="dcterms.date" content="2026-11-24">
-<meta name="description" content="We want a model that watches an RL training run and makes it better. We looked at about 175 public datasets and benchmarks to find training tasks. We kept seven. Here is how we sort them, what each group teaches, and what broke along the way.">
+<meta name="description" content="We want a model that watches an RL training run and makes it better. We looked at about 175 public datasets and benchmarks to find training tasks. We kept seven. Here is how we sort them, and what each group teaches.">
 
 <title>Teaching a model to babysit its own training runs: the data – Tinkerings</title>
 <style>
@@ -339,7 +339,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <div>
   <div class="description">
-    We want a model that watches an RL training run and makes it better. We looked at about 175 public datasets and benchmarks to find training tasks. We kept seven. Here is how we sort them, what each group teaches, and what broke along the way.
+    We want a model that watches an RL training run and makes it better. We looked at about 175 public datasets and benchmarks to find training tasks. We kept seven. Here is how we sort them, and what each group teaches.
   </div>
 </div>
 
@@ -657,62 +657,16 @@ Note
 </ul>
 <p>That is the right shape for training tasks: some too easy, some too hard, most in between.</p>
 </section>
-<section id="things-that-went-wrong-so-you-can-avoid-them" class="level2">
-<h2 class="anchored" data-anchor-id="things-that-went-wrong-so-you-can-avoid-them">Things that went wrong, so you can avoid them</h2>
-<ol type="1">
-<li><strong>Read the tasks, not the dataset card.</strong> We looked at about 175 public datasets and benchmarks and kept 7. We judged many from the paper or card alone, and read task by task only the candidates. Cards did not mention that one set ships the solution in the starting files, another keeps the answer key next to the data, and a third wants 8 hours per try.</li>
-<li><strong>A task named after its own bug is not a diagnosis task.</strong> One benchmark’s task folders had names like <code>verl_grpo_adamw_eps_too_large</code>. We renamed all of them to numbers.</li>
-<li><strong>If the model can trick the grader, it will be rewarded for it.</strong> A speed task timed the same input ten times, so a solver that remembered its answer was scored as faster. A research task let the edited file print its own score; we found it by reading the code, so we held that set out. The final score is now always computed in a separate box. In AutoResearchExam a walled-off grader also runs beside the model to return validation scores. The model’s box reaches only the model through a relay (DNS lookups still work).</li>
-<li><strong>Check that a “verified” label means what you think.</strong> In one dataset the flag meant the final score fell, not that the fault shows in the logs.</li>
-<li><strong>Partial scores beat pass or fail.</strong> A small model rarely solves a hard task fully. The share of tests passed, or the gain over a baseline, still tells it which attempt was better.</li>
-<li><strong>Look at the time of one experiment, not the published budget.</strong> A task with a 24-hour budget works in one hour if one try takes a few minutes.</li>
-<li><strong>These tasks are hard for the best models too.</strong> On AgenticRL-Bench the top model solves 22.8% of attempts.</li>
-<li><strong>Judge a dataset per use.</strong> A set that fails as training data can still be a good test. We got this wrong more than once and had to redo the work.</li>
-</ol>
-</section>
-<section id="how-the-experiment-will-work" class="level2">
-<h2 class="anchored" data-anchor-id="how-the-experiment-will-work">How the experiment will work</h2>
-<p>One inner run uses one dataset. AutoRL does the same: its Qwen runs train on DAPO-Math-17K. The model, acting as supervisor, looks at the run at fixed points and may change three things: the <strong>data</strong> (which tasks, in what order, with what reward), the <strong>harness</strong> (prompt, tools, turn limit, effort) and the <strong>model</strong> side (learning rate, loss, adapter size). It has a small budget of changes per run, so it has to choose.</p>
-<p>Did a change help? We copy the run at that point into two branches: one with the change and one without. Both run a short window and are scored on held-out data. The reward is the difference. We also check a sample of the moments where the supervisor chose to do nothing, to see what a change would have done.</p>
-<p>The supervisor is not a special model. Its decisions are rollouts like any other. They go to the same trainer and update the same weights, only less often.</p>
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><img src="rollout_timeline.jpg" class="img-fluid figure-img"></p>
-<figcaption>One model, one trainer. Blue: rollouts. Orange: training. Black lines: weight syncs. Purple: a supervisor decision, whose reward arrives later from the two branches.</figcaption>
-</figure>
-</div>
-<p>Three arms tell us what happened:</p>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 33%">
-<col style="width: 33%">
-<col style="width: 33%">
-</colgroup>
-<thead>
-<tr class="header">
-<th>Arm</th>
-<th>Setup</th>
-<th>What it shows</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>A</td>
-<td>fixed recipe, no supervisor</td>
-<td>the baseline</td>
-</tr>
-<tr class="even">
-<td>B</td>
-<td>the supervisor acts, but is not trained on its decisions</td>
-<td>whether its changes help</td>
-</tr>
-<tr class="odd">
-<td>C</td>
-<td>the supervisor acts, and is trained on its decisions</td>
-<td>whether learning to supervise helps</td>
-</tr>
-</tbody>
-</table>
+<section id="what-comes-next" class="level2">
+<h2 class="anchored" data-anchor-id="what-comes-next">What comes next</h2>
+<p>The data is ready. The experiment is not designed yet. We know the question: does a run that the model watches over end better than the same run without it? We do not yet know the setup that answers it cleanly. The open points:</p>
+<ul>
+<li><strong>What the model may change.</strong> The search space is the data, the harness and the model side of a run. Which changes it gets first is open.</li>
+<li><strong>How a change is scored.</strong> One option is to copy the run at the moment of the change into two branches, one with the change and one without, and to compare them on held-out data.</li>
+<li><strong>How often it may act.</strong> A small budget of changes per run would make it choose.</li>
+<li><strong>One model or two.</strong> We want the same weights to do the tasks and to watch the run. Published systems use a separate model for the watching.</li>
+<li><strong>What the run trains on.</strong> One dataset per run, as AutoRL does with DAPO-Math-17K, or a mix.</li>
+</ul>
 </section>
 <section id="every-dataset-we-read" class="level2">
 <h2 class="anchored" data-anchor-id="every-dataset-we-read">Every dataset we read</h2>
