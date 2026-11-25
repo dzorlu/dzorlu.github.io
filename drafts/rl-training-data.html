@@ -397,7 +397,54 @@ Note
 <h2 class="anchored" data-anchor-id="the-data-we-kept">The data we kept</h2>
 <p>Seven datasets, in four groups. In each group, some tasks are for training and some are held back for testing. A model never trains on a test task.</p>
 <p>One rule sets the cost of checking an answer: how much of a real training run do we execute to know that the answer was right?</p>
-<p>We also chose the tasks to be fast. An RL run needs many attempts per step, so a slow task makes every step slow and costly. Every attempt stops at 30 minutes and 128 turns (60 minutes for AutoResearchExam). We kept tasks where one experiment takes a few minutes, whatever budget the dataset shipped with: AutoResearchExam ships a 24-hour budget, and RSI Bench tasks give the agent 1.5 to 12 hours and stay test only. The median time of one attempt by Inkling 2 Mini was about 3 minutes on RFT-FaultBench, 4 on AutoRLBench diagnosis, 7 on AutoRLBench repair, 7 on HF_ML_Tasksmith, 18 on DiscoGen, and 29 on AutoResearchExam under the earlier 30-minute stop.</p>
+<p>We also chose the tasks to be fast. An RL run needs many attempts per step, so a slow task makes every step slow and costly. We kept tasks where one experiment takes a few minutes, whatever budget the dataset shipped with. Every attempt has a turn limit of 128 and a time limit.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Dataset</th>
+<th>Median time of one attempt by Inkling 2 Mini</th>
+<th>Time limit</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>RFT-FaultBench</td>
+<td>3 min</td>
+<td>30 min</td>
+</tr>
+<tr class="even">
+<td>AutoRLBench, diagnosis</td>
+<td>4 min</td>
+<td>30 min</td>
+</tr>
+<tr class="odd">
+<td>AutoRLBench, repair</td>
+<td>7 min</td>
+<td>30 min</td>
+</tr>
+<tr class="even">
+<td>HF_ML_Tasksmith</td>
+<td>7 min</td>
+<td>30 min</td>
+</tr>
+<tr class="odd">
+<td>DiscoGen</td>
+<td>18 min</td>
+<td>30 min</td>
+</tr>
+<tr class="even">
+<td>AutoResearchExam</td>
+<td>29 min, measured under a 30-minute limit</td>
+<td>60 min now</td>
+</tr>
+</tbody>
+</table>
+<p>Some datasets ship much longer budgets. AutoResearchExam ships 24 hours per task, and we run it at 60 minutes. RSI Bench gives the agent 1.5 to 12 hours per task, so it stays a test.</p>
 <section id="predict" class="level3">
 <h3 class="anchored" data-anchor-id="predict">Predict</h3>
 <p>The model sees the start of a training run and forecasts the rest. This is the cheapest skill to train, and the one a supervisor uses before every change: “if I do this, where does the run end?”</p>
