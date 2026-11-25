@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="dcterms.date" content="2026-11-24">
-<meta name="description" content="We want a model that watches an RL training run and makes it better. We looked at about 175 public datasets and benchmarks to find practice material. We kept seven. Here is how we sort them, where the GPUs go, and what broke along the way.">
+<meta name="description" content="We want a model that watches an RL training run and makes it better. We looked at about 175 public datasets and benchmarks to find training tasks. We kept seven. Here is how we sort them, what each group teaches, and what broke along the way.">
 
 <title>Teaching a model to babysit its own training runs: the data – Tinkerings</title>
 <style>
@@ -324,7 +324,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <!-- margin-sidebar -->
     
 <!-- main -->
-<main class="content page-columns page-full" id="quarto-document-content">
+<main class="content" id="quarto-document-content">
 
 
 <header id="title-block-header" class="quarto-title-block default">
@@ -339,7 +339,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <div>
   <div class="description">
-    We want a model that watches an RL training run and makes it better. We looked at about 175 public datasets and benchmarks to find practice material. We kept seven. Here is how we sort them, where the GPUs go, and what broke along the way.
+    We want a model that watches an RL training run and makes it better. We looked at about 175 public datasets and benchmarks to find training tasks. We kept seven. Here is how we sort them, what each group teaches, and what broke along the way.
   </div>
 </div>
 
@@ -380,7 +380,7 @@ Note
 <p>Anyone who has trained a model with RL knows the routine. You start a run. You watch the reward curve. It goes up, then it goes flat, then it does something strange at 2 a.m. You open the logs. You find that the grader has marked correct answers as wrong since step 12. You fix it and start again.</p>
 <p>We want a model that does this job. To babysit a run means to watch over it and fix it when something goes wrong. The model watches a live RL post-training run, forecasts where the run is going, finds what is wrong, and changes it. The test is simple: does a run with this model end better than the same run without it?</p>
 <p>The model is Inkling 2 Mini. The runs it watches are RL post-training runs of Inkling 2 Mini, on <a href="https://github.com/radixark/miles">miles</a>, on one GPU. So it watches over runs of itself, and what it learns goes back into the same weights. The published systems we read keep the two apart: in <a href="https://arxiv.org/abs/2611.17790">AutoRL</a> the watching agents are API models that are not trained (gpt-6.1-sol and glm-5.2).</p>
-<p>Before any of that can happen, the model needs practice material. This post is about finding it.</p>
+<p>Before any of that can happen, the model needs tasks to train on and tasks to be tested on. This post is about finding it.</p>
 </section>
 <section id="four-verbs" class="level2">
 <h2 class="anchored" data-anchor-id="four-verbs">Four verbs</h2>
@@ -393,186 +393,249 @@ Note
 </ul>
 <p>A person who is good at this job does all four. They guess the outcome before they spend compute (Predict), write the fix (Build), launch the job (Run), and work out why last night’s run failed (Read).</p>
 </section>
-<section id="the-data-we-kept-in-one-table" class="level2 page-columns page-full">
-<h2 class="anchored" data-anchor-id="the-data-we-kept-in-one-table">The data we kept, in one table</h2>
-<p>Each row is one dataset. The columns give the shape of its tasks: what the model gets, what it hands in, how we check the answer, where a GPU is needed, and what one check costs. “Practice” rows are training material. “Exam” rows are never trained on. Three of the five exams carry a line that asks for that. A dash means that this post does not give the detail.</p>
-<div class="column-screen-inset" style="font-size: 0.85em;">
+<section id="the-data-we-kept" class="level2">
+<h2 class="anchored" data-anchor-id="the-data-we-kept">The data we kept</h2>
+<p>Seven datasets, in four groups. In each group, some tasks are for training and some are held back for testing. A model never trains on a test task.</p>
+<p>One rule sets the cost of checking an answer: how much of a real training run do we execute to know that the answer was right?</p>
+<section id="predict" class="level3">
+<h3 class="anchored" data-anchor-id="predict">Predict</h3>
+<p>The model sees the start of a training run and forecasts the rest. This is the cheapest skill to train, and the one a supervisor uses before every change: “if I do this, where does the run end?”</p>
+<ul>
+<li><strong>Given:</strong> the first 20% of a training curve, with the run’s settings, description and code.</li>
+<li><strong>Hands in:</strong> a forecast of the rest of the curve.</li>
+<li><strong>Checked by:</strong> comparing the forecast with what the run did.</li>
+<li><strong>GPU:</strong> none.</li>
+<li><strong>Cost of one check:</strong> one model call.</li>
+</ul>
+<p>Train on:</p>
 <table class="caption-top table">
 <thead>
 <tr class="header">
-<th>Category</th>
 <th>Dataset</th>
-<th>The model is given</th>
-<th>It hands in</th>
-<th>Checked by</th>
-<th>GPU</th>
-<th>Cost to check one answer</th>
-<th>Tasks</th>
-<th>Use</th>
+<th>What it holds</th>
+<th>Size</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>Predict</td>
-<td>Tea Leaves (<a href="https://arxiv.org/abs/2611.30141">paper</a>, <a href="https://huggingface.co/datasets/xinranz3/read-tea-leaves">data</a>)</td>
-<td>first 20% of a training curve, with its settings, description and code</td>
-<td>a forecast of the rest</td>
-<td>compare the forecast with what the run did</td>
-<td>none</td>
-<td>one model call</td>
-<td>918 logged runs to learn from; 682 test runs (150 RL)</td>
-<td>practice</td>
-</tr>
-<tr class="even">
-<td>Build</td>
-<td>HF_ML_Tasksmith (<a href="https://huggingface.co/datasets/FineEnvs/HF_ML_Tasksmith">data</a>)</td>
-<td>a merged pull request to implement in trl, peft, accelerate, diffusers or transformers</td>
-<td>code</td>
-<td>hidden tests</td>
-<td>—</td>
-<td>$0.10 to $3.30</td>
-<td>15</td>
-<td>practice</td>
-</tr>
-<tr class="odd">
-<td>Build</td>
-<td>AutoResearchExam (<a href="https://github.com/bespokelabsai/AutoResearchExam">repo</a>)</td>
-<td>a research result to improve: an estimator, an encoder, an RL trainer</td>
-<td>code; it submits, sees a validation score, improves</td>
-<td>grader retrains on hidden data</td>
-<td>model’s box and grader’s box, on some tasks</td>
-<td>$0.10 to $3.30</td>
-<td>18, plus 3 on a small GPU not yet in the pool</td>
-<td>practice</td>
-</tr>
-<tr class="even">
-<td>Build</td>
-<td>DiscoGen (<a href="https://arxiv.org/abs/2603.17863">paper</a>, <a href="https://github.com/AlexGoldie/discogen">repo</a>)</td>
-<td>PPO, DQN or an image classifier</td>
-<td>a new loss, optimizer or network</td>
-<td>grader retrains on datasets the model never saw</td>
-<td>model’s box and grader’s box</td>
-<td>$0.10 to $3.30</td>
-<td>20</td>
-<td>practice</td>
-</tr>
-<tr class="odd">
-<td>Build, Run</td>
-<td>RSI Bench (Scale) (<a href="https://github.com/scaleapi/rsi-benchmark">repo</a>)</td>
-<td>—</td>
-<td>—</td>
-<td>—</td>
-<td>—</td>
-<td>—</td>
-<td>49</td>
-<td>exam</td>
-</tr>
-<tr class="even">
-<td>Run</td>
-<td>RSI-Dojo (<a href="https://arxiv.org/abs/2611.03698">paper</a>, <a href="https://huggingface.co/datasets/szgao/RSI-Dojo">data</a>)</td>
-<td>a base model and a target benchmark</td>
-<td>a trained checkpoint</td>
-<td>train, then evaluate on held-out data</td>
-<td>model’s box trains; grader’s box serves and scores</td>
-<td>about $0.60 for the smallest cycle; hundreds of dollars for a large one</td>
-<td>85 cheap targets of 281</td>
-<td>practice, for the supervising role only</td>
-</tr>
-<tr class="odd">
-<td>Run</td>
-<td>DAPO-Math-17K (<a href="https://arxiv.org/abs/2611.17790">AutoRL paper</a>)</td>
-<td>17,390 math problems; the same data AutoRL trains its Qwen runs on</td>
-<td>—</td>
-<td>—</td>
-<td>—</td>
-<td>—</td>
-<td>1 run recipe</td>
-<td>the inner run itself</td>
-</tr>
-<tr class="even">
-<td>Run</td>
-<td>PostTrainBench (<a href="https://github.com/aisa-group/PostTrainBench">repo</a>)</td>
-<td>—</td>
-<td>—</td>
-<td>—</td>
-<td>—</td>
-<td>—</td>
-<td>—</td>
-<td>exam</td>
-</tr>
-<tr class="odd">
-<td>Run</td>
-<td>FrontierRSI (<a href="https://github.com/abundant-ai/frontier-rsi">repo</a>)</td>
-<td>—</td>
-<td>—</td>
-<td>—</td>
-<td>—</td>
-<td>—</td>
-<td>—</td>
-<td>exam</td>
-</tr>
-<tr class="even">
-<td>Run</td>
-<td>an RL post-training task on Olmo-3-7B (<a href="https://hub.harborframework.com/datasets/ale/rsi-post-training">Harbor Hub</a>)</td>
-<td>—</td>
-<td>—</td>
-<td>—</td>
-<td>—</td>
-<td>—</td>
-<td>—</td>
-<td>exam</td>
-</tr>
-<tr class="odd">
-<td>Read</td>
-<td>AutoRLBench, diagnosis (<a href="https://github.com/Thinking-Space/AutoRLBench">repo</a>)</td>
-<td>logs, config and code of a real failed RL run</td>
-<td>the cause, with evidence</td>
-<td>compare the diagnosis with the known cause</td>
-<td>none</td>
-<td>about $0.05</td>
-<td>50</td>
-<td>practice</td>
-</tr>
-<tr class="even">
-<td>Read</td>
-<td>AutoRLBench, repair (same repo)</td>
-<td>the same kind of failed run</td>
-<td>one edit to the run</td>
-<td>grader reruns the training</td>
-<td>grader’s box only; the model only edits files</td>
-<td>$0.19 to $0.94 on CPU; about $2.50 to $4.50 with a GPU rerun</td>
-<td>3 on CPU, 5 with a GPU rerun</td>
-<td>practice</td>
-</tr>
-<tr class="odd">
-<td>Read</td>
-<td>RFT-FaultBench (<a href="https://arxiv.org/abs/2605.04431">paper</a>, <a href="https://doi.org/10.5281/zenodo.23612747">data</a>)</td>
-<td>telemetry of an RL fine-tuning run</td>
-<td>healthy or not; if not, which fault</td>
-<td>a program scores the answer</td>
-<td>none</td>
-<td>about $0.05</td>
-<td>146 of 2,630 runs</td>
-<td>practice</td>
-</tr>
-<tr class="even">
-<td>Read</td>
-<td>AgenticRL-Bench (<a href="https://github.com/eigent-ai/agenticrl-bench">repo</a>, <a href="https://www.kaggle.com/benchmarks/eigent/agenticrl-bench/leaderboard">Kaggle</a>)</td>
-<td>—</td>
-<td>—</td>
-<td>—</td>
-<td>—</td>
-<td>—</td>
-<td>—</td>
-<td>exam</td>
+<td>Tea Leaves, training file (<a href="https://arxiv.org/abs/2611.30141">paper</a>, <a href="https://huggingface.co/datasets/xinranz3/read-tea-leaves">data</a>)</td>
+<td>logged runs: pretraining, fine-tuning and RL</td>
+<td>918 runs</td>
 </tr>
 </tbody>
 </table>
-</div>
-<p><strong>Cost.</strong> One rule sets the price: how much of a real training run do we execute to know that the answer was right? Predict and diagnosis need none of it. Build needs a short training: one check costs $0.10 to about $1.20 on CPU or a small GPU, and $2.30 to $3.30 on an H100. Run needs a full one. So we practice on the cheap categories and keep the expensive ones for the exam.</p>
-<p><strong>GPU.</strong> “Needs a GPU” hides three different situations. The difference matters, because we pay for a GPU next to a thinking model during every second that the model thinks. The repair tasks are the cheap case: the model needs no GPU, and the grader holds one only for the rerun. The Build tasks are the costly case, because the GPU waits while the model decides what to try next. We measured it: in a DiscoGen attempt, 82 to 96% of the time is spent inside a training command, so four attempts that share one GPU have to queue.</p>
-<p><strong>RSI-Dojo.</strong> We keep it as training material for the supervising role only: its targets are scored under our own recipe. Its tasks are not tasks for the inner model.</p>
-<p><strong>Predict.</strong> The Tea Leaves paper says that knowing a part of training has three levels: describing it, implementing it, and anticipating what it does to a run. Models are usually asked for the first two. The job needs the third.</p>
+<p>Test on:</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Dataset</th>
+<th>What it holds</th>
+<th>Size</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Tea Leaves, test runs (same links)</td>
+<td>runs the model has never seen</td>
+<td>682 runs, 150 of them RL</td>
+</tr>
+</tbody>
+</table>
+<p>The Tea Leaves paper says that knowing a part of training has three levels: describing it, implementing it, and anticipating what it does to a run. Models are usually asked for the first two. This job needs the third.</p>
+</section>
+<section id="build" class="level3">
+<h3 class="anchored" data-anchor-id="build">Build</h3>
+<p>The model writes a piece of training code and sees whether it helps. This is the research-engineering part of the job: when the supervisor decides that a run needs a new loss or a fixed library function, it has to write it.</p>
+<ul>
+<li><strong>Given:</strong> working code with a part to write or improve.</li>
+<li><strong>Hands in:</strong> code.</li>
+<li><strong>Checked by:</strong> hidden tests, or a grader that trains with the code on data the model never saw.</li>
+<li><strong>GPU:</strong> none for the library tasks. For the others, in the model’s box and in the grader’s box, because the model runs small trainings to try its ideas.</li>
+<li><strong>Cost of one check:</strong> $0.10 to about $1.20 on CPU or a small GPU; $2.30 to $3.30 on an H100.</li>
+</ul>
+<p>Train on:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Dataset</th>
+<th>What one task is</th>
+<th>Tasks</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>HF_ML_Tasksmith (<a href="https://huggingface.co/datasets/FineEnvs/HF_ML_Tasksmith">data</a>)</td>
+<td>implement a merged pull request in trl, peft, accelerate, diffusers or transformers</td>
+<td>11</td>
+</tr>
+<tr class="even">
+<td>AutoResearchExam (<a href="https://github.com/bespokelabsai/AutoResearchExam">repo</a>)</td>
+<td>improve a research result (an estimator, an encoder, an RL trainer); submit, see a validation score, improve</td>
+<td>15</td>
+</tr>
+<tr class="odd">
+<td>DiscoGen (<a href="https://arxiv.org/abs/2603.17863">paper</a>, <a href="https://github.com/AlexGoldie/discogen">repo</a>)</td>
+<td>rewrite the loss, optimizer or network of PPO, DQN or an image classifier</td>
+<td>17</td>
+</tr>
+</tbody>
+</table>
+<p>Test on:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Dataset</th>
+<th>What one task is</th>
+<th>Tasks</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Held-out tasks of the three sets above</td>
+<td>the same kinds of task</td>
+<td>4 + 3 + 3</td>
+</tr>
+<tr class="even">
+<td>RSI Bench, from Scale (<a href="https://github.com/scaleapi/rsi-benchmark">repo</a>)</td>
+<td>long research tasks: post-training, data, architecture, systems</td>
+<td>49</td>
+</tr>
+</tbody>
+</table>
+<p>Three more AutoResearchExam tasks run on a small GPU. We checked them, but they are not in the pool yet.</p>
+<p>In a DiscoGen attempt, 82 to 96% of the time is spent inside a training command. So the GPU is busy, and four attempts that share one GPU have to wait for each other.</p>
+</section>
+<section id="run" class="level3">
+<h3 class="anchored" data-anchor-id="run">Run</h3>
+<p>The model takes a base model and a target, and trains. This is the job itself, at small scale. It is also the most expensive group, because every check is a training run.</p>
+<ul>
+<li><strong>Given:</strong> a base model and a target benchmark.</li>
+<li><strong>Hands in:</strong> a trained checkpoint.</li>
+<li><strong>Checked by:</strong> evaluating the checkpoint on held-out data.</li>
+<li><strong>GPU:</strong> in the model’s box for the training, and in the grader’s box to serve and score the checkpoint.</li>
+<li><strong>Cost of one check:</strong> about $0.60 for the smallest cycle; hundreds of dollars for a large one.</li>
+</ul>
+<p>Train on:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Dataset</th>
+<th>What one task is</th>
+<th>Tasks</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>RSI-Dojo (<a href="https://arxiv.org/abs/2611.03698">paper</a>, <a href="https://huggingface.co/datasets/szgao/RSI-Dojo">data</a>)</td>
+<td>post-train a model to raise its score on a target benchmark</td>
+<td>85 cheap targets of 281</td>
+</tr>
+<tr class="even">
+<td>DAPO-Math-17K (<a href="https://arxiv.org/abs/2611.17790">AutoRL paper</a>)</td>
+<td>an RL run on 17,390 math problems; the run that the supervisor watches</td>
+<td>1 run recipe</td>
+</tr>
+</tbody>
+</table>
+<p>Test on:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Dataset</th>
+<th>What one task is</th>
+<th>Tasks</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>PostTrainBench (<a href="https://github.com/aisa-group/PostTrainBench">repo</a>)</td>
+<td>post-train a base LLM for one of six benchmarks, 10 hours on one H100</td>
+<td>not counted yet</td>
+</tr>
+<tr class="even">
+<td>FrontierRSI (<a href="https://github.com/abundant-ai/frontier-rsi">repo</a>)</td>
+<td>improve a training recipe, RL data, inference speed or a GPU kernel</td>
+<td>8 public</td>
+</tr>
+<tr class="odd">
+<td>RL post-training of Olmo-3-7B (<a href="https://hub.harborframework.com/datasets/ale/rsi-post-training">Harbor Hub</a>)</td>
+<td>improve an RL recipe on math under a fixed budget of episodes</td>
+<td>1</td>
+</tr>
+</tbody>
+</table>
+<p>We use RSI-Dojo for the supervising role only. Its targets come with an evaluation script and no training recipe, so the recipe and the reward are ours.</p>
+</section>
+<section id="read" class="level3">
+<h3 class="anchored" data-anchor-id="read">Read</h3>
+<p>The model reads what a run left behind and says what went wrong. Sometimes it also fixes the run. This is the skill a supervisor uses most: before it can change a run, it has to see the problem.</p>
+<ul>
+<li><strong>Given:</strong> the logs, config and code of a finished RL run.</li>
+<li><strong>Hands in:</strong> a diagnosis, or one edit to the run.</li>
+<li><strong>Checked by:</strong> comparing the diagnosis with the known cause, or by running the training again with the edit.</li>
+<li><strong>GPU:</strong> none for diagnosis. For repair, only in the grader’s box: the model edits files, and the grader reruns the training.</li>
+<li><strong>Cost of one check:</strong> about $0.05 for a diagnosis; $0.19 to $0.94 for a repair on CPU; about $2.50 to $4.50 for a repair with a GPU rerun.</li>
+</ul>
+<p>Train on:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Dataset</th>
+<th>What one task is</th>
+<th>Tasks</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>AutoRLBench, diagnosis (<a href="https://github.com/Thinking-Space/AutoRLBench">repo</a>)</td>
+<td>read a real failed RL run; name the cause, with evidence</td>
+<td>40</td>
+</tr>
+<tr class="even">
+<td>AutoRLBench, repair (same repo)</td>
+<td>edit the failed run once; a rerun decides whether the fix worked</td>
+<td>3</td>
+</tr>
+<tr class="odd">
+<td>RFT-FaultBench (<a href="https://arxiv.org/abs/2605.04431">paper</a>, <a href="https://doi.org/10.5281/zenodo.23612747">data</a>)</td>
+<td>read the telemetry of an RL fine-tuning run; say if it is healthy, and if not, which fault it has</td>
+<td>146, not split yet</td>
+</tr>
+</tbody>
+</table>
+<p>Test on:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Dataset</th>
+<th>What one task is</th>
+<th>Tasks</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>AutoRLBench, diagnosis, held out</td>
+<td>the same kind of task</td>
+<td>10</td>
+</tr>
+<tr class="even">
+<td>AutoRLBench, repair with a GPU rerun</td>
+<td>the same kind of task, on longer runs</td>
+<td>5</td>
+</tr>
+<tr class="odd">
+<td>AgenticRL-Bench (<a href="https://github.com/eigent-ai/agenticrl-bench">repo</a>, <a href="https://www.kaggle.com/benchmarks/eigent/agenticrl-bench/leaderboard">Kaggle</a>)</td>
+<td>audit or repair a real RL pipeline</td>
+<td>22</td>
+</tr>
+</tbody>
+</table>
+</section>
 </section>
 <section id="three-tasks-up-close" class="level2">
 <h2 class="anchored" data-anchor-id="three-tasks-up-close">Three tasks up close</h2>
@@ -592,7 +655,7 @@ Note
 <li><strong>Its new loss functions often made training worse.</strong> On DiscoGen, 3 of 6 attempts scored below the unmodified baseline, and only 1 clearly beat it.</li>
 <li><strong>It solved 14 of 36 library tasks on every attempt.</strong> Those tasks teach nothing, so we removed them.</li>
 </ul>
-<p>That is the right shape for practice material: some things too easy, some too hard, most in between.</p>
+<p>That is the right shape for training tasks: some too easy, some too hard, most in between.</p>
 </section>
 <section id="things-that-went-wrong-so-you-can-avoid-them" class="level2">
 <h2 class="anchored" data-anchor-id="things-that-went-wrong-so-you-can-avoid-them">Things that went wrong, so you can avoid them</h2>
@@ -604,7 +667,7 @@ Note
 <li><strong>Partial scores beat pass or fail.</strong> A small model rarely solves a hard task fully. The share of tests passed, or the gain over a baseline, still tells it which attempt was better.</li>
 <li><strong>Look at the time of one experiment, not the published budget.</strong> A task with a 24-hour budget works in one hour if one try takes a few minutes.</li>
 <li><strong>These tasks are hard for the best models too.</strong> On AgenticRL-Bench the top model solves 22.8% of attempts.</li>
-<li><strong>Judge a dataset per use.</strong> A set that fails as practice can still be a good exam. We got this wrong more than once and had to redo the work.</li>
+<li><strong>Judge a dataset per use.</strong> A set that fails as training data can still be a good test. We got this wrong more than once and had to redo the work.</li>
 </ol>
 </section>
 <section id="how-the-experiment-will-work" class="level2">
@@ -653,64 +716,51 @@ Note
 </section>
 <section id="every-dataset-we-read" class="level2">
 <h2 class="anchored" data-anchor-id="every-dataset-we-read">Every dataset we read</h2>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 50%">
-<col style="width: 50%">
-</colgroup>
-<thead>
-<tr class="header">
-<th>Why</th>
-<th>Sets</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td><strong>Kept</strong></td>
-<td>Tea Leaves, HF_ML_Tasksmith, AutoResearchExam, DiscoGen, RSI-Dojo, AutoRLBench, RFT-FaultBench</td>
-</tr>
-<tr class="even">
-<td><strong>Exam only: the owners ask that it is not used for training</strong></td>
-<td>RSI Bench (Scale), AgenticRL-Bench, AutoLab, Accelerate Bench, HPCAgent-Bench, MLGym-Bench, cpu2gpu, leakbench, Auditing Sabotage Bench, FrontierCS 2, Terminal-Bench</td>
-</tr>
-<tr class="odd">
-<td><strong>Exam only: too long or too costly to practise on</strong></td>
-<td>PostTrainBench, FrontierRSI, DeepRSI, the Olmo and Qwen RL post-training tasks</td>
-</tr>
-<tr class="even">
-<td><strong>Outside our domain</strong></td>
-<td>SLDBench v2, AlgoTune, OpenMLE-Tasks</td>
-</tr>
-<tr class="odd">
-<td><strong>The score can be forged, or the answers leak</strong></td>
-<td>MLS-Bench, MLOps-Bench, MetaKernelBench, mlagentgym</td>
-</tr>
-<tr class="even">
-<td><strong>The tasks do not work as tasks</strong></td>
-<td>WeightBench, KernelGenBench, FACET, LegoFlow, Logics, MiMo</td>
-</tr>
-<tr class="odd">
-<td><strong>Too long per attempt</strong></td>
-<td>frontier-ml, AI4AI-Bench, ProgramGym, TerminalHorizon, SWE-fficiency</td>
-</tr>
-<tr class="even">
-<td><strong>Too heavy to obtain or build</strong></td>
-<td>SandMLE, SciCoQA, AIFaultBench</td>
-</tr>
-<tr class="odd">
-<td><strong>Duplicates or low priority</strong></td>
-<td>DARE-bench, PerfArena, Finch Collection</td>
-</tr>
-<tr class="even">
-<td><strong>Not RL</strong></td>
-<td>RSIGym</td>
-</tr>
-<tr class="odd">
-<td><strong>General software and terminal tasks, outside our scope</strong></td>
-<td>SWE-rebench, R2E-Gym, SETA, TMax, smol-software-harbor and about 15 others</td>
-</tr>
-</tbody>
-</table>
+<p>We looked at about 175 datasets and benchmarks. Many we judged from the paper or the dataset card. The candidates we read task by task.</p>
+<p><strong>Kept</strong></p>
+<ul>
+<li><a href="https://huggingface.co/datasets/xinranz3/read-tea-leaves">Tea Leaves</a>, <a href="https://huggingface.co/datasets/FineEnvs/HF_ML_Tasksmith">HF_ML_Tasksmith</a>, <a href="https://github.com/bespokelabsai/AutoResearchExam">AutoResearchExam</a>, <a href="https://github.com/AlexGoldie/discogen">DiscoGen</a>, <a href="https://huggingface.co/datasets/szgao/RSI-Dojo">RSI-Dojo</a>, <a href="https://github.com/Thinking-Space/AutoRLBench">AutoRLBench</a>, <a href="https://doi.org/10.5281/zenodo.23612747">RFT-FaultBench</a></li>
+</ul>
+<p><strong>Test only: the owners ask that it is not used for training</strong></p>
+<ul>
+<li><a href="https://github.com/scaleapi/rsi-benchmark">RSI Bench</a>, <a href="https://github.com/eigent-ai/agenticrl-bench">AgenticRL-Bench</a>, <a href="https://github.com/autolabhq/autolab">AutoLab</a>, <a href="https://github.com/AdAstraAbyssoque/accelerate-bench">Accelerate Bench</a>, <a href="https://github.com/spcl/HPCAgent-Bench">HPCAgent-Bench</a>, <a href="https://github.com/facebookresearch/MLGym">MLGym-Bench</a>, <a href="https://hub.harborframework.com/datasets/elfsong/cpu2gpu">cpu2gpu</a>, <a href="https://github.com/haleematallat/leakbench">leakbench</a>, <a href="https://github.com/ejcgan/auditing-sabotage-bench">Auditing Sabotage Bench</a>, <a href="https://arxiv.org/abs/2610.29932">FrontierCS 2</a>, <a href="https://github.com/harbor-framework/terminal-bench">Terminal-Bench</a></li>
+</ul>
+<p><strong>Test only: too long or too costly to train on</strong></p>
+<ul>
+<li><a href="https://github.com/aisa-group/PostTrainBench">PostTrainBench</a>, <a href="https://github.com/abundant-ai/frontier-rsi">FrontierRSI</a>, <a href="https://github.com/hclimb/deeprsi-samples">DeepRSI</a>, <a href="https://hub.harborframework.com/datasets/ale/rsi-post-training">the Olmo and Qwen RL post-training tasks</a></li>
+</ul>
+<p><strong>Outside our domain</strong></p>
+<ul>
+<li><a href="https://github.com/lingbei-meng/SLDBench-v2">SLDBench v2</a>, <a href="https://github.com/oripress/AlgoTune">AlgoTune</a>, <a href="https://huggingface.co/datasets/FrontisAI/OpenMLE-Tasks">OpenMLE-Tasks</a></li>
+</ul>
+<p><strong>The score can be forged, or the answers leak</strong></p>
+<ul>
+<li><a href="https://github.com/Imbernoulli/MLS-Bench">MLS-Bench</a>, <a href="https://github.com/oracle-samples/mlops-bench">MLOps-Bench</a>, <a href="https://github.com/YIGE24/MetaKernelBench">MetaKernelBench</a>, <a href="https://huggingface.co/datasets/lucas1026/mlagentgym-train-tasks">mlagentgym</a></li>
+</ul>
+<p><strong>The tasks do not work as tasks</strong></p>
+<ul>
+<li><a href="https://github.com/Aayush-Marasini/WeightBench">WeightBench</a>, <a href="https://github.com/flagos-ai/KernelGenBench">KernelGenBench</a>, <a href="https://huggingface.co/datasets/FACET-Terminal/FACET-Terminal-Tasks-6k">FACET</a>, <a href="https://huggingface.co/datasets/Lego-X/LegoFlow-SWE">LegoFlow</a>, <a href="https://huggingface.co/datasets/Logics-MLLM/Logics-SWE-Env-2.5K">Logics</a>, <a href="https://huggingface.co/datasets/FineEnvs/MiMo-V2.6-RL-harbor-code">MiMo</a></li>
+</ul>
+<p><strong>Too long per attempt</strong></p>
+<ul>
+<li><a href="https://github.com/induction-labs/frontier-ml">frontier-ml</a>, <a href="https://github.com/Einsia/AI4AI-Bench">AI4AI-Bench</a>, <a href="https://huggingface.co/datasets/ProgramGym/programgym-1648">ProgramGym</a>, <a href="https://huggingface.co/datasets/shunzou05/TerminalHorizon-Environment">TerminalHorizon</a>, <a href="https://github.com/swefficiency/swefficiency">SWE-fficiency</a></li>
+</ul>
+<p><strong>Too heavy to obtain or build</strong></p>
+<ul>
+<li><a href="https://github.com/Tonyzhou98/SandMLE">SandMLE</a>, <a href="https://huggingface.co/datasets/UKPLab/scicoqa">SciCoQA</a>, <a href="https://huggingface.co/datasets/mehilshah/AIFaultBench">AIFaultBench</a></li>
+</ul>
+<p><strong>Duplicates or low priority</strong></p>
+<ul>
+<li><a href="https://github.com/Snowflake-Labs/dare-bench">DARE-bench</a>, <a href="https://arxiv.org/abs/2611.18030">PerfArena</a>, <a href="https://huggingface.co/datasets/minnesotanlp/Finch-Collection">Finch Collection</a></li>
+</ul>
+<p><strong>Not RL</strong></p>
+<ul>
+<li><a href="https://github.com/evolvent-ai/RSIGym">RSIGym</a></li>
+</ul>
+<p><strong>General software and terminal tasks, outside our scope</strong></p>
+<ul>
+<li><a href="https://github.com/SWE-rebench/SWE-rebench-V2">SWE-rebench</a>, <a href="https://github.com/R2E-Gym/R2E-Gym">R2E-Gym</a>, <a href="https://huggingface.co/datasets/camel-ai/SETA-Env">SETA</a>, <a href="https://github.com/hamishivi/tmax">TMax</a>, <a href="https://huggingface.co/datasets/efederici/smol-software-harbor">smol-software-harbor</a>, and about 15 others</li>
+</ul>
 
 
 </section>
