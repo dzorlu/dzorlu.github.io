@@ -53,11 +53,20 @@ One rule sets the cost of checking an answer: how much of a real training run do
 answer was right?
 
 We also chose the tasks to be fast. An RL run needs many attempts per step, so a slow task makes every step slow
-and costly. Every attempt stops at 30 minutes and 128 turns (60 minutes for AutoResearchExam). We kept tasks
-where one experiment takes a few minutes, whatever budget the dataset shipped with: AutoResearchExam ships a
-24-hour budget, and RSI Bench tasks give the agent 1.5 to 12 hours and stay test only. The median time of one
-attempt by Inkling 2 Mini was about 3 minutes on RFT-FaultBench, 4 on AutoRLBench diagnosis, 7 on AutoRLBench
-repair, 7 on HF_ML_Tasksmith, 18 on DiscoGen, and 29 on AutoResearchExam under the earlier 30-minute stop.
+and costly. We kept tasks where one experiment takes a few minutes, whatever budget the dataset shipped with.
+Every attempt has a turn limit of 128 and a time limit.
+
+| Dataset | Median time of one attempt by Inkling 2 Mini | Time limit |
+|---|---|---|
+| RFT-FaultBench | 3 min | 30 min |
+| AutoRLBench, diagnosis | 4 min | 30 min |
+| AutoRLBench, repair | 7 min | 30 min |
+| HF_ML_Tasksmith | 7 min | 30 min |
+| DiscoGen | 18 min | 30 min |
+| AutoResearchExam | 29 min, measured under a 30-minute limit | 60 min now |
+
+Some datasets ship much longer budgets. AutoResearchExam ships 24 hours per task, and we run it at 60 minutes.
+RSI Bench gives the agent 1.5 to 12 hours per task, so it stays a test.
 
 ### Predict
 
