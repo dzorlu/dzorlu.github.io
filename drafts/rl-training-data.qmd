@@ -3,6 +3,7 @@ title: "Teaching a model to babysit its own training runs: the data"
 date: "2026-11-24"
 categories: [rl, data, agents]
 description: "We want a model that watches an RL training run and makes it better. We looked at about 175 public datasets and benchmarks to find training tasks. We kept seven. Here is how we sort them, and what each group teaches."
+page-layout: full
 ---
 
 ::: {.callout-note}
@@ -50,6 +51,13 @@ A model never trains on a test task.
 
 One rule sets the cost of checking an answer: how much of a real training run do we execute to know that the
 answer was right?
+
+We also chose the tasks to be fast. An RL run needs many attempts per step, so a slow task makes every step slow
+and costly. Every attempt stops at 30 minutes and 128 turns (60 minutes for AutoResearchExam). We kept tasks
+where one experiment takes a few minutes, whatever budget the dataset shipped with: AutoResearchExam ships a
+24-hour budget, and RSI Bench tasks give the agent 1.5 to 12 hours and stay test only. The median time of one
+attempt by Inkling 2 Mini was about 3 minutes on RFT-FaultBench, 4 on AutoRLBench diagnosis, 7 on AutoRLBench
+repair, 7 on HF_ML_Tasksmith, 18 on DiscoGen, and 29 on AutoResearchExam under the earlier 30-minute stop.
 
 ### Predict
 
