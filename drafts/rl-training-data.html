@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="dcterms.date" content="2026-11-24">
-<meta name="description" content="We want a model that watches an RL training run and makes it better. We read 176 public datasets to find practice material. Seven survived. Here is how we sort them, where the GPUs go, and what broke along the way.">
+<meta name="description" content="We want a model that watches an RL training run and makes it better. We looked at about 175 public datasets and benchmarks to find practice material. We kept seven. Here is how we sort them, where the GPUs go, and what broke along the way.">
 
 <title>Teaching a model to babysit its own training runs: the data – Tinkerings</title>
 <style>
@@ -324,7 +324,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <!-- margin-sidebar -->
     
 <!-- main -->
-<main class="content" id="quarto-document-content">
+<main class="content page-columns page-full" id="quarto-document-content">
 
 
 <header id="title-block-header" class="quarto-title-block default">
@@ -339,7 +339,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <div>
   <div class="description">
-    We want a model that watches an RL training run and makes it better. We read 176 public datasets to find practice material. Seven survived. Here is how we sort them, where the GPUs go, and what broke along the way.
+    We want a model that watches an RL training run and makes it better. We looked at about 175 public datasets and benchmarks to find practice material. We kept seven. Here is how we sort them, where the GPUs go, and what broke along the way.
   </div>
 </div>
 
@@ -377,303 +377,202 @@ Note
 </div>
 <section id="the-job" class="level2">
 <h2 class="anchored" data-anchor-id="the-job">The job</h2>
-<p>Anyone who has trained a model with reinforcement learning (RL) knows the routine. You start a run. You watch the reward curve. It goes up, then it goes flat, then it does something strange at 2 a.m. You open the logs, find that the grader has been marking correct answers as wrong since step 12, fix it, and start again.</p>
-<p>We want a model that does this job. It watches a live RL post-training run, forecasts where the run is going, finds what is wrong, and changes it. The test is simple: does a run with this model end better than the same run without it?</p>
-<p>The model is Inkling 2 Mini. The runs it watches are RL post-training runs of Inkling 2 Mini, on <a href="https://github.com/radixark/miles">miles</a>, on one GPU. So it babysits runs of itself, and what it learns goes back into the same weights. The published systems we read keep the two apart: in <a href="https://arxiv.org/abs/2611.17790">AutoRL</a> the watching agents are frozen models.</p>
+<p>Anyone who has trained a model with RL knows the routine. You start a run. You watch the reward curve. It goes up, then it goes flat, then it does something strange at 2 a.m. You open the logs. You find that the grader has marked correct answers as wrong since step 12. You fix it and start again.</p>
+<p>We want a model that does this job. To babysit a run means to watch over it and fix it when something goes wrong. The model watches a live RL post-training run, forecasts where the run is going, finds what is wrong, and changes it. The test is simple: does a run with this model end better than the same run without it?</p>
+<p>The model is Inkling 2 Mini. The runs it watches are RL post-training runs of Inkling 2 Mini, on <a href="https://github.com/radixark/miles">miles</a>, on one GPU. So it watches over runs of itself, and what it learns goes back into the same weights. The published systems we read keep the two apart: in <a href="https://arxiv.org/abs/2611.17790">AutoRL</a> the watching agents are API models that are not trained (gpt-6.1-sol and glm-5.2).</p>
 <p>Before any of that can happen, the model needs practice material. This post is about finding it.</p>
 </section>
 <section id="four-verbs" class="level2">
 <h2 class="anchored" data-anchor-id="four-verbs">Four verbs</h2>
-<p>Every task we found asks the model to do something to a training run. We sort them by when in the life of a run the work happens.</p>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 33%">
-<col style="width: 33%">
-<col style="width: 33%">
-</colgroup>
-<thead>
-<tr class="header">
-<th>Verb</th>
-<th>The question</th>
-<th>What the model hands in</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td><strong>Predict</strong></td>
-<td>How will this run turn out?</td>
-<td>a forecast: a curve, a final number, or which of two runs wins</td>
-</tr>
-<tr class="even">
-<td><strong>Build</strong></td>
-<td>Can you write the piece that makes training better?</td>
-<td>code: a loss, an estimator, a library feature</td>
-</tr>
-<tr class="odd">
-<td><strong>Run</strong></td>
-<td>Can you take a model and a target, and make the model better?</td>
-<td>a trained checkpoint</td>
-</tr>
-<tr class="even">
-<td><strong>Read</strong></td>
-<td>This run happened. What went wrong, and how do you fix it?</td>
-<td>a diagnosis, or a repair</td>
-</tr>
-</tbody>
-</table>
-<p>A person who is good at this job does all four. They guess the outcome before spending compute (Predict), write the fix (Build), launch the job (Run), and work out why last night’s run died (Read).</p>
+<p>Every task we found asks the model to do something to a training run. We sort the tasks by when in the life of a run the work happens.</p>
+<ul>
+<li><strong>Predict.</strong> How will this run turn out? The model hands in a forecast: a curve, a final number, or which of two runs wins.</li>
+<li><strong>Build.</strong> Can you write the piece that makes training better? The model hands in code: a loss, an estimator, a library feature.</li>
+<li><strong>Run.</strong> Can you take a model and a target, and make the model better? The model hands in a trained checkpoint.</li>
+<li><strong>Read.</strong> This run happened. What went wrong, and how do you fix it? The model hands in a diagnosis, or a repair.</li>
+</ul>
+<p>A person who is good at this job does all four. They guess the outcome before they spend compute (Predict), write the fix (Build), launch the job (Run), and work out why last night’s run failed (Read).</p>
 </section>
-<section id="what-an-answer-costs-to-check" class="level2">
-<h2 class="anchored" data-anchor-id="what-an-answer-costs-to-check">What an answer costs to check</h2>
-<p>The four verbs differ in price. The price follows one rule: how much of a real training run do we have to execute to know whether the answer was right?</p>
+<section id="the-data-we-kept-in-one-table" class="level2 page-columns page-full">
+<h2 class="anchored" data-anchor-id="the-data-we-kept-in-one-table">The data we kept, in one table</h2>
+<p>Each row is one dataset. The columns give the shape of its tasks: what the model gets, what it hands in, how we check the answer, where a GPU is needed, and what one check costs. “Practice” rows are training material. “Exam” rows are never trained on. Three of the five exams carry a line that asks for that. A dash means that this post does not give the detail.</p>
+<div class="column-screen-inset" style="font-size: 0.85em;">
 <table class="caption-top table">
-<colgroup>
-<col style="width: 33%">
-<col style="width: 33%">
-<col style="width: 33%">
-</colgroup>
 <thead>
 <tr class="header">
-<th>Verb</th>
-<th>How an answer is checked</th>
+<th>Category</th>
+<th>Dataset</th>
+<th>The model is given</th>
+<th>It hands in</th>
+<th>Checked by</th>
+<th>GPU</th>
 <th>Cost to check one answer</th>
+<th>Tasks</th>
+<th>Use</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
 <td>Predict</td>
+<td>Tea Leaves (<a href="https://arxiv.org/abs/2611.30141">paper</a>, <a href="https://huggingface.co/datasets/xinranz3/read-tea-leaves">data</a>)</td>
+<td>first 20% of a training curve, with its settings, description and code</td>
+<td>a forecast of the rest</td>
 <td>compare the forecast with what the run did</td>
-<td>cents; one model call</td>
-</tr>
-<tr class="even">
-<td>Read</td>
-<td>compare the diagnosis with the known cause</td>
-<td>about $0.05</td>
-</tr>
-<tr class="odd">
-<td>Build</td>
-<td>run the code against hidden tests or data</td>
-<td>$0.10 to $1.50</td>
-</tr>
-<tr class="even">
-<td>Run</td>
-<td>train, then evaluate on held-out data</td>
-<td>about $0.60 for the smallest cycle; hundreds of dollars for a large one</td>
-</tr>
-</tbody>
-</table>
-<p>So the plan writes itself: practice on the cheap verbs, and save the expensive ones for the exam.</p>
-</section>
-<section id="where-the-gpu-sits" class="level2">
-<h2 class="anchored" data-anchor-id="where-the-gpu-sits">Where the GPU sits</h2>
-<p>“Needs a GPU” hides three different situations. It matters, because a GPU that sits next to a thinking model is paid for every second the model thinks.</p>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 25%">
-<col style="width: 25%">
-<col style="width: 25%">
-<col style="width: 25%">
-</colgroup>
-<thead>
-<tr class="header">
-<th>Verb</th>
-<th>Dataset</th>
-<th>The model’s box</th>
-<th>The grader’s box</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>Predict</td>
-<td>Tea Leaves</td>
-<td>no GPU</td>
-<td>no GPU</td>
-</tr>
-<tr class="even">
-<td>Read</td>
-<td>AutoRLBench diagnosis, RFT-FaultBench</td>
-<td>no GPU</td>
-<td>no GPU</td>
-</tr>
-<tr class="odd">
-<td>Read</td>
-<td>AutoRLBench repair</td>
-<td>no GPU: the model only edits files</td>
-<td>GPU: reruns the training to check the fix</td>
+<td>none</td>
+<td>one model call</td>
+<td>918 logged runs to learn from; 682 test runs (150 RL)</td>
+<td>practice</td>
 </tr>
 <tr class="even">
 <td>Build</td>
-<td>DiscoGen, some AutoResearchExam tasks</td>
-<td>GPU: the model runs training to try its code</td>
-<td>GPU: retrains on hidden data</td>
-</tr>
-<tr class="odd">
-<td>Run</td>
-<td>RSI-Dojo</td>
-<td>GPU: the model trains the checkpoint</td>
-<td>GPU: serves the checkpoint and scores it</td>
-</tr>
-</tbody>
-</table>
-<p>The repair tasks are the pleasant surprise: the model needs no GPU at all, and the grader holds one only for the rerun. The Build tasks are the costly ones, because the GPU waits while the model decides what to try next. We measured it: in a DiscoGen attempt, 82 to 96% of the time is spent inside a training command, so four attempts sharing one GPU have to queue.</p>
-</section>
-<section id="the-data-we-kept" class="level2">
-<h2 class="anchored" data-anchor-id="the-data-we-kept">The data we kept</h2>
-<section id="predict" class="level3">
-<h3 class="anchored" data-anchor-id="predict">Predict</h3>
-<table class="caption-top table">
-<thead>
-<tr class="header">
-<th>Dataset</th>
-<th>What one task is</th>
-<th>Size</th>
-<th>Source</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>Tea Leaves</td>
-<td>see the first 20% of a training curve, with its settings, description and code; forecast the rest</td>
-<td>918 logged runs to learn from; 682 test runs, 150 of them RL</td>
-<td><a href="https://arxiv.org/abs/2611.30141">paper</a>, <a href="https://huggingface.co/datasets/xinranz3/read-tea-leaves">data</a></td>
-</tr>
-</tbody>
-</table>
-<p>The paper behind it has a line we keep coming back to. Knowing a part of training has three levels: describing it, implementing it, and anticipating what it does to a run. Models are usually asked for the first two. The job needs the third.</p>
-</section>
-<section id="build" class="level3">
-<h3 class="anchored" data-anchor-id="build">Build</h3>
-<table class="caption-top table">
-<thead>
-<tr class="header">
-<th>Dataset</th>
-<th>What one task is</th>
-<th>Tasks</th>
-<th>Source</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>HF_ML_Tasksmith</td>
-<td>implement a merged pull request in trl, peft, accelerate, diffusers or transformers; hidden tests grade it</td>
+<td>HF_ML_Tasksmith (<a href="https://huggingface.co/datasets/FineEnvs/HF_ML_Tasksmith">data</a>)</td>
+<td>a merged pull request to implement in trl, peft, accelerate, diffusers or transformers</td>
+<td>code</td>
+<td>hidden tests</td>
+<td>—</td>
+<td>$0.10 to $3.30</td>
 <td>15</td>
-<td><a href="https://huggingface.co/datasets/FineEnvs/HF_ML_Tasksmith">data</a></td>
-</tr>
-<tr class="even">
-<td>AutoResearchExam</td>
-<td>improve a research result (an estimator, an encoder, an RL trainer); submit, see a validation score, improve</td>
-<td>18 on CPU, 3 on a small GPU</td>
-<td><a href="https://github.com/bespokelabsai/AutoResearchExam">repo</a></td>
+<td>practice</td>
 </tr>
 <tr class="odd">
-<td>DiscoGen</td>
-<td>rewrite the loss, optimizer or network of PPO, DQN or an image classifier; scored on datasets the model never saw</td>
+<td>Build</td>
+<td>AutoResearchExam (<a href="https://github.com/bespokelabsai/AutoResearchExam">repo</a>)</td>
+<td>a research result to improve: an estimator, an encoder, an RL trainer</td>
+<td>code; it submits, sees a validation score, improves</td>
+<td>grader retrains on hidden data</td>
+<td>model’s box and grader’s box, on some tasks</td>
+<td>$0.10 to $3.30</td>
+<td>18, plus 3 on a small GPU not yet in the pool</td>
+<td>practice</td>
+</tr>
+<tr class="even">
+<td>Build</td>
+<td>DiscoGen (<a href="https://arxiv.org/abs/2603.17863">paper</a>, <a href="https://github.com/AlexGoldie/discogen">repo</a>)</td>
+<td>PPO, DQN or an image classifier</td>
+<td>a new loss, optimizer or network</td>
+<td>grader retrains on datasets the model never saw</td>
+<td>model’s box and grader’s box</td>
+<td>$0.10 to $3.30</td>
 <td>20</td>
-<td><a href="https://arxiv.org/abs/2603.17863">paper</a>, <a href="https://github.com/AlexGoldie/discogen">repo</a></td>
+<td>practice</td>
 </tr>
-</tbody>
-</table>
-</section>
-<section id="run" class="level3">
-<h3 class="anchored" data-anchor-id="run">Run</h3>
-<table class="caption-top table">
-<thead>
-<tr class="header">
-<th>Dataset</th>
-<th>What one task is</th>
-<th>Tasks</th>
-<th>Source</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>RSI-Dojo</td>
-<td>post-train a model to raise its score on a target benchmark</td>
-<td>85 cheap targets of 281</td>
-<td><a href="https://arxiv.org/abs/2611.03698">paper</a>, <a href="https://huggingface.co/datasets/szgao/RSI-Dojo">data</a></td>
-</tr>
-<tr class="even">
-<td>DAPO-Math-17K</td>
-<td>the inner run itself: RL on 17,390 math problems; the same data AutoRL trains its Qwen runs on</td>
-<td>1 run recipe</td>
-<td><a href="https://arxiv.org/abs/2611.17790">AutoRL paper</a></td>
-</tr>
-</tbody>
-</table>
-</section>
-<section id="read" class="level3">
-<h3 class="anchored" data-anchor-id="read">Read</h3>
-<table class="caption-top table">
-<thead>
-<tr class="header">
-<th>Dataset</th>
-<th>What one task is</th>
-<th>Tasks</th>
-<th>Source</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>AutoRLBench, diagnosis</td>
-<td>read the logs, config and code of a real failed RL run; name the cause, with evidence</td>
-<td>50</td>
-<td><a href="https://github.com/Thinking-Space/AutoRLBench">repo</a></td>
-</tr>
-<tr class="even">
-<td>AutoRLBench, repair</td>
-<td>edit the failed run once; a rerun of the training decides whether the fix worked</td>
-<td>3 on CPU, 5 with a GPU rerun</td>
-<td>same</td>
-</tr>
-<tr class="odd">
-<td>RFT-FaultBench</td>
-<td>read the telemetry of an RL fine-tuning run; say if it is healthy, and if not, which fault it has</td>
-<td>146 of 2,630 runs</td>
-<td><a href="https://arxiv.org/abs/2605.04431">paper</a>, <a href="https://doi.org/10.5281/zenodo.23612747">data</a></td>
-</tr>
-</tbody>
-</table>
-</section>
-<section id="the-exams" class="level3">
-<h3 class="anchored" data-anchor-id="the-exams">The exams</h3>
-<p>These are never trained on. Most of them carry a line that asks for exactly that.</p>
-<table class="caption-top table">
-<thead>
-<tr class="header">
-<th>Verb</th>
-<th>Benchmark</th>
-<th>Source</th>
-</tr>
-</thead>
-<tbody>
 <tr class="odd">
 <td>Build, Run</td>
-<td>RSI Bench (Scale), 49 tasks</td>
-<td><a href="https://github.com/scaleapi/rsi-benchmark">repo</a></td>
+<td>RSI Bench (Scale) (<a href="https://github.com/scaleapi/rsi-benchmark">repo</a>)</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>49</td>
+<td>exam</td>
 </tr>
 <tr class="even">
 <td>Run</td>
-<td>PostTrainBench</td>
-<td><a href="https://github.com/aisa-group/PostTrainBench">repo</a></td>
+<td>RSI-Dojo (<a href="https://arxiv.org/abs/2611.03698">paper</a>, <a href="https://huggingface.co/datasets/szgao/RSI-Dojo">data</a>)</td>
+<td>a base model and a target benchmark</td>
+<td>a trained checkpoint</td>
+<td>train, then evaluate on held-out data</td>
+<td>model’s box trains; grader’s box serves and scores</td>
+<td>about $0.60 for the smallest cycle; hundreds of dollars for a large one</td>
+<td>85 cheap targets of 281</td>
+<td>practice, for the supervising role only</td>
 </tr>
 <tr class="odd">
 <td>Run</td>
-<td>FrontierRSI</td>
-<td><a href="https://github.com/abundant-ai/frontier-rsi">repo</a></td>
+<td>DAPO-Math-17K (<a href="https://arxiv.org/abs/2611.17790">AutoRL paper</a>)</td>
+<td>17,390 math problems; the same data AutoRL trains its Qwen runs on</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>1 run recipe</td>
+<td>the inner run itself</td>
 </tr>
 <tr class="even">
 <td>Run</td>
-<td>an RL post-training task on Olmo-3-7B</td>
-<td><a href="https://hub.harborframework.com/datasets/ale/rsi-post-training">Harbor Hub</a></td>
+<td>PostTrainBench (<a href="https://github.com/aisa-group/PostTrainBench">repo</a>)</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>exam</td>
+</tr>
+<tr class="odd">
+<td>Run</td>
+<td>FrontierRSI (<a href="https://github.com/abundant-ai/frontier-rsi">repo</a>)</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>exam</td>
+</tr>
+<tr class="even">
+<td>Run</td>
+<td>an RL post-training task on Olmo-3-7B (<a href="https://hub.harborframework.com/datasets/ale/rsi-post-training">Harbor Hub</a>)</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>exam</td>
 </tr>
 <tr class="odd">
 <td>Read</td>
-<td>AgenticRL-Bench</td>
-<td><a href="https://github.com/eigent-ai/agenticrl-bench">repo</a>, <a href="https://www.kaggle.com/benchmarks/eigent/agenticrl-bench/leaderboard">Kaggle</a></td>
+<td>AutoRLBench, diagnosis (<a href="https://github.com/Thinking-Space/AutoRLBench">repo</a>)</td>
+<td>logs, config and code of a real failed RL run</td>
+<td>the cause, with evidence</td>
+<td>compare the diagnosis with the known cause</td>
+<td>none</td>
+<td>about $0.05</td>
+<td>50</td>
+<td>practice</td>
+</tr>
+<tr class="even">
+<td>Read</td>
+<td>AutoRLBench, repair (same repo)</td>
+<td>the same kind of failed run</td>
+<td>one edit to the run</td>
+<td>grader reruns the training</td>
+<td>grader’s box only; the model only edits files</td>
+<td>$0.19 to $0.94 on CPU; about $2.50 to $4.50 with a GPU rerun</td>
+<td>3 on CPU, 5 with a GPU rerun</td>
+<td>practice</td>
+</tr>
+<tr class="odd">
+<td>Read</td>
+<td>RFT-FaultBench (<a href="https://arxiv.org/abs/2605.04431">paper</a>, <a href="https://doi.org/10.5281/zenodo.23612747">data</a>)</td>
+<td>telemetry of an RL fine-tuning run</td>
+<td>healthy or not; if not, which fault</td>
+<td>a program scores the answer</td>
+<td>none</td>
+<td>about $0.05</td>
+<td>146 of 2,630 runs</td>
+<td>practice</td>
+</tr>
+<tr class="even">
+<td>Read</td>
+<td>AgenticRL-Bench (<a href="https://github.com/eigent-ai/agenticrl-bench">repo</a>, <a href="https://www.kaggle.com/benchmarks/eigent/agenticrl-bench/leaderboard">Kaggle</a>)</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>—</td>
+<td>exam</td>
 </tr>
 </tbody>
 </table>
-</section>
+</div>
+<p><strong>Cost.</strong> One rule sets the price: how much of a real training run do we execute to know that the answer was right? Predict and diagnosis need none of it. Build needs a short training: one check costs $0.10 to about $1.20 on CPU or a small GPU, and $2.30 to $3.30 on an H100. Run needs a full one. So we practice on the cheap categories and keep the expensive ones for the exam.</p>
+<p><strong>GPU.</strong> “Needs a GPU” hides three different situations. The difference matters, because we pay for a GPU next to a thinking model during every second that the model thinks. The repair tasks are the cheap case: the model needs no GPU, and the grader holds one only for the rerun. The Build tasks are the costly case, because the GPU waits while the model decides what to try next. We measured it: in a DiscoGen attempt, 82 to 96% of the time is spent inside a training command, so four attempts that share one GPU have to queue.</p>
+<p><strong>RSI-Dojo.</strong> We keep it as training material for the supervising role only: its targets are scored under our own recipe. Its tasks are not tasks for the inner model.</p>
+<p><strong>Predict.</strong> The Tea Leaves paper says that knowing a part of training has three levels: describing it, implementing it, and anticipating what it does to a run. Models are usually asked for the first two. The job needs the third.</p>
 </section>
 <section id="three-tasks-up-close" class="level2">
 <h2 class="anchored" data-anchor-id="three-tasks-up-close">Three tasks up close</h2>
@@ -688,29 +587,29 @@ Note
 <h2 class="anchored" data-anchor-id="how-inkling-2-mini-did-on-a-first-try">How Inkling 2 Mini did on a first try</h2>
 <p>We ran the untrained model on a few tasks from each set, mostly to find out whether the tasks work.</p>
 <ul>
-<li><strong>It thinks every run is sick.</strong> On RFT-FaultBench it called all four healthy runs anomalous. Its mean score was 0.42. A few lines of statistics with no model at all score 0.53.</li>
+<li><strong>It thinks every run is broken.</strong> On RFT-FaultBench it called all four healthy runs anomalous. Its mean score was 0.42. A simple statistical baseline that is given reference healthy runs scores 0.53. Mini did not have those reference runs, so the two numbers do not compare like for like.</li>
 <li><strong>It repaired one failed run in twelve tries.</strong> Fixing a run is much harder than describing what is wrong with it.</li>
-<li><strong>Its new loss functions mostly made training worse.</strong> On DiscoGen, most attempts landed below the unmodified baseline.</li>
-<li><strong>It solved 14 of 36 library tasks on every attempt.</strong> Those tasks teach nothing, so they are out.</li>
+<li><strong>Its new loss functions often made training worse.</strong> On DiscoGen, 3 of 6 attempts scored below the unmodified baseline, and only 1 clearly beat it.</li>
+<li><strong>It solved 14 of 36 library tasks on every attempt.</strong> Those tasks teach nothing, so we removed them.</li>
 </ul>
 <p>That is the right shape for practice material: some things too easy, some too hard, most in between.</p>
 </section>
-<section id="things-that-went-wrong-so-you-can-skip-them" class="level2">
-<h2 class="anchored" data-anchor-id="things-that-went-wrong-so-you-can-skip-them">Things that went wrong, so you can skip them</h2>
+<section id="things-that-went-wrong-so-you-can-avoid-them" class="level2">
+<h2 class="anchored" data-anchor-id="things-that-went-wrong-so-you-can-avoid-them">Things that went wrong, so you can avoid them</h2>
 <ol type="1">
-<li><strong>Read the tasks, not the dataset card.</strong> We read 176 sets and kept 7. Cards did not mention that one set ships the solution in the starting files, another keeps the answer key next to the data, and a third wants 8 hours per try.</li>
+<li><strong>Read the tasks, not the dataset card.</strong> We looked at about 175 public datasets and benchmarks and kept 7. We judged many from the paper or card alone, and read task by task only the candidates. Cards did not mention that one set ships the solution in the starting files, another keeps the answer key next to the data, and a third wants 8 hours per try.</li>
 <li><strong>A task named after its own bug is not a diagnosis task.</strong> One benchmark’s task folders had names like <code>verl_grpo_adamw_eps_too_large</code>. We renamed all of them to numbers.</li>
-<li><strong>If the model can fool the grader, it will be rewarded for it.</strong> A speed task timed the same input ten times, so a solver that remembered its answer got full marks. A research task let the edited file print its own score. Every grader now runs in a separate box, and the model’s box has no internet.</li>
+<li><strong>If the model can trick the grader, it will be rewarded for it.</strong> A speed task timed the same input ten times, so a solver that remembered its answer was scored as faster. A research task let the edited file print its own score; we found it by reading the code, so we held that set out. The final score is now always computed in a separate box. In AutoResearchExam a walled-off grader also runs beside the model to return validation scores. The model’s box reaches only the model through a relay (DNS lookups still work).</li>
 <li><strong>Check that a “verified” label means what you think.</strong> In one dataset the flag meant the final score fell, not that the fault shows in the logs.</li>
 <li><strong>Partial scores beat pass or fail.</strong> A small model rarely solves a hard task fully. The share of tests passed, or the gain over a baseline, still tells it which attempt was better.</li>
-<li><strong>Look at the time of one experiment, not the published budget.</strong> A task with a 24-hour budget works in one hour if one try takes two minutes.</li>
+<li><strong>Look at the time of one experiment, not the published budget.</strong> A task with a 24-hour budget works in one hour if one try takes a few minutes.</li>
 <li><strong>These tasks are hard for the best models too.</strong> On AgenticRL-Bench the top model solves 22.8% of attempts.</li>
-<li><strong>Judge a dataset per use.</strong> A set that fails as practice can still be a good exam. We got this wrong more than once and had to go back.</li>
+<li><strong>Judge a dataset per use.</strong> A set that fails as practice can still be a good exam. We got this wrong more than once and had to redo the work.</li>
 </ol>
 </section>
 <section id="how-the-experiment-will-work" class="level2">
 <h2 class="anchored" data-anchor-id="how-the-experiment-will-work">How the experiment will work</h2>
-<p>One inner run uses one dataset, as in AutoRL. The model, acting as supervisor, looks at the run at fixed points and may change three things: the <strong>data</strong> (which tasks, in what order, with what reward), the <strong>harness</strong> (prompt, tools, turn limit, effort) and the <strong>model</strong> side (learning rate, loss, adapter size). It has a small budget of changes per run, so it has to choose.</p>
+<p>One inner run uses one dataset. AutoRL does the same: its Qwen runs train on DAPO-Math-17K. The model, acting as supervisor, looks at the run at fixed points and may change three things: the <strong>data</strong> (which tasks, in what order, with what reward), the <strong>harness</strong> (prompt, tools, turn limit, effort) and the <strong>model</strong> side (learning rate, loss, adapter size). It has a small budget of changes per run, so it has to choose.</p>
 <p>Did a change help? We copy the run at that point into two branches: one with the change and one without. Both run a short window and are scored on held-out data. The reward is the difference. We also check a sample of the moments where the supervisor chose to do nothing, to see what a change would have done.</p>
 <p>The supervisor is not a special model. Its decisions are rollouts like any other. They go to the same trainer and update the same weights, only less often.</p>
 <div class="quarto-figure quarto-figure-center">
