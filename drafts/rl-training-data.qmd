@@ -3,7 +3,18 @@ title: "Teaching a model to babysit its own training runs: the data"
 date: "2026-11-24"
 categories: [rl, data, agents]
 description: "We want a model that watches an RL training run and makes it better. We looked at about 175 public datasets and benchmarks to find training tasks. We kept seven. Here is how we sort them, and what each group teaches."
-page-layout: full
+bibliography: rl-training-data.bib
+citation-location: margin
+reference-location: margin
+toc: true
+toc-location: left
+toc-title: Contents
+format:
+  html:
+    grid:
+      sidebar-width: 220px
+      body-width: 860px
+      margin-width: 280px
 ---
 
 
@@ -13,9 +24,9 @@ This is a running log of small scale experimentation to build a model that super
 
 Specfically, the model watches a live RL post-training run, forecasts where the run is going, finds what is wrong, and changes it. The test here is a run with this model end better than the same run without it. The outer loop learns from inner RL runs and when applied to a new RL posttraining environment, it performs better than the baseline model.
 
-The model I am experimenting with is Inkling 2 Mini. The runs it watches are RL post-training runs of Inkling 2 Mini, on [miles](https://github.com/radixark/miles), on one GPU. So it watches over runs of itself, and what it learns goes back into the same weights. The experimental setups follows [AutoRL](https://arxiv.org/abs/2611.17790) where the watching agents are API models that are not trained (gpt-6.1-sol and glm-5.2).
+The model I am experimenting with is Inkling 2 Mini. The runs it watches are RL post-training runs of Inkling 2 Mini, on [miles](https://github.com/radixark/miles) [@radixark2026miles], on one GPU. So it watches over runs of itself, and what it learns goes back into the same weights. The experimental setups follows [AutoRL](https://arxiv.org/abs/2611.17790) [@tang2026autorl] where the watching agents are API models that are not trained (gpt-6.1-sol and glm-5.2).
 
-![**Figure 1.** (a) Training. (i) Warm-up: RL on offline skill tasks (Predict, Read, Build) gives the starting weights $\theta_0$. (ii) Supervision: each episode starts a new inner RL run of Inkling 2 Mini with a fresh LoRA on dataset $D$. At step $t$ the supervisor $\pi_\theta$ observes the run and may act on its data, harness or model, at most $B$ times per run. The run forks into a branch with the action and a twin without it. Both run $H$ steps and are scored on held-out tasks of $D$; the reward is the difference, and only $\theta$ persists across episodes. (b) Held-out evaluation. On a new dataset $D'$, with $\theta$ frozen, the same run is repeated with no supervisor, the untrained supervisor and the trained one.](figure1_setup.png){width=100%}
+![**Figure 1.** (a) Training. (i) Warm-up: RL on offline skill tasks (Predict, Read, Build) gives the starting weights $\theta_0$. (ii) Supervision: each episode starts a new inner RL run of Inkling 2 Mini with a fresh LoRA on dataset $D$. At step $t$ the supervisor $\pi_\theta$ observes the run and may act on its data, harness or model, at most $B$ times per run. The run forks into a branch with the action and a twin without it. Both run $H$ steps and are scored on held-out tasks of $D$; the reward is the difference, and only $\theta$ persists across episodes. (b) Held-out evaluation. On a new dataset $D'$, with $\theta$ frozen, the same run is repeated with no supervisor, the untrained supervisor and the trained one.](figure1_setup.png){width=100% .column-page-right}
 
 The reward for the supervisor model is initialy designed to capture the improvement over counterfactual trajectory (e.g. what if the intervention hadn't been made).
 
@@ -28,9 +39,9 @@ then starts from these weights.
 
 | Skill | The question | What the model hands in | Datasets |
 |---|---|---|---|
-| **Predict** | How will this run turn out? | a forecast: a curve, a final number, or which of two runs wins | Tea Leaves |
-| **Read** | What went wrong in this run, and how do you fix it? | a diagnosis, or one edit to the run | AutoRLBench, RFT-FaultBench |
-| **Build** | Can you write the piece that makes training better? | code: a loss, an estimator, a library feature | HF_ML_Tasksmith, AutoResearchExam, DiscoGen |
+| **Predict** | How will this run turn out? | a forecast: a curve, a final number, or which of two runs wins | Tea Leaves [@zhao2026tealeaves] |
+| **Read** | What went wrong in this run, and how do you fix it? | a diagnosis, or one edit to the run | AutoRLBench [@autorlbench2026], RFT-FaultBench [@zhang2026rftfaultbench] |
+| **Build** | Can you write the piece that makes training better? | code: a loss, an estimator, a library feature | HF_ML_Tasksmith [@fineenvs], AutoResearchExam [@ramesh2026autoresearchexam], DiscoGen [@goldie2026discogen] |
 
 Each dataset has tasks for training and tasks held back for testing. A model never trains on a test task. All
 datasets I looked at, and why most were left out, are in the [appendix](#appendix-every-dataset-we-read).
@@ -107,7 +118,7 @@ Test on:
 |---|---|---|
 | AutoRLBench, diagnosis, held out | the same kind of task | 10 |
 | AutoRLBench, repair with a GPU rerun | the same kind of task, on longer runs | 5 |
-| AgenticRL-Bench ([repo](https://github.com/eigent-ai/agenticrl-bench), [Kaggle](https://www.kaggle.com/benchmarks/eigent/agenticrl-bench/leaderboard)) | audit or repair a real RL pipeline | 22 |
+| AgenticRL-Bench [@agenticrlbench2026] ([repo](https://github.com/eigent-ai/agenticrl-bench), [Kaggle](https://www.kaggle.com/benchmarks/eigent/agenticrl-bench/leaderboard)) | audit or repair a real RL pipeline | 22 |
 
 ### Build
 
@@ -134,7 +145,7 @@ Test on:
 | Dataset | What one task is | Tasks |
 |---|---|---|
 | Held-out tasks of the three sets above | the same kinds of task | 4 + 3 + 3 |
-| RSI Bench, from Scale ([repo](https://github.com/scaleapi/rsi-benchmark)) | long research tasks: post-training, data, architecture, systems | 49 |
+| RSI Bench, from Scale ([repo](https://github.com/scaleapi/rsi-benchmark)) [@scale2026rsibench] | long research tasks: post-training, data, architecture, systems | 49 |
 
 Three more AutoResearchExam tasks run on a small GPU. We checked them, but they are not in the pool yet.
 
@@ -150,7 +161,7 @@ feedback quickly.
 ### What the inner run trains on
 
 The inner runs train on targets from RSI-Dojo ([paper](https://arxiv.org/abs/2611.03698),
-[data](https://huggingface.co/datasets/szgao/RSI-Dojo)). One target is one short post-training task: train the
+[data](https://huggingface.co/datasets/szgao/RSI-Dojo)) [@gao2026rsidojo]. One target is one short post-training task: train the
 model so that its score on one benchmark goes up. Each target comes with an evaluation script and no training
 recipe, so the recipe and the reward are mine.
 
@@ -171,7 +182,7 @@ The setup is close to AutoRL's. The supervisor reads the state of the run and ma
 |---|---|
 | **Reads** | training metrics per step (reward, KL, entropy, response length, step time); rollout trajectories with their rewards; held-out scores at each checkpoint; the run's config; its own earlier actions in this run and their effect; the actions left in its budget |
 | **Changes the code** | the training code in [miles](https://github.com/radixark/miles): loss, advantage, sampling, learning rate |
-| **Changes the harness** | the agent harness, [OpenCode](https://github.com/sst/opencode): prompt, tools, turn and time limits |
+| **Changes the harness** | the agent harness, [OpenCode](https://github.com/sst/opencode) [@opencode]: prompt, tools, turn and time limits |
 | **Changes the data** | which tasks, in what order, and how they are graded |
 
 It may also do nothing. Doing nothing is an action like the others, and it is scored the same way.
@@ -193,9 +204,9 @@ runs much longer than the ones it learned from.
 
 | Dataset | What one task is | Tasks |
 |---|---|---|
-| PostTrainBench ([repo](https://github.com/aisa-group/PostTrainBench)) | post-train a base LLM for one of six benchmarks, 10 hours on one H100 | not counted yet |
-| FrontierRSI ([repo](https://github.com/abundant-ai/frontier-rsi)) | improve a training recipe, RL data, inference speed or a GPU kernel | 8 public |
-| RL post-training of Olmo-3-7B ([Harbor Hub](https://hub.harborframework.com/datasets/ale/rsi-post-training)) | improve an RL recipe on math under a fixed budget of episodes | 1 |
+| PostTrainBench ([repo](https://github.com/aisa-group/PostTrainBench)) [@rank2026posttrainbench] | post-train a base LLM for one of six benchmarks, 10 hours on one H100 | not counted yet |
+| FrontierRSI ([repo](https://github.com/abundant-ai/frontier-rsi)) [@frontierrsi2026] | improve a training recipe, RL data, inference speed or a GPU kernel | 8 public |
+| RL post-training of Olmo-3-7B ([Harbor Hub](https://hub.harborframework.com/datasets/ale/rsi-post-training)) [@rsiposttraining] | improve an RL recipe on math under a fixed budget of episodes | 1 |
 
 ## Three tasks up close
 
@@ -292,3 +303,8 @@ candidates we read task by task.
 **General software and terminal tasks, outside our scope**
 
 - [SWE-rebench](https://github.com/SWE-rebench/SWE-rebench-V2), [R2E-Gym](https://github.com/R2E-Gym/R2E-Gym), [SETA](https://huggingface.co/datasets/camel-ai/SETA-Env), [TMax](https://github.com/hamishivi/tmax), [smol-software-harbor](https://huggingface.co/datasets/efederici/smol-software-harbor), and about 15 others
+
+## References
+
+::: {#refs}
+:::
