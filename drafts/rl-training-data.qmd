@@ -2,7 +2,6 @@
 title: "Teaching a model to babysit its own training runs: the data"
 date: "2026-11-24"
 categories: [rl, data, agents]
-description: "We want a model that watches an RL training run and makes it better. We looked at about 175 public datasets and benchmarks to find training tasks. We kept seven. Here is how we sort them, and what each group teaches."
 bibliography: rl-training-data.bib
 citation-location: margin
 reference-location: margin
@@ -160,19 +159,23 @@ feedback quickly.
 
 ### What the inner run trains on
 
-The inner runs train on targets from RSI-Dojo ([paper](https://arxiv.org/abs/2611.03698),
-[data](https://huggingface.co/datasets/szgao/RSI-Dojo)) [@gao2026rsidojo]. One target is one short post-training task: train the
-model so that its score on one benchmark goes up. Each target comes with an evaluation script and no training
-recipe, so the recipe and the reward are mine.
+An inner run is a real RL training run: a model, a harness, an RL library, a GPU and a held-out evaluation. The
+first one is the text-to-SQL example in [miles](https://github.com/radixark/miles) (`examples/text_to_sql`).
+The model answers a question over a SQLite database. It may run up to five exploratory queries, then it commits
+one final query. The grader runs that query and compares the result with the result of the reference query.
 
 | | Value |
 |---|---|
-| Targets in RSI-Dojo | 281 |
-| Targets that fit a short cycle | 85 |
-| One cycle (fine-tune and evaluation) in a probe with Qwen3-1.7B | 17 minutes, $0.57 |
+| Training questions (BIRD-Platinum) | 2,033 |
+| Held-out questions, validation split | 398 |
+| Held-out questions, Arcwise-Plat-SQL | 498 |
 
-The training runs use some targets ($D$). The held-out evaluation uses others ($D'$). In two targets, BoolQ and
-MedQA, the training rows and the evaluation rows overlap, so they need a fix or must be dropped.
+The published run of this example trains all parameters of a 35B model on eight GPUs. Its validation accuracy
+goes from 61.3 to 84.7 in the first 15 steps. My run is Inkling 2 Mini with a LoRA on one GPU, so I do not know
+yet how long a step takes or whether the curve moves as fast. Measuring that is the first step.
+
+All of the supervisor's training happens on this one run type. I want it to overfit first, and then measure how
+far the skill carries.
 
 ### What the supervisor sees and changes
 
@@ -197,15 +200,26 @@ in Figure 1: the fork starts at checkpoint $m_t$.
 Supervising inside a step, for example stopping bad rollouts while they run, would give more decision points
 and denser feedback. It would also need a way to copy the run in the middle of a step. I leave it for later.
 
-### Tests on longer runs
+### Tests
 
-These post-training benchmarks are too long to train on. They test whether the trained supervisor helps on
-runs much longer than the ones it learned from.
+The trained supervisor is frozen and tested at three levels. Each level repeats the same run with no supervisor,
+with the untrained supervisor and with the trained one.
+
+| Level | Inner run | What it shows |
+|---|---|---|
+| Same task, new seed | text-to-SQL in miles | training the supervisor worked at all |
+| New task, same library | math with a Python tool (`examples/retool_v2` in miles) | the skill carries to a task it never supervised |
+| New task, new library | multi-file coding with Qwen3-4B, from FrontierRSI ([repo](https://github.com/abundant-ai/frontier-rsi)) [@frontierrsi2026] | the skill carries outside miles |
+
+The second level is the main result. The third level tells me whether runs from other libraries have to go into
+training.
+
+These post-training benchmarks are too long to train on. Later, they test whether the supervisor helps on runs
+much longer than the ones it learned from.
 
 | Dataset | What one task is | Tasks |
 |---|---|---|
 | PostTrainBench ([repo](https://github.com/aisa-group/PostTrainBench)) [@rank2026posttrainbench] | post-train a base LLM for one of six benchmarks, 10 hours on one H100 | not counted yet |
-| FrontierRSI ([repo](https://github.com/abundant-ai/frontier-rsi)) [@frontierrsi2026] | improve a training recipe, RL data, inference speed or a GPU kernel | 8 public |
 | RL post-training of Olmo-3-7B ([Harbor Hub](https://hub.harborframework.com/datasets/ale/rsi-post-training)) [@rsiposttraining] | improve an RL recipe on math under a fixed budget of episodes | 1 |
 
 ## Three tasks up close
@@ -226,9 +240,10 @@ A program grades it: 0 for the wrong status, more for the right family, full mar
 on two games to see how its loss does. When it stops, the grader trains with its loss on two other games it never
 saw, and compares with the standard loss.
 
-**A supervision run, from RSI-Dojo.** The inner run gets a base model and a target benchmark. It trains, then a grader evaluates
-the checkpoint on 300 held-out rows. In our timing test, one 15-minute fine-tune plus the evaluation took about
-17 minutes on one small GPU and cost about $0.57.
+**A supervision run, on text-to-SQL.** The inner run trains Inkling 2 Mini to answer questions over SQLite
+databases. After each step the supervisor reads the metrics, the trajectories and the held-out accuracy. If it
+acts, the run is copied: one copy continues with the change and one without. Both are scored on held-out
+questions a few steps later, and the difference is the supervisor's reward.
 
 ## How Inkling 2 Mini did on a first try
 
@@ -249,7 +264,12 @@ That is the right shape for training tasks: some too easy, some too hard, most i
 
 Figure 1 shows the setup. These points are still open:
 
-- **The split of RSI-Dojo targets** into training targets $D$ and held-out targets $D'$.
+- **The baseline run.** How long a text-to-SQL step takes for Inkling 2 Mini on one GPU, and whether its
+  held-out accuracy moves within about 20 steps.
+- **The noise of the reward.** Two copies of a run with no change between them will still differ. A real effect
+  has to be larger than that difference.
+- **Warm-up as an ablation.** The supervisor is first trained on supervision alone. Then the same training is
+  repeated with warm-up before it, to see what the skill tasks add.
 - **The first actions.** Which changes to code, harness and data the supervisor gets first.
 - **The numbers.** The budget of actions per run, the length $H$ of a twin run, the price of an action, and how
   often a "do nothing" decision gets a twin.
