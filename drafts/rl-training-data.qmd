@@ -6,27 +6,18 @@ description: "We want a model that watches an RL training run and makes it bette
 page-layout: full
 ---
 
-::: {.callout-note}
-This is a draft. It can change.
-:::
 
-## The job
+## Introduction
 
-Anyone who has trained a model with RL knows the routine. You start a run. You watch the reward curve. It goes
-up, then it goes flat, then it does something strange at 2 a.m. You open the logs. You find that the grader has
-marked correct answers as wrong since step 12. You fix it and start again.
+This is a running log of small scale experimentation to build a model that supervises post-training and improves the outcomes of underlying RL runs through intervention across data, harness, and model. 
 
-We want a model that does this job. To babysit a run means to watch over it and fix it when something goes
-wrong. The model watches a live RL post-training run, forecasts where the run is going, finds what is wrong, and
-changes it. The test is simple: does a run with this model end better than the same run without it?
+Specfically, the model watches a live RL post-training run, forecasts where the run is going, finds what is wrong, and changes it. The test here is a run with this model end better than the same run without it. The outer loop learns from inner RL runs and when applied to a new RL posttraining environment, it performs better than the baseline model.
 
-The model is Inkling 2 Mini. The runs it watches are RL post-training runs of Inkling 2 Mini, on
-[miles](https://github.com/radixark/miles), on one GPU. So it watches over runs of itself, and what it learns
-goes back into the same weights. The published systems we read keep the two apart: in
-[AutoRL](https://arxiv.org/abs/2611.17790) the watching agents are API models that are not trained (gpt-6.1-sol
-and glm-5.2).
+The model I am experimenting with is Inkling 2 Mini. The runs it watches are RL post-training runs of Inkling 2 Mini, on [miles](https://github.com/radixark/miles), on one GPU. So it watches over runs of itself, and what it learns goes back into the same weights. The experimental setups follows [AutoRL](https://arxiv.org/abs/2611.17790) where the watching agents are API models that are not trained (gpt-6.1-sol and glm-5.2).
 
-Before any of that can happen, the model needs tasks to train on and tasks to be tested on. This post is about finding it.
+![**Figure 1.** (a) Training. Each episode starts a new inner RL run of Inkling 2 Mini with a fresh LoRA on dataset $D$. At step $t$ the supervisor $\pi_\theta$ observes the run and may act on its data, harness or model, at most $B$ times per run. The run forks into a branch with the action and a twin without it. Both run $H$ steps and are scored on held-out tasks of $D$; the reward is the difference, and only $\theta$ persists across episodes. (b) Held-out evaluation. On a new dataset $D'$, with $\theta$ frozen, the same run is repeated with no supervisor, the untrained supervisor and the trained one.](figure1_setup.png){width=100%}
+
+
 
 ## Four verbs
 
