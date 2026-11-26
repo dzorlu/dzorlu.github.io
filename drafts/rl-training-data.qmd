@@ -149,15 +149,19 @@ feedback quickly.
 
 ### What the inner run trains on
 
-| Dataset | What one run is | Why it fits |
-|---|---|---|
-| DAPO-Math-17K ([AutoRL paper](https://arxiv.org/abs/2611.17790)) | RL on 17,390 math problems, scored by answer match | AutoRL trains its Qwen runs on it, so the results can be compared |
-| RSI-Dojo ([paper](https://arxiv.org/abs/2611.03698), [data](https://huggingface.co/datasets/szgao/RSI-Dojo)) | post-train a model toward one target benchmark | 85 of its 281 targets fit a short cycle; one cycle took 17 minutes and $0.57 in a probe with Qwen3-1.7B |
+The inner runs train on targets from RSI-Dojo ([paper](https://arxiv.org/abs/2611.03698),
+[data](https://huggingface.co/datasets/szgao/RSI-Dojo)). One target is one short post-training task: train the
+model so that its score on one benchmark goes up. Each target comes with an evaluation script and no training
+recipe, so the recipe and the reward are mine.
 
-With RSI-Dojo, the training runs use some targets ($D$) and the held-out evaluation uses others ($D'$). Each
-target comes with an evaluation script and no training recipe, so the recipe and the reward are mine. In two
-targets, BoolQ and MedQA, the training and evaluation rows overlap; they need a fix or must be dropped. Which
-dataset to start with is still open.
+| | Value |
+|---|---|
+| Targets in RSI-Dojo | 281 |
+| Targets that fit a short cycle | 85 |
+| One cycle (fine-tune and evaluation) in a probe with Qwen3-1.7B | 17 minutes, $0.57 |
+
+The training runs use some targets ($D$). The held-out evaluation uses others ($D'$). In two targets, BoolQ and
+MedQA, the training rows and the evaluation rows overlap, so they need a fix or must be dropped.
 
 ### What the supervisor sees and changes
 
@@ -234,7 +238,7 @@ That is the right shape for training tasks: some too easy, some too hard, most i
 
 Figure 1 shows the setup. These points are still open:
 
-- **The inner-run dataset.** DAPO-Math-17K or RSI-Dojo targets.
+- **The split of RSI-Dojo targets** into training targets $D$ and held-out targets $D'$.
 - **The first actions.** Which changes to code, harness and data the supervisor gets first.
 - **The numbers.** The budget of actions per run, the length $H$ of a twin run, the price of an action, and how
   often a "do nothing" decision gets a twin.
