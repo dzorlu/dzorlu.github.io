@@ -117,6 +117,35 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 } catch (e) {} })();
 </script>
 
+  <script src="https://cdnjs.cloudflare.com/polyfill/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml-full.js" type="text/javascript"></script>
+
+<script type="text/javascript">
+const typesetMath = (el) => {
+  if (window.MathJax) {
+    // MathJax Typeset
+    window.MathJax.typeset([el]);
+  } else if (window.katex) {
+    // KaTeX Render
+    var mathElements = el.getElementsByClassName("math");
+    var macros = [];
+    for (var i = 0; i < mathElements.length; i++) {
+      var texText = mathElements[i].firstChild;
+      if (mathElements[i].tagName == "SPAN" && texText && texText.data) {
+        window.katex.render(texText.data, mathElements[i], {
+          displayMode: mathElements[i].classList.contains('display'),
+          throwOnError: false,
+          macros: macros,
+          fleqn: false
+        });
+      }
+    }
+  }
+}
+window.Quarto = {
+  typesetMath
+};
+</script>
 
 </head>
 
@@ -362,25 +391,17 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<div class="callout callout-style-default callout-note callout-titled">
-<div class="callout-header d-flex align-content-center">
-<div class="callout-icon-container">
-<i class="callout-icon"></i>
+<section id="introduction" class="level2">
+<h2 class="anchored" data-anchor-id="introduction">Introduction</h2>
+<p>This is a running log of small scale experimentation to build a model that supervises post-training and improves the outcomes of underlying RL runs through intervention across data, harness, and model.</p>
+<p>Specfically, the model watches a live RL post-training run, forecasts where the run is going, finds what is wrong, and changes it. The test here is a run with this model end better than the same run without it. The outer loop learns from inner RL runs and when applied to a new RL posttraining environment, it performs better than the baseline model.</p>
+<p>The model I am experimenting with is Inkling 2 Mini. The runs it watches are RL post-training runs of Inkling 2 Mini, on <a href="https://github.com/radixark/miles">miles</a>, on one GPU. So it watches over runs of itself, and what it learns goes back into the same weights. The experimental setups follows <a href="https://arxiv.org/abs/2611.17790">AutoRL</a> where the watching agents are API models that are not trained (gpt-6.1-sol and glm-5.2).</p>
+<div class="quarto-figure quarto-figure-center">
+<figure class="figure">
+<p><img src="figure1_setup.png" class="img-fluid figure-img" style="width:100.0%"></p>
+<figcaption><strong>Figure 1.</strong> (a) Training. Each episode starts a new inner RL run of Inkling 2 Mini with a fresh LoRA on dataset <span class="math inline">\(D\)</span>. At step <span class="math inline">\(t\)</span> the supervisor <span class="math inline">\(\pi_\theta\)</span> observes the run and may act on its data, harness or model, at most <span class="math inline">\(B\)</span> times per run. The run forks into a branch with the action and a twin without it. Both run <span class="math inline">\(H\)</span> steps and are scored on held-out tasks of <span class="math inline">\(D\)</span>; the reward is the difference, and only <span class="math inline">\(\theta\)</span> persists across episodes. (b) Held-out evaluation. On a new dataset <span class="math inline">\(D'\)</span>, with <span class="math inline">\(\theta\)</span> frozen, the same run is repeated with no supervisor, the untrained supervisor and the trained one.</figcaption>
+</figure>
 </div>
-<div class="callout-title-container flex-fill">
-Note
-</div>
-</div>
-<div class="callout-body-container callout-body">
-<p>This is a draft. It can change.</p>
-</div>
-</div>
-<section id="the-job" class="level2">
-<h2 class="anchored" data-anchor-id="the-job">The job</h2>
-<p>Anyone who has trained a model with RL knows the routine. You start a run. You watch the reward curve. It goes up, then it goes flat, then it does something strange at 2 a.m. You open the logs. You find that the grader has marked correct answers as wrong since step 12. You fix it and start again.</p>
-<p>We want a model that does this job. To babysit a run means to watch over it and fix it when something goes wrong. The model watches a live RL post-training run, forecasts where the run is going, finds what is wrong, and changes it. The test is simple: does a run with this model end better than the same run without it?</p>
-<p>The model is Inkling 2 Mini. The runs it watches are RL post-training runs of Inkling 2 Mini, on <a href="https://github.com/radixark/miles">miles</a>, on one GPU. So it watches over runs of itself, and what it learns goes back into the same weights. The published systems we read keep the two apart: in <a href="https://arxiv.org/abs/2611.17790">AutoRL</a> the watching agents are API models that are not trained (gpt-6.1-sol and glm-5.2).</p>
-<p>Before any of that can happen, the model needs tasks to train on and tasks to be tested on. This post is about finding it.</p>
 </section>
 <section id="four-verbs" class="level2">
 <h2 class="anchored" data-anchor-id="four-verbs">Four verbs</h2>
