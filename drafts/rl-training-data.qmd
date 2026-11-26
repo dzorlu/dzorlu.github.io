@@ -19,26 +19,21 @@ The model I am experimenting with is Inkling 2 Mini. The runs it watches are RL 
 
 The reward for the supervisor model is initialy designed to capture the improvement over counterfactual trajectory (e.g. what if the intervention hadn't been made).
 
-## Four verbs
+## Warm-up: the skills a supervisor needs
 
-Every task we found asks the model to do something to a training run. We sort the tasks by when in the life of a
-run the work happens.
+To supervise a training run well, a model first needs a few skills. It has to see where a run is going, see
+what is wrong with it, and write the fix. Each skill is a task with an answer we can check offline, without a
+live run. In the warm-up stage (Figure 1, a-i) the model trains on these tasks with RL. The supervision stage
+then starts from these weights.
 
-- **Predict.** How will this run turn out? The model hands in a forecast: a curve, a final number, or which of
-  two runs wins.
-- **Build.** Can you write the piece that makes training better? The model hands in code: a loss, an estimator,
-  a library feature.
-- **Run.** Can you take a model and a target, and make the model better? The model hands in a trained checkpoint.
-- **Read.** This run happened. What went wrong, and how do you fix it? The model hands in a diagnosis, or a
-  repair.
+| Skill | The question | What the model hands in | Datasets |
+|---|---|---|---|
+| **Predict** | How will this run turn out? | a forecast: a curve, a final number, or which of two runs wins | Tea Leaves |
+| **Read** | What went wrong in this run, and how do you fix it? | a diagnosis, or one edit to the run | AutoRLBench, RFT-FaultBench |
+| **Build** | Can you write the piece that makes training better? | code: a loss, an estimator, a library feature | HF_ML_Tasksmith, AutoResearchExam, DiscoGen |
 
-A person who is good at this job does all four. They guess the outcome before they spend compute (Predict),
-write the fix (Build), launch the job (Run), and work out why last night's run failed (Read).
-
-## The data we kept
-
-Seven datasets, in four groups. In each group, some tasks are for training and some are held back for testing.
-A model never trains on a test task.
+Each dataset has tasks for training and tasks held back for testing. A model never trains on a test task. All
+datasets I looked at, and why most were left out, are in the [appendix](#appendix-every-dataset-we-read).
 
 One rule sets the cost of checking an answer: how much of a real training run do we execute to know that the
 answer was right?
@@ -85,6 +80,35 @@ Test on:
 The Tea Leaves paper says that knowing a part of training has three levels: describing it, implementing it, and
 anticipating what it does to a run. Models are usually asked for the first two. This job needs the third.
 
+### Read
+
+The model reads what a run left behind and says what went wrong. Sometimes it also fixes the run. This is the
+skill a supervisor uses most: before it can change a run, it has to see the problem.
+
+- **Given:** the logs, config and code of a finished RL run.
+- **Hands in:** a diagnosis, or one edit to the run.
+- **Checked by:** comparing the diagnosis with the known cause, or by running the training again with the edit.
+- **GPU:** none for diagnosis. For repair, only in the grader's box: the model edits files, and the grader
+  reruns the training.
+- **Cost of one check:** about $0.05 for a diagnosis; $0.19 to $0.94 for a repair on CPU; about $2.50 to $4.50
+  for a repair with a GPU rerun.
+
+Train on:
+
+| Dataset | What one task is | Tasks |
+|---|---|---|
+| AutoRLBench, diagnosis ([repo](https://github.com/Thinking-Space/AutoRLBench)) | read a real failed RL run; name the cause, with evidence | 40 |
+| AutoRLBench, repair (same repo) | edit the failed run once; a rerun decides whether the fix worked | 3 |
+| RFT-FaultBench ([paper](https://arxiv.org/abs/2605.04431), [data](https://doi.org/10.5281/zenodo.23612747)) | read the telemetry of an RL fine-tuning run; say if it is healthy, and if not, which fault it has | 146, not split yet |
+
+Test on:
+
+| Dataset | What one task is | Tasks |
+|---|---|---|
+| AutoRLBench, diagnosis, held out | the same kind of task | 10 |
+| AutoRLBench, repair with a GPU rerun | the same kind of task, on longer runs | 5 |
+| AgenticRL-Bench ([repo](https://github.com/eigent-ai/agenticrl-bench), [Kaggle](https://www.kaggle.com/benchmarks/eigent/agenticrl-bench/leaderboard)) | audit or repair a real RL pipeline | 22 |
+
 ### Build
 
 The model writes a piece of training code and sees whether it helps. This is the research-engineering part of
@@ -117,63 +141,57 @@ Three more AutoResearchExam tasks run on a small GPU. We checked them, but they 
 In a DiscoGen attempt, 82 to 96% of the time is spent inside a training command. So the GPU is busy, and four
 attempts that share one GPU have to wait for each other.
 
-### Run
+## The supervision run
 
-The model takes a base model and a target, and trains. This is the job itself, at small scale. It is also the
-most expensive group, because every check is a training run.
+The warm-up tasks are offline. To learn supervision itself, the model needs real post-training runs to watch.
+For these runs I use short post-training tasks, for two reasons: my budget is small, and a short run gives
+feedback quickly.
 
-- **Given:** a base model and a target benchmark.
-- **Hands in:** a trained checkpoint.
-- **Checked by:** evaluating the checkpoint on held-out data.
-- **GPU:** in the model's box for the training, and in the grader's box to serve and score the checkpoint.
-- **Cost of one check:** about $0.60 for the smallest cycle; hundreds of dollars for a large one.
+### What the inner run trains on
 
-Train on:
-
-| Dataset | What one task is | Tasks |
+| Dataset | What one run is | Why it fits |
 |---|---|---|
-| RSI-Dojo ([paper](https://arxiv.org/abs/2611.03698), [data](https://huggingface.co/datasets/szgao/RSI-Dojo)) | post-train a model to raise its score on a target benchmark | 85 cheap targets of 281 |
-| DAPO-Math-17K ([AutoRL paper](https://arxiv.org/abs/2611.17790)) | an RL run on 17,390 math problems; the run that the supervisor watches | 1 run recipe |
+| DAPO-Math-17K ([AutoRL paper](https://arxiv.org/abs/2611.17790)) | RL on 17,390 math problems, scored by answer match | AutoRL trains its Qwen runs on it, so the results can be compared |
+| RSI-Dojo ([paper](https://arxiv.org/abs/2611.03698), [data](https://huggingface.co/datasets/szgao/RSI-Dojo)) | post-train a model toward one target benchmark | 85 of its 281 targets fit a short cycle; one cycle took 17 minutes and $0.57 in a probe with Qwen3-1.7B |
 
-Test on:
+With RSI-Dojo, the training runs use some targets ($D$) and the held-out evaluation uses others ($D'$). Each
+target comes with an evaluation script and no training recipe, so the recipe and the reward are mine. In two
+targets, BoolQ and MedQA, the training and evaluation rows overlap; they need a fix or must be dropped. Which
+dataset to start with is still open.
+
+### What the supervisor sees and changes
+
+The setup is close to AutoRL's. The supervisor reads the state of the run and may change three parts of it.
+
+| | What |
+|---|---|
+| **Reads** | training metrics per step (reward, KL, entropy, response length, step time); rollout trajectories with their rewards; held-out scores at each checkpoint; the run's config; its own earlier actions in this run and their effect; the actions left in its budget |
+| **Changes the code** | the training code in [miles](https://github.com/radixark/miles): loss, advantage, sampling, learning rate |
+| **Changes the harness** | the agent harness, [OpenCode](https://github.com/sst/opencode): prompt, tools, turn and time limits |
+| **Changes the data** | which tasks, in what order, and how they are graded |
+
+It may also do nothing. Doing nothing is an action like the others, and it is scored the same way.
+
+### When it acts
+
+For a first proof of concept, the supervisor acts only at step boundaries: after the weight sync and before the
+next rollouts. The run pauses, the supervisor reads and decides, and the run continues. This keeps things
+simple, because every decision point is a saved checkpoint, and a twin run can start from it. This is the setup
+in Figure 1: the fork starts at checkpoint $m_t$.
+
+Supervising inside a step, for example stopping bad rollouts while they run, would give more decision points
+and denser feedback. It would also need a way to copy the run in the middle of a step. I leave it for later.
+
+### Tests on longer runs
+
+These post-training benchmarks are too long to train on. They test whether the trained supervisor helps on
+runs much longer than the ones it learned from.
 
 | Dataset | What one task is | Tasks |
 |---|---|---|
 | PostTrainBench ([repo](https://github.com/aisa-group/PostTrainBench)) | post-train a base LLM for one of six benchmarks, 10 hours on one H100 | not counted yet |
 | FrontierRSI ([repo](https://github.com/abundant-ai/frontier-rsi)) | improve a training recipe, RL data, inference speed or a GPU kernel | 8 public |
 | RL post-training of Olmo-3-7B ([Harbor Hub](https://hub.harborframework.com/datasets/ale/rsi-post-training)) | improve an RL recipe on math under a fixed budget of episodes | 1 |
-
-We use RSI-Dojo for the supervising role only. Its targets come with an evaluation script and no training
-recipe, so the recipe and the reward are ours.
-
-### Read
-
-The model reads what a run left behind and says what went wrong. Sometimes it also fixes the run. This is the
-skill a supervisor uses most: before it can change a run, it has to see the problem.
-
-- **Given:** the logs, config and code of a finished RL run.
-- **Hands in:** a diagnosis, or one edit to the run.
-- **Checked by:** comparing the diagnosis with the known cause, or by running the training again with the edit.
-- **GPU:** none for diagnosis. For repair, only in the grader's box: the model edits files, and the grader
-  reruns the training.
-- **Cost of one check:** about $0.05 for a diagnosis; $0.19 to $0.94 for a repair on CPU; about $2.50 to $4.50
-  for a repair with a GPU rerun.
-
-Train on:
-
-| Dataset | What one task is | Tasks |
-|---|---|---|
-| AutoRLBench, diagnosis ([repo](https://github.com/Thinking-Space/AutoRLBench)) | read a real failed RL run; name the cause, with evidence | 40 |
-| AutoRLBench, repair (same repo) | edit the failed run once; a rerun decides whether the fix worked | 3 |
-| RFT-FaultBench ([paper](https://arxiv.org/abs/2605.04431), [data](https://doi.org/10.5281/zenodo.23612747)) | read the telemetry of an RL fine-tuning run; say if it is healthy, and if not, which fault it has | 146, not split yet |
-
-Test on:
-
-| Dataset | What one task is | Tasks |
-|---|---|---|
-| AutoRLBench, diagnosis, held out | the same kind of task | 10 |
-| AutoRLBench, repair with a GPU rerun | the same kind of task, on longer runs | 5 |
-| AgenticRL-Bench ([repo](https://github.com/eigent-ai/agenticrl-bench), [Kaggle](https://www.kaggle.com/benchmarks/eigent/agenticrl-bench/leaderboard)) | audit or repair a real RL pipeline | 22 |
 
 ## Three tasks up close
 
@@ -193,7 +211,7 @@ A program grades it: 0 for the wrong status, more for the right family, full mar
 on two games to see how its loss does. When it stops, the grader trains with its loss on two other games it never
 saw, and compares with the standard loss.
 
-**Run, from RSI-Dojo.** The model gets a base model and a target benchmark. It trains, then the grader evaluates
+**A supervision run, from RSI-Dojo.** The inner run gets a base model and a target benchmark. It trains, then a grader evaluates
 the checkpoint on 300 held-out rows. In our timing test, one 15-minute fine-tune plus the evaluation took about
 17 minutes on one small GPU and cost about $0.57.
 
@@ -214,20 +232,15 @@ That is the right shape for training tasks: some too easy, some too hard, most i
 
 ## What comes next
 
-The data is ready. The experiment is not designed yet. We know the question: does a run that the model watches
-over end better than the same run without it? We do not yet know the setup that answers it cleanly. The open
-points:
+Figure 1 shows the setup. These points are still open:
 
-- **What the model may change.** The search space is the data, the harness and the model side of a run. Which
-  changes it gets first is open.
-- **How a change is scored.** One option is to copy the run at the moment of the change into two branches, one
-  with the change and one without, and to compare them on held-out data.
-- **How often it may act.** A small budget of changes per run would make it choose.
-- **One model or two.** We want the same weights to do the tasks and to watch the run. Published systems use a
-  separate model for the watching.
-- **What the run trains on.** One dataset per run, as AutoRL does with DAPO-Math-17K, or a mix.
+- **The inner-run dataset.** DAPO-Math-17K or RSI-Dojo targets.
+- **The first actions.** Which changes to code, harness and data the supervisor gets first.
+- **The numbers.** The budget of actions per run, the length $H$ of a twin run, the price of an action, and how
+  often a "do nothing" decision gets a twin.
+- **Supervising inside a step.** Denser feedback, at the cost of copying a run mid-step.
 
-## Every dataset we read
+## Appendix: every dataset we read
 
 We looked at about 175 datasets and benchmarks. Many we judged from the paper or the dataset card. The
 candidates we read task by task.
