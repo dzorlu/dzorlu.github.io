@@ -404,20 +404,46 @@ window.Quarto = {
 </div>
 <p>The reward for the supervisor model is initialy designed to capture the improvement over counterfactual trajectory (e.g.&nbsp;what if the intervention hadn’t been made).</p>
 </section>
-<section id="four-verbs" class="level2">
-<h2 class="anchored" data-anchor-id="four-verbs">Four verbs</h2>
-<p>Every task we found asks the model to do something to a training run. We sort the tasks by when in the life of a run the work happens.</p>
-<ul>
-<li><strong>Predict.</strong> How will this run turn out? The model hands in a forecast: a curve, a final number, or which of two runs wins.</li>
-<li><strong>Build.</strong> Can you write the piece that makes training better? The model hands in code: a loss, an estimator, a library feature.</li>
-<li><strong>Run.</strong> Can you take a model and a target, and make the model better? The model hands in a trained checkpoint.</li>
-<li><strong>Read.</strong> This run happened. What went wrong, and how do you fix it? The model hands in a diagnosis, or a repair.</li>
-</ul>
-<p>A person who is good at this job does all four. They guess the outcome before they spend compute (Predict), write the fix (Build), launch the job (Run), and work out why last night’s run failed (Read).</p>
-</section>
-<section id="the-data-we-kept" class="level2">
-<h2 class="anchored" data-anchor-id="the-data-we-kept">The data we kept</h2>
-<p>Seven datasets, in four groups. In each group, some tasks are for training and some are held back for testing. A model never trains on a test task.</p>
+<section id="warm-up-the-skills-a-supervisor-needs" class="level2">
+<h2 class="anchored" data-anchor-id="warm-up-the-skills-a-supervisor-needs">Warm-up: the skills a supervisor needs</h2>
+<p>To supervise a training run well, a model first needs a few skills. It has to see where a run is going, see what is wrong with it, and write the fix. Each skill is a task with an answer we can check offline, without a live run. In the warm-up stage (Figure 1, a-i) the model trains on these tasks with RL. The supervision stage then starts from these weights.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Skill</th>
+<th>The question</th>
+<th>What the model hands in</th>
+<th>Datasets</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Predict</strong></td>
+<td>How will this run turn out?</td>
+<td>a forecast: a curve, a final number, or which of two runs wins</td>
+<td>Tea Leaves</td>
+</tr>
+<tr class="even">
+<td><strong>Read</strong></td>
+<td>What went wrong in this run, and how do you fix it?</td>
+<td>a diagnosis, or one edit to the run</td>
+<td>AutoRLBench, RFT-FaultBench</td>
+</tr>
+<tr class="odd">
+<td><strong>Build</strong></td>
+<td>Can you write the piece that makes training better?</td>
+<td>code: a loss, an estimator, a library feature</td>
+<td>HF_ML_Tasksmith, AutoResearchExam, DiscoGen</td>
+</tr>
+</tbody>
+</table>
+<p>Each dataset has tasks for training and tasks held back for testing. A model never trains on a test task. All datasets I looked at, and why most were left out, are in the <a href="#appendix-every-dataset-we-read">appendix</a>.</p>
 <p>One rule sets the cost of checking an answer: how much of a real training run do we execute to know that the answer was right?</p>
 <p>We also chose the tasks to be fast. An RL run needs many attempts per step, so a slow task makes every step slow and costly. We kept tasks where one experiment takes a few minutes, whatever budget the dataset shipped with. Every attempt has a turn limit of 128 and a time limit.</p>
 <table class="caption-top table">
@@ -518,129 +544,6 @@ window.Quarto = {
 </table>
 <p>The Tea Leaves paper says that knowing a part of training has three levels: describing it, implementing it, and anticipating what it does to a run. Models are usually asked for the first two. This job needs the third.</p>
 </section>
-<section id="build" class="level3">
-<h3 class="anchored" data-anchor-id="build">Build</h3>
-<p>The model writes a piece of training code and sees whether it helps. This is the research-engineering part of the job: when the supervisor decides that a run needs a new loss or a fixed library function, it has to write it.</p>
-<ul>
-<li><strong>Given:</strong> working code with a part to write or improve.</li>
-<li><strong>Hands in:</strong> code.</li>
-<li><strong>Checked by:</strong> hidden tests, or a grader that trains with the code on data the model never saw.</li>
-<li><strong>GPU:</strong> none for the library tasks. For the others, in the model’s box and in the grader’s box, because the model runs small trainings to try its ideas.</li>
-<li><strong>Cost of one check:</strong> $0.10 to about $1.20 on CPU or a small GPU; $2.30 to $3.30 on an H100.</li>
-</ul>
-<p>Train on:</p>
-<table class="caption-top table">
-<thead>
-<tr class="header">
-<th>Dataset</th>
-<th>What one task is</th>
-<th>Tasks</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>HF_ML_Tasksmith (<a href="https://huggingface.co/datasets/FineEnvs/HF_ML_Tasksmith">data</a>)</td>
-<td>implement a merged pull request in trl, peft, accelerate, diffusers or transformers</td>
-<td>11</td>
-</tr>
-<tr class="even">
-<td>AutoResearchExam (<a href="https://github.com/bespokelabsai/AutoResearchExam">repo</a>)</td>
-<td>improve a research result (an estimator, an encoder, an RL trainer); submit, see a validation score, improve</td>
-<td>15</td>
-</tr>
-<tr class="odd">
-<td>DiscoGen (<a href="https://arxiv.org/abs/2603.17863">paper</a>, <a href="https://github.com/AlexGoldie/discogen">repo</a>)</td>
-<td>rewrite the loss, optimizer or network of PPO, DQN or an image classifier</td>
-<td>17</td>
-</tr>
-</tbody>
-</table>
-<p>Test on:</p>
-<table class="caption-top table">
-<thead>
-<tr class="header">
-<th>Dataset</th>
-<th>What one task is</th>
-<th>Tasks</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>Held-out tasks of the three sets above</td>
-<td>the same kinds of task</td>
-<td>4 + 3 + 3</td>
-</tr>
-<tr class="even">
-<td>RSI Bench, from Scale (<a href="https://github.com/scaleapi/rsi-benchmark">repo</a>)</td>
-<td>long research tasks: post-training, data, architecture, systems</td>
-<td>49</td>
-</tr>
-</tbody>
-</table>
-<p>Three more AutoResearchExam tasks run on a small GPU. We checked them, but they are not in the pool yet.</p>
-<p>In a DiscoGen attempt, 82 to 96% of the time is spent inside a training command. So the GPU is busy, and four attempts that share one GPU have to wait for each other.</p>
-</section>
-<section id="run" class="level3">
-<h3 class="anchored" data-anchor-id="run">Run</h3>
-<p>The model takes a base model and a target, and trains. This is the job itself, at small scale. It is also the most expensive group, because every check is a training run.</p>
-<ul>
-<li><strong>Given:</strong> a base model and a target benchmark.</li>
-<li><strong>Hands in:</strong> a trained checkpoint.</li>
-<li><strong>Checked by:</strong> evaluating the checkpoint on held-out data.</li>
-<li><strong>GPU:</strong> in the model’s box for the training, and in the grader’s box to serve and score the checkpoint.</li>
-<li><strong>Cost of one check:</strong> about $0.60 for the smallest cycle; hundreds of dollars for a large one.</li>
-</ul>
-<p>Train on:</p>
-<table class="caption-top table">
-<thead>
-<tr class="header">
-<th>Dataset</th>
-<th>What one task is</th>
-<th>Tasks</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>RSI-Dojo (<a href="https://arxiv.org/abs/2611.03698">paper</a>, <a href="https://huggingface.co/datasets/szgao/RSI-Dojo">data</a>)</td>
-<td>post-train a model to raise its score on a target benchmark</td>
-<td>85 cheap targets of 281</td>
-</tr>
-<tr class="even">
-<td>DAPO-Math-17K (<a href="https://arxiv.org/abs/2611.17790">AutoRL paper</a>)</td>
-<td>an RL run on 17,390 math problems; the run that the supervisor watches</td>
-<td>1 run recipe</td>
-</tr>
-</tbody>
-</table>
-<p>Test on:</p>
-<table class="caption-top table">
-<thead>
-<tr class="header">
-<th>Dataset</th>
-<th>What one task is</th>
-<th>Tasks</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>PostTrainBench (<a href="https://github.com/aisa-group/PostTrainBench">repo</a>)</td>
-<td>post-train a base LLM for one of six benchmarks, 10 hours on one H100</td>
-<td>not counted yet</td>
-</tr>
-<tr class="even">
-<td>FrontierRSI (<a href="https://github.com/abundant-ai/frontier-rsi">repo</a>)</td>
-<td>improve a training recipe, RL data, inference speed or a GPU kernel</td>
-<td>8 public</td>
-</tr>
-<tr class="odd">
-<td>RL post-training of Olmo-3-7B (<a href="https://hub.harborframework.com/datasets/ale/rsi-post-training">Harbor Hub</a>)</td>
-<td>improve an RL recipe on math under a fixed budget of episodes</td>
-<td>1</td>
-</tr>
-</tbody>
-</table>
-<p>We use RSI-Dojo for the supervising role only. Its targets come with an evaluation script and no training recipe, so the recipe and the reward are ours.</p>
-</section>
 <section id="read" class="level3">
 <h3 class="anchored" data-anchor-id="read">Read</h3>
 <p>The model reads what a run left behind and says what went wrong. Sometimes it also fixes the run. This is the skill a supervisor uses most: before it can change a run, it has to see the problem.</p>
@@ -706,6 +609,163 @@ window.Quarto = {
 </tbody>
 </table>
 </section>
+<section id="build" class="level3">
+<h3 class="anchored" data-anchor-id="build">Build</h3>
+<p>The model writes a piece of training code and sees whether it helps. This is the research-engineering part of the job: when the supervisor decides that a run needs a new loss or a fixed library function, it has to write it.</p>
+<ul>
+<li><strong>Given:</strong> working code with a part to write or improve.</li>
+<li><strong>Hands in:</strong> code.</li>
+<li><strong>Checked by:</strong> hidden tests, or a grader that trains with the code on data the model never saw.</li>
+<li><strong>GPU:</strong> none for the library tasks. For the others, in the model’s box and in the grader’s box, because the model runs small trainings to try its ideas.</li>
+<li><strong>Cost of one check:</strong> $0.10 to about $1.20 on CPU or a small GPU; $2.30 to $3.30 on an H100.</li>
+</ul>
+<p>Train on:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Dataset</th>
+<th>What one task is</th>
+<th>Tasks</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>HF_ML_Tasksmith (<a href="https://huggingface.co/datasets/FineEnvs/HF_ML_Tasksmith">data</a>)</td>
+<td>implement a merged pull request in trl, peft, accelerate, diffusers or transformers</td>
+<td>11</td>
+</tr>
+<tr class="even">
+<td>AutoResearchExam (<a href="https://github.com/bespokelabsai/AutoResearchExam">repo</a>)</td>
+<td>improve a research result (an estimator, an encoder, an RL trainer); submit, see a validation score, improve</td>
+<td>15</td>
+</tr>
+<tr class="odd">
+<td>DiscoGen (<a href="https://arxiv.org/abs/2603.17863">paper</a>, <a href="https://github.com/AlexGoldie/discogen">repo</a>)</td>
+<td>rewrite the loss, optimizer or network of PPO, DQN or an image classifier</td>
+<td>17</td>
+</tr>
+</tbody>
+</table>
+<p>Test on:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Dataset</th>
+<th>What one task is</th>
+<th>Tasks</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Held-out tasks of the three sets above</td>
+<td>the same kinds of task</td>
+<td>4 + 3 + 3</td>
+</tr>
+<tr class="even">
+<td>RSI Bench, from Scale (<a href="https://github.com/scaleapi/rsi-benchmark">repo</a>)</td>
+<td>long research tasks: post-training, data, architecture, systems</td>
+<td>49</td>
+</tr>
+</tbody>
+</table>
+<p>Three more AutoResearchExam tasks run on a small GPU. We checked them, but they are not in the pool yet.</p>
+<p>In a DiscoGen attempt, 82 to 96% of the time is spent inside a training command. So the GPU is busy, and four attempts that share one GPU have to wait for each other.</p>
+</section>
+</section>
+<section id="the-supervision-run" class="level2">
+<h2 class="anchored" data-anchor-id="the-supervision-run">The supervision run</h2>
+<p>The warm-up tasks are offline. To learn supervision itself, the model needs real post-training runs to watch. For these runs I use short post-training tasks, for two reasons: my budget is small, and a short run gives feedback quickly.</p>
+<section id="what-the-inner-run-trains-on" class="level3">
+<h3 class="anchored" data-anchor-id="what-the-inner-run-trains-on">What the inner run trains on</h3>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Dataset</th>
+<th>What one run is</th>
+<th>Why it fits</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>DAPO-Math-17K (<a href="https://arxiv.org/abs/2611.17790">AutoRL paper</a>)</td>
+<td>RL on 17,390 math problems, scored by answer match</td>
+<td>AutoRL trains its Qwen runs on it, so the results can be compared</td>
+</tr>
+<tr class="even">
+<td>RSI-Dojo (<a href="https://arxiv.org/abs/2611.03698">paper</a>, <a href="https://huggingface.co/datasets/szgao/RSI-Dojo">data</a>)</td>
+<td>post-train a model toward one target benchmark</td>
+<td>85 of its 281 targets fit a short cycle; one cycle took 17 minutes and $0.57 in a probe with Qwen3-1.7B</td>
+</tr>
+</tbody>
+</table>
+<p>With RSI-Dojo, the training runs use some targets (<span class="math inline">\(D\)</span>) and the held-out evaluation uses others (<span class="math inline">\(D'\)</span>). Each target comes with an evaluation script and no training recipe, so the recipe and the reward are mine. In two targets, BoolQ and MedQA, the training and evaluation rows overlap; they need a fix or must be dropped. Which dataset to start with is still open.</p>
+</section>
+<section id="what-the-supervisor-sees-and-changes" class="level3">
+<h3 class="anchored" data-anchor-id="what-the-supervisor-sees-and-changes">What the supervisor sees and changes</h3>
+<p>The setup is close to AutoRL’s. The supervisor reads the state of the run and may change three parts of it.</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th></th>
+<th>What</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><strong>Reads</strong></td>
+<td>training metrics per step (reward, KL, entropy, response length, step time); rollout trajectories with their rewards; held-out scores at each checkpoint; the run’s config; its own earlier actions in this run and their effect; the actions left in its budget</td>
+</tr>
+<tr class="even">
+<td><strong>Changes the code</strong></td>
+<td>the training code in <a href="https://github.com/radixark/miles">miles</a>: loss, advantage, sampling, learning rate</td>
+</tr>
+<tr class="odd">
+<td><strong>Changes the harness</strong></td>
+<td>the agent harness, <a href="https://github.com/sst/opencode">OpenCode</a>: prompt, tools, turn and time limits</td>
+</tr>
+<tr class="even">
+<td><strong>Changes the data</strong></td>
+<td>which tasks, in what order, and how they are graded</td>
+</tr>
+</tbody>
+</table>
+<p>It may also do nothing. Doing nothing is an action like the others, and it is scored the same way.</p>
+</section>
+<section id="when-it-acts" class="level3">
+<h3 class="anchored" data-anchor-id="when-it-acts">When it acts</h3>
+<p>For a first proof of concept, the supervisor acts only at step boundaries: after the weight sync and before the next rollouts. The run pauses, the supervisor reads and decides, and the run continues. This keeps things simple, because every decision point is a saved checkpoint, and a twin run can start from it. This is the setup in Figure 1: the fork starts at checkpoint <span class="math inline">\(m_t\)</span>.</p>
+<p>Supervising inside a step, for example stopping bad rollouts while they run, would give more decision points and denser feedback. It would also need a way to copy the run in the middle of a step. I leave it for later.</p>
+</section>
+<section id="tests-on-longer-runs" class="level3">
+<h3 class="anchored" data-anchor-id="tests-on-longer-runs">Tests on longer runs</h3>
+<p>These post-training benchmarks are too long to train on. They test whether the trained supervisor helps on runs much longer than the ones it learned from.</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th>Dataset</th>
+<th>What one task is</th>
+<th>Tasks</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>PostTrainBench (<a href="https://github.com/aisa-group/PostTrainBench">repo</a>)</td>
+<td>post-train a base LLM for one of six benchmarks, 10 hours on one H100</td>
+<td>not counted yet</td>
+</tr>
+<tr class="even">
+<td>FrontierRSI (<a href="https://github.com/abundant-ai/frontier-rsi">repo</a>)</td>
+<td>improve a training recipe, RL data, inference speed or a GPU kernel</td>
+<td>8 public</td>
+</tr>
+<tr class="odd">
+<td>RL post-training of Olmo-3-7B (<a href="https://hub.harborframework.com/datasets/ale/rsi-post-training">Harbor Hub</a>)</td>
+<td>improve an RL recipe on math under a fixed budget of episodes</td>
+<td>1</td>
+</tr>
+</tbody>
+</table>
+</section>
 </section>
 <section id="three-tasks-up-close" class="level2">
 <h2 class="anchored" data-anchor-id="three-tasks-up-close">Three tasks up close</h2>
@@ -714,7 +774,7 @@ window.Quarto = {
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a> <span class="dt">"evidence"</span><span class="fu">:</span> <span class="st">"what in the logs shows it"</span><span class="fu">}</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>A program grades it: 0 for the wrong status, more for the right family, full marks for the right type.</p>
 <p><strong>Build, from DiscoGen.</strong> The model gets a working PPO trainer. Only <code>loss.py</code> is editable. It can run training on two games to see how its loss does. When it stops, the grader trains with its loss on two other games it never saw, and compares with the standard loss.</p>
-<p><strong>Run, from RSI-Dojo.</strong> The model gets a base model and a target benchmark. It trains, then the grader evaluates the checkpoint on 300 held-out rows. In our timing test, one 15-minute fine-tune plus the evaluation took about 17 minutes on one small GPU and cost about $0.57.</p>
+<p><strong>A supervision run, from RSI-Dojo.</strong> The inner run gets a base model and a target benchmark. It trains, then a grader evaluates the checkpoint on 300 held-out rows. In our timing test, one 15-minute fine-tune plus the evaluation took about 17 minutes on one small GPU and cost about $0.57.</p>
 </section>
 <section id="how-inkling-2-mini-did-on-a-first-try" class="level2">
 <h2 class="anchored" data-anchor-id="how-inkling-2-mini-did-on-a-first-try">How Inkling 2 Mini did on a first try</h2>
@@ -729,17 +789,16 @@ window.Quarto = {
 </section>
 <section id="what-comes-next" class="level2">
 <h2 class="anchored" data-anchor-id="what-comes-next">What comes next</h2>
-<p>The data is ready. The experiment is not designed yet. We know the question: does a run that the model watches over end better than the same run without it? We do not yet know the setup that answers it cleanly. The open points:</p>
+<p>Figure 1 shows the setup. These points are still open:</p>
 <ul>
-<li><strong>What the model may change.</strong> The search space is the data, the harness and the model side of a run. Which changes it gets first is open.</li>
-<li><strong>How a change is scored.</strong> One option is to copy the run at the moment of the change into two branches, one with the change and one without, and to compare them on held-out data.</li>
-<li><strong>How often it may act.</strong> A small budget of changes per run would make it choose.</li>
-<li><strong>One model or two.</strong> We want the same weights to do the tasks and to watch the run. Published systems use a separate model for the watching.</li>
-<li><strong>What the run trains on.</strong> One dataset per run, as AutoRL does with DAPO-Math-17K, or a mix.</li>
+<li><strong>The inner-run dataset.</strong> DAPO-Math-17K or RSI-Dojo targets.</li>
+<li><strong>The first actions.</strong> Which changes to code, harness and data the supervisor gets first.</li>
+<li><strong>The numbers.</strong> The budget of actions per run, the length <span class="math inline">\(H\)</span> of a twin run, the price of an action, and how often a “do nothing” decision gets a twin.</li>
+<li><strong>Supervising inside a step.</strong> Denser feedback, at the cost of copying a run mid-step.</li>
 </ul>
 </section>
-<section id="every-dataset-we-read" class="level2">
-<h2 class="anchored" data-anchor-id="every-dataset-we-read">Every dataset we read</h2>
+<section id="appendix-every-dataset-we-read" class="level2">
+<h2 class="anchored" data-anchor-id="appendix-every-dataset-we-read">Appendix: every dataset we read</h2>
 <p>We looked at about 175 datasets and benchmarks. Many we judged from the paper or the dataset card. The candidates we read task by task.</p>
 <p><strong>Kept</strong></p>
 <ul>
