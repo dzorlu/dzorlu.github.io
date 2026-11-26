@@ -677,28 +677,34 @@ window.Quarto = {
 <p>The warm-up tasks are offline. To learn supervision itself, the model needs real post-training runs to watch. For these runs I use short post-training tasks, for two reasons: my budget is small, and a short run gives feedback quickly.</p>
 <section id="what-the-inner-run-trains-on" class="level3">
 <h3 class="anchored" data-anchor-id="what-the-inner-run-trains-on">What the inner run trains on</h3>
+<p>The inner runs train on targets from RSI-Dojo (<a href="https://arxiv.org/abs/2611.03698">paper</a>, <a href="https://huggingface.co/datasets/szgao/RSI-Dojo">data</a>). One target is one short post-training task: train the model so that its score on one benchmark goes up. Each target comes with an evaluation script and no training recipe, so the recipe and the reward are mine.</p>
 <table class="caption-top table">
+<colgroup>
+<col style="width: 50%">
+<col style="width: 50%">
+</colgroup>
 <thead>
 <tr class="header">
-<th>Dataset</th>
-<th>What one run is</th>
-<th>Why it fits</th>
+<th></th>
+<th>Value</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>DAPO-Math-17K (<a href="https://arxiv.org/abs/2611.17790">AutoRL paper</a>)</td>
-<td>RL on 17,390 math problems, scored by answer match</td>
-<td>AutoRL trains its Qwen runs on it, so the results can be compared</td>
+<td>Targets in RSI-Dojo</td>
+<td>281</td>
 </tr>
 <tr class="even">
-<td>RSI-Dojo (<a href="https://arxiv.org/abs/2611.03698">paper</a>, <a href="https://huggingface.co/datasets/szgao/RSI-Dojo">data</a>)</td>
-<td>post-train a model toward one target benchmark</td>
-<td>85 of its 281 targets fit a short cycle; one cycle took 17 minutes and $0.57 in a probe with Qwen3-1.7B</td>
+<td>Targets that fit a short cycle</td>
+<td>85</td>
+</tr>
+<tr class="odd">
+<td>One cycle (fine-tune and evaluation) in a probe with Qwen3-1.7B</td>
+<td>17 minutes, $0.57</td>
 </tr>
 </tbody>
 </table>
-<p>With RSI-Dojo, the training runs use some targets (<span class="math inline">\(D\)</span>) and the held-out evaluation uses others (<span class="math inline">\(D'\)</span>). Each target comes with an evaluation script and no training recipe, so the recipe and the reward are mine. In two targets, BoolQ and MedQA, the training and evaluation rows overlap; they need a fix or must be dropped. Which dataset to start with is still open.</p>
+<p>The training runs use some targets (<span class="math inline">\(D\)</span>). The held-out evaluation uses others (<span class="math inline">\(D'\)</span>). In two targets, BoolQ and MedQA, the training rows and the evaluation rows overlap, so they need a fix or must be dropped.</p>
 </section>
 <section id="what-the-supervisor-sees-and-changes" class="level3">
 <h3 class="anchored" data-anchor-id="what-the-supervisor-sees-and-changes">What the supervisor sees and changes</h3>
@@ -791,7 +797,7 @@ window.Quarto = {
 <h2 class="anchored" data-anchor-id="what-comes-next">What comes next</h2>
 <p>Figure 1 shows the setup. These points are still open:</p>
 <ul>
-<li><strong>The inner-run dataset.</strong> DAPO-Math-17K or RSI-Dojo targets.</li>
+<li><strong>The split of RSI-Dojo targets</strong> into training targets <span class="math inline">\(D\)</span> and held-out targets <span class="math inline">\(D'\)</span>.</li>
 <li><strong>The first actions.</strong> Which changes to code, harness and data the supervisor gets first.</li>
 <li><strong>The numbers.</strong> The budget of actions per run, the length <span class="math inline">\(H\)</span> of a twin run, the price of an action, and how often a “do nothing” decision gets a twin.</li>
 <li><strong>Supervising inside a step.</strong> Denser feedback, at the cost of copying a run mid-step.</li>
