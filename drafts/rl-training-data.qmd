@@ -3,17 +3,20 @@ title: "Teaching a model to babysit its own training runs: the data"
 date: "2026-11-24"
 categories: [rl, data, agents]
 bibliography: rl-training-data.bib
-citation-location: margin
-reference-location: margin
+csl: ieee.csl
+link-citations: true
+citation-location: document
+reference-location: document
 toc: true
 toc-location: left
 toc-title: Contents
 format:
   html:
+    css: rl-training-data.css
     grid:
       sidebar-width: 220px
-      body-width: 860px
-      margin-width: 280px
+      body-width: 960px
+      margin-width: 160px
 ---
 
 
@@ -25,7 +28,7 @@ Specfically, the model watches a live RL post-training run, forecasts where the 
 
 The model I am experimenting with is Inkling 2 Mini. The runs it watches are RL post-training runs of Inkling 2 Mini, on [miles](https://github.com/radixark/miles) [@radixark2026miles], on one GPU. So it watches over runs of itself, and what it learns goes back into the same weights. The experimental setups follows [AutoRL](https://arxiv.org/abs/2611.17790) [@tang2026autorl] where the watching agents are API models that are not trained (gpt-6.1-sol and glm-5.2).
 
-![**Figure 1.** (a) Training. (i) Warm-up: RL on offline skill tasks (Predict, Read, Build) gives the starting weights $\theta_0$. (ii) Supervision: each episode starts a new inner RL run of Inkling 2 Mini with a fresh LoRA on dataset $D$. At step $t$ the supervisor $\pi_\theta$ observes the run and may act on its data, harness or model, at most $B$ times per run. The run forks into a branch with the action and a twin without it. Both run $H$ steps and are scored on held-out tasks of $D$; the reward is the difference, and only $\theta$ persists across episodes. (b) Held-out evaluation. On a new dataset $D'$, with $\theta$ frozen, the same run is repeated with no supervisor, the untrained supervisor and the trained one.](figure1_setup.png){width=100% .column-page-right}
+![**Figure 1.** (a) Training. (i) Warm-up: RL on offline skill tasks (Predict, Read, Build) gives the starting weights $\theta_0$. (ii) Supervision: each episode starts a new inner RL run of Inkling 2 Mini with a fresh LoRA on dataset $D$. At step $t$ the supervisor $\pi_\theta$ observes the run and may act on its data, harness or model, at most $B$ times per run. The run forks into a branch with the action and a twin without it. Both run $H$ steps and are scored on held-out tasks of $D$; the reward is the difference, and only $\theta$ persists across episodes. (b) Held-out evaluation. On a new dataset $D'$, with $\theta$ frozen, the same run is repeated with no supervisor, the untrained supervisor and the trained one.](figure1_setup.png){width=100%}
 
 The reward for the supervisor model is initialy designed to capture the improvement over counterfactual trajectory (e.g. what if the intervention hadn't been made).
 
