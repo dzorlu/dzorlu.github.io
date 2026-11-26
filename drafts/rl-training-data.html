@@ -57,7 +57,27 @@ div.sourceCode
 @media screen {
 pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
-</style>
+/* CSS for citations */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
+  margin-bottom: 0em;
+}
+.hanging-indent div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
+}
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
+}
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
+}
+div.csl-indent {
+  margin-left: 2em;
+}</style>
 
 
 <script src="../site_libs/quarto-nav/quarto-nav.js"></script>
@@ -79,9 +99,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <link href="../site_libs/quarto-html/quarto-syntax-highlighting-ba1660c15a418d22b3f3da2c272b5d97.css" rel="stylesheet" class="quarto-color-scheme-extra" id="quarto-text-highlighting-styles">
 <script src="../site_libs/bootstrap/bootstrap.min.js"></script>
 <link href="../site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
-<link href="../site_libs/bootstrap/bootstrap-26e7725ac52483035b3594d5d3272c2c.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
-<link href="../site_libs/bootstrap/bootstrap-dark-768a3c524e56f0bfc90ddbc0dfbad9ba.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
-<link href="../site_libs/bootstrap/bootstrap-26e7725ac52483035b3594d5d3272c2c.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-874cf064f20d2c7809286a32db7e72dd.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme" id="quarto-bootstrap" data-mode="light">
+<link href="../site_libs/bootstrap/bootstrap-dark-89e32539f7b17c753077824e8d0608ff.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme quarto-color-alternate" id="quarto-bootstrap" data-mode="dark">
+<link href="../site_libs/bootstrap/bootstrap-874cf064f20d2c7809286a32db7e72dd.min.css" rel="stylesheet" append-hash="true" class="quarto-color-scheme-extra" id="quarto-bootstrap" data-mode="light">
 <script id="quarto-search-options" type="application/json">{
   "location": "navbar",
   "copy-button": false,
@@ -149,7 +169,7 @@ window.Quarto = {
 
 </head>
 
-<body class="nav-fixed quarto-light"><script id="quarto-html-before-body" type="application/javascript">
+<body class="floating nav-fixed slimcontent quarto-light"><script id="quarto-html-before-body" type="application/javascript">
     const toggleBodyColorMode = (bsSheetEl) => {
       const mode = bsSheetEl.getAttribute("data-mode");
       const bodyEl = window.document.querySelector("body");
@@ -348,12 +368,41 @@ window.Quarto = {
     </nav>
 </header>
 <!-- content -->
-<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-full page-navbar">
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article page-navbar">
 <!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Contents</h2>
+   
+  <ul>
+  <li><a href="#introduction" id="toc-introduction" class="nav-link active" data-scroll-target="#introduction">Introduction</a></li>
+  <li><a href="#warm-up-the-skills-a-supervisor-needs" id="toc-warm-up-the-skills-a-supervisor-needs" class="nav-link" data-scroll-target="#warm-up-the-skills-a-supervisor-needs">Warm-up: the skills a supervisor needs</a>
+  <ul class="collapse">
+  <li><a href="#predict" id="toc-predict" class="nav-link" data-scroll-target="#predict">Predict</a></li>
+  <li><a href="#read" id="toc-read" class="nav-link" data-scroll-target="#read">Read</a></li>
+  <li><a href="#build" id="toc-build" class="nav-link" data-scroll-target="#build">Build</a></li>
+  </ul></li>
+  <li><a href="#the-supervision-run" id="toc-the-supervision-run" class="nav-link" data-scroll-target="#the-supervision-run">The supervision run</a>
+  <ul class="collapse">
+  <li><a href="#what-the-inner-run-trains-on" id="toc-what-the-inner-run-trains-on" class="nav-link" data-scroll-target="#what-the-inner-run-trains-on">What the inner run trains on</a></li>
+  <li><a href="#what-the-supervisor-sees-and-changes" id="toc-what-the-supervisor-sees-and-changes" class="nav-link" data-scroll-target="#what-the-supervisor-sees-and-changes">What the supervisor sees and changes</a></li>
+  <li><a href="#when-it-acts" id="toc-when-it-acts" class="nav-link" data-scroll-target="#when-it-acts">When it acts</a></li>
+  <li><a href="#tests-on-longer-runs" id="toc-tests-on-longer-runs" class="nav-link" data-scroll-target="#tests-on-longer-runs">Tests on longer runs</a></li>
+  </ul></li>
+  <li><a href="#three-tasks-up-close" id="toc-three-tasks-up-close" class="nav-link" data-scroll-target="#three-tasks-up-close">Three tasks up close</a></li>
+  <li><a href="#how-inkling-2-mini-did-on-a-first-try" id="toc-how-inkling-2-mini-did-on-a-first-try" class="nav-link" data-scroll-target="#how-inkling-2-mini-did-on-a-first-try">How Inkling 2 Mini did on a first try</a></li>
+  <li><a href="#what-comes-next" id="toc-what-comes-next" class="nav-link" data-scroll-target="#what-comes-next">What comes next</a></li>
+  <li><a href="#appendix-every-dataset-we-read" id="toc-appendix-every-dataset-we-read" class="nav-link" data-scroll-target="#appendix-every-dataset-we-read">Appendix: every dataset we read</a></li>
+  <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">References</a></li>
+  </ul>
+</nav>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
 <!-- margin-sidebar -->
-    
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar zindex-bottom">
+    </div>
 <!-- main -->
-<main class="content column-page" id="quarto-document-content">
+<main class="content page-columns page-full" id="quarto-document-content">
 
 
 <header id="title-block-header" class="quarto-title-block default">
@@ -373,7 +422,7 @@ window.Quarto = {
 </div>
 
 
-<div class="quarto-title-meta column-page">
+<div class="quarto-title-meta">
 
     
     <div>
@@ -391,20 +440,24 @@ window.Quarto = {
 </header>
 
 
-<section id="introduction" class="level2">
+<section id="introduction" class="level2 page-columns page-full">
 <h2 class="anchored" data-anchor-id="introduction">Introduction</h2>
 <p>This is a running log of small scale experimentation to build a model that supervises post-training and improves the outcomes of underlying RL runs through intervention across data, harness, and model.</p>
 <p>Specfically, the model watches a live RL post-training run, forecasts where the run is going, finds what is wrong, and changes it. The test here is a run with this model end better than the same run without it. The outer loop learns from inner RL runs and when applied to a new RL posttraining environment, it performs better than the baseline model.</p>
-<p>The model I am experimenting with is Inkling 2 Mini. The runs it watches are RL post-training runs of Inkling 2 Mini, on <a href="https://github.com/radixark/miles">miles</a>, on one GPU. So it watches over runs of itself, and what it learns goes back into the same weights. The experimental setups follows <a href="https://arxiv.org/abs/2611.17790">AutoRL</a> where the watching agents are API models that are not trained (gpt-6.1-sol and glm-5.2).</p>
-<div class="quarto-figure quarto-figure-center">
-<figure class="figure">
-<p><img src="figure1_setup.png" class="img-fluid figure-img" style="width:100.0%"></p>
+<p>The model I am experimenting with is Inkling 2 Mini. The runs it watches are RL post-training runs of Inkling 2 Mini, on <a href="https://github.com/radixark/miles">miles</a> <span class="citation" data-cites="radixark2026miles">(<a href="#ref-radixark2026miles" role="doc-biblioref">RadixArk 2026</a>)</span>, on one GPU. So it watches over runs of itself, and what it learns goes back into the same weights. The experimental setups follows <a href="https://arxiv.org/abs/2611.17790">AutoRL</a> <span class="citation" data-cites="tang2026autorl">(<a href="#ref-tang2026autorl" role="doc-biblioref">Tang et al. 2026</a>)</span> where the watching agents are API models that are not trained (gpt-6.1-sol and glm-5.2).</p>
+<div class="no-row-height column-margin column-container"><div id="ref-radixark2026miles" class="csl-entry" role="listitem">
+RadixArk. 2026. <span>“Miles V0.1: Production-Level Post-Training.”</span> <a href="https://arxiv.org/abs/2609.08368">https://arxiv.org/abs/2609.08368</a>.
+</div><div id="ref-tang2026autorl" class="csl-entry" role="listitem">
+Tang, Simon, Wenjie Shi, Yongjing Yin, Keheng Wang, Jialin Liu, Zheng Zhang, Linvo Lin, et al. 2026. <span>“<span>AutoRL</span>: A Multi-Agent System Towards Autonomous Reinforcement Learning.”</span> <em>arXiv Preprint arXiv:2611.17790</em>. <a href="https://arxiv.org/abs/2611.17790">https://arxiv.org/abs/2611.17790</a>.
+</div></div><div class="quarto-figure quarto-figure-center page-columns page-full">
+<figure class="figure page-columns page-full">
+<p class="page-columns page-full"><img src="figure1_setup.png" class="img-fluid figure-img column-page-right" style="width:100.0%"></p>
 <figcaption><strong>Figure 1.</strong> (a) Training. (i) Warm-up: RL on offline skill tasks (Predict, Read, Build) gives the starting weights <span class="math inline">\(\theta_0\)</span>. (ii) Supervision: each episode starts a new inner RL run of Inkling 2 Mini with a fresh LoRA on dataset <span class="math inline">\(D\)</span>. At step <span class="math inline">\(t\)</span> the supervisor <span class="math inline">\(\pi_\theta\)</span> observes the run and may act on its data, harness or model, at most <span class="math inline">\(B\)</span> times per run. The run forks into a branch with the action and a twin without it. Both run <span class="math inline">\(H\)</span> steps and are scored on held-out tasks of <span class="math inline">\(D\)</span>; the reward is the difference, and only <span class="math inline">\(\theta\)</span> persists across episodes. (b) Held-out evaluation. On a new dataset <span class="math inline">\(D'\)</span>, with <span class="math inline">\(\theta\)</span> frozen, the same run is repeated with no supervisor, the untrained supervisor and the trained one.</figcaption>
 </figure>
 </div>
 <p>The reward for the supervisor model is initialy designed to capture the improvement over counterfactual trajectory (e.g.&nbsp;what if the intervention hadn’t been made).</p>
 </section>
-<section id="warm-up-the-skills-a-supervisor-needs" class="level2">
+<section id="warm-up-the-skills-a-supervisor-needs" class="level2 page-columns page-full">
 <h2 class="anchored" data-anchor-id="warm-up-the-skills-a-supervisor-needs">Warm-up: the skills a supervisor needs</h2>
 <p>To supervise a training run well, a model first needs a few skills. It has to see where a run is going, see what is wrong with it, and write the fix. Each skill is a task with an answer we can check offline, without a live run. In the warm-up stage (Figure 1, a-i) the model trains on these tasks with RL. The supervision stage then starts from these weights.</p>
 <table class="caption-top table">
@@ -427,23 +480,35 @@ window.Quarto = {
 <td><strong>Predict</strong></td>
 <td>How will this run turn out?</td>
 <td>a forecast: a curve, a final number, or which of two runs wins</td>
-<td>Tea Leaves</td>
+<td>Tea Leaves <span class="citation" data-cites="zhao2026tealeaves">(<a href="#ref-zhao2026tealeaves" role="doc-biblioref">Zhao et al. 2026</a>)</span></td>
 </tr>
 <tr class="even">
 <td><strong>Read</strong></td>
 <td>What went wrong in this run, and how do you fix it?</td>
 <td>a diagnosis, or one edit to the run</td>
-<td>AutoRLBench, RFT-FaultBench</td>
+<td>AutoRLBench <span class="citation" data-cites="autorlbench2026">(<a href="#ref-autorlbench2026" role="doc-biblioref">Thinking-Space 2026</a>)</span>, RFT-FaultBench <span class="citation" data-cites="zhang2026rftfaultbench">(<a href="#ref-zhang2026rftfaultbench" role="doc-biblioref">Zhang et al. 2026</a>)</span></td>
 </tr>
 <tr class="odd">
 <td><strong>Build</strong></td>
 <td>Can you write the piece that makes training better?</td>
 <td>code: a loss, an estimator, a library feature</td>
-<td>HF_ML_Tasksmith, AutoResearchExam, DiscoGen</td>
+<td>HF_ML_Tasksmith <span class="citation" data-cites="fineenvs">(<a href="#ref-fineenvs" role="doc-biblioref">Kolavi 2026</a>)</span>, AutoResearchExam <span class="citation" data-cites="ramesh2026autoresearchexam">(<a href="#ref-ramesh2026autoresearchexam" role="doc-biblioref">Ramesh et al. 2026</a>)</span>, DiscoGen <span class="citation" data-cites="goldie2026discogen">(<a href="#ref-goldie2026discogen" role="doc-biblioref">Goldie et al. 2026</a>)</span></td>
 </tr>
 </tbody>
 </table>
-<p>Each dataset has tasks for training and tasks held back for testing. A model never trains on a test task. All datasets I looked at, and why most were left out, are in the <a href="#appendix-every-dataset-we-read">appendix</a>.</p>
+<div class="no-row-height column-margin column-container"><div id="ref-zhao2026tealeaves" class="csl-entry" role="listitem">
+Zhao, Xinran, Xiang Li, Tong Chen, Jinchuan Tian, Zichun Yu, and Tongshuang Wu. 2026. <span>“Reading the Tea Leaves, Again: Can Large Language Models Predict Language Model Training Runs?”</span> <em>arXiv Preprint arXiv:2611.30141</em>. <a href="https://arxiv.org/abs/2611.30141">https://arxiv.org/abs/2611.30141</a>.
+</div><div id="ref-autorlbench2026" class="csl-entry" role="listitem">
+Thinking-Space. 2026. <span>“<span>AutoRLBench</span>: A Benchmark and Open Call for Valuable, Reproducible RL Runs.”</span> GitHub repository. <a href="https://github.com/Thinking-Space/AutoRLBench">https://github.com/Thinking-Space/AutoRLBench</a>.
+</div><div id="ref-zhang2026rftfaultbench" class="csl-entry" role="listitem">
+Zhang, Lingzhe, Tong Jia, Yunpeng Zhai, Liancheng Fang, Kening Zheng, Hongyi Liu, Xiaosong Huang, Philip S. Yu, and Ying Li. 2026. <span>“Towards Robust LLM Post-Training: Automatic Failure Management for Reinforcement Fine-Tuning.”</span> <em>arXiv Preprint arXiv:2605.04431</em>. <a href="https://arxiv.org/abs/2605.04431">https://arxiv.org/abs/2605.04431</a>.
+</div><div id="ref-fineenvs" class="csl-entry" role="listitem">
+Kolavi, Adithya S. 2026. <span>“<span>FineEnvs</span>: Open Source RL Environments for LLM Agents.”</span> <a href="https://github.com/adithya-s-k/FineEnvs">https://github.com/adithya-s-k/FineEnvs</a>.
+</div><div id="ref-ramesh2026autoresearchexam" class="csl-entry" role="listitem">
+Ramesh, Anirudha, Siddartha Devic, Shivank Garg, Advait Parulekar, Drish Mahnot, Shreyas Pimpalgaonkar, Vishnu Suresh, Alex Dimakis, and Maheswaran Sathiamoorthy. 2026. <span>“<span>AutoResearchExam</span>.”</span> <a href="https://benchmarks.bespokelabs.ai/autoresearchexam/">https://benchmarks.bespokelabs.ai/autoresearchexam/</a>.
+</div><div id="ref-goldie2026discogen" class="csl-entry" role="listitem">
+Goldie, Alexander D., Zilin Wang, Adrian Hayler, Deepak Nathani, Edan Toledo, Ken Thampiratwong, Aleksandra Kalisz, et al. 2026. <span>“Procedural Generation of Algorithm Discovery Tasks in Machine Learning.”</span> <em>arXiv Preprint arXiv:2603.17863</em>. <a href="https://arxiv.org/abs/2603.17863">https://arxiv.org/abs/2603.17863</a>.
+</div></div><p>Each dataset has tasks for training and tasks held back for testing. A model never trains on a test task. All datasets I looked at, and why most were left out, are in the <a href="#appendix-every-dataset-we-read">appendix</a>.</p>
 <p>One rule sets the cost of checking an answer: how much of a real training run do we execute to know that the answer was right?</p>
 <p>We also chose the tasks to be fast. An RL run needs many attempts per step, so a slow task makes every step slow and costly. We kept tasks where one experiment takes a few minutes, whatever budget the dataset shipped with. Every attempt has a turn limit of 128 and a time limit.</p>
 <table class="caption-top table">
@@ -544,7 +609,7 @@ window.Quarto = {
 </table>
 <p>The Tea Leaves paper says that knowing a part of training has three levels: describing it, implementing it, and anticipating what it does to a run. Models are usually asked for the first two. This job needs the third.</p>
 </section>
-<section id="read" class="level3">
+<section id="read" class="level3 page-columns page-full">
 <h3 class="anchored" data-anchor-id="read">Read</h3>
 <p>The model reads what a run left behind and says what went wrong. Sometimes it also fixes the run. This is the skill a supervisor uses most: before it can change a run, it has to see the problem.</p>
 <ul>
@@ -602,14 +667,16 @@ window.Quarto = {
 <td>5</td>
 </tr>
 <tr class="odd">
-<td>AgenticRL-Bench (<a href="https://github.com/eigent-ai/agenticrl-bench">repo</a>, <a href="https://www.kaggle.com/benchmarks/eigent/agenticrl-bench/leaderboard">Kaggle</a>)</td>
+<td>AgenticRL-Bench <span class="citation" data-cites="agenticrlbench2026">(<a href="#ref-agenticrlbench2026" role="doc-biblioref">Eigent AI 2026</a>)</span> (<a href="https://github.com/eigent-ai/agenticrl-bench">repo</a>, <a href="https://www.kaggle.com/benchmarks/eigent/agenticrl-bench/leaderboard">Kaggle</a>)</td>
 <td>audit or repair a real RL pipeline</td>
 <td>22</td>
 </tr>
 </tbody>
 </table>
-</section>
-<section id="build" class="level3">
+<div class="no-row-height column-margin column-container"><div id="ref-agenticrlbench2026" class="csl-entry" role="listitem">
+Eigent AI. 2026. <span>“<span>AgenticRL-Bench</span>: Testing Agents on Real Agentic-RL Work, from Debugging to Training.”</span> GitHub repository. <a href="https://github.com/eigent-ai/agenticrl-bench">https://github.com/eigent-ai/agenticrl-bench</a>.
+</div></div></section>
+<section id="build" class="level3 page-columns page-full">
 <h3 class="anchored" data-anchor-id="build">Build</h3>
 <p>The model writes a piece of training code and sees whether it helps. This is the research-engineering part of the job: when the supervisor decides that a run needs a new loss or a fixed library function, it has to write it.</p>
 <ul>
@@ -662,23 +729,27 @@ window.Quarto = {
 <td>4 + 3 + 3</td>
 </tr>
 <tr class="even">
-<td>RSI Bench, from Scale (<a href="https://github.com/scaleapi/rsi-benchmark">repo</a>)</td>
+<td>RSI Bench, from Scale (<a href="https://github.com/scaleapi/rsi-benchmark">repo</a>) <span class="citation" data-cites="scale2026rsibench">(<a href="#ref-scale2026rsibench" role="doc-biblioref">Scale AI 2026</a>)</span></td>
 <td>long research tasks: post-training, data, architecture, systems</td>
 <td>49</td>
 </tr>
 </tbody>
 </table>
-<p>Three more AutoResearchExam tasks run on a small GPU. We checked them, but they are not in the pool yet.</p>
+<div class="no-row-height column-margin column-container"><div id="ref-scale2026rsibench" class="csl-entry" role="listitem">
+Scale AI. 2026. <span>“<span>RSI Bench</span>.”</span> GitHub repository. <a href="https://github.com/scaleapi/rsi-benchmark">https://github.com/scaleapi/rsi-benchmark</a>.
+</div></div><p>Three more AutoResearchExam tasks run on a small GPU. We checked them, but they are not in the pool yet.</p>
 <p>In a DiscoGen attempt, 82 to 96% of the time is spent inside a training command. So the GPU is busy, and four attempts that share one GPU have to wait for each other.</p>
 </section>
 </section>
-<section id="the-supervision-run" class="level2">
+<section id="the-supervision-run" class="level2 page-columns page-full">
 <h2 class="anchored" data-anchor-id="the-supervision-run">The supervision run</h2>
 <p>The warm-up tasks are offline. To learn supervision itself, the model needs real post-training runs to watch. For these runs I use short post-training tasks, for two reasons: my budget is small, and a short run gives feedback quickly.</p>
-<section id="what-the-inner-run-trains-on" class="level3">
+<section id="what-the-inner-run-trains-on" class="level3 page-columns page-full">
 <h3 class="anchored" data-anchor-id="what-the-inner-run-trains-on">What the inner run trains on</h3>
-<p>The inner runs train on targets from RSI-Dojo (<a href="https://arxiv.org/abs/2611.03698">paper</a>, <a href="https://huggingface.co/datasets/szgao/RSI-Dojo">data</a>). One target is one short post-training task: train the model so that its score on one benchmark goes up. Each target comes with an evaluation script and no training recipe, so the recipe and the reward are mine.</p>
-<table class="caption-top table">
+<p>The inner runs train on targets from RSI-Dojo (<a href="https://arxiv.org/abs/2611.03698">paper</a>, <a href="https://huggingface.co/datasets/szgao/RSI-Dojo">data</a>) <span class="citation" data-cites="gao2026rsidojo">(<a href="#ref-gao2026rsidojo" role="doc-biblioref">Gao et al. 2026</a>)</span>. One target is one short post-training task: train the model so that its score on one benchmark goes up. Each target comes with an evaluation script and no training recipe, so the recipe and the reward are mine.</p>
+<div class="no-row-height column-margin column-container"><div id="ref-gao2026rsidojo" class="csl-entry" role="listitem">
+Gao, Shuzheng, Zhaojian Yu, Penghao Yin, Yuling Shi, Kai Cai, Shilin He, and Michael R. Lyu. 2026. <span>“Training <span>LLM</span> Agents to Automate <span>LLM</span> Post-Training with <span>RSI-Dojo</span>.”</span> <em>arXiv Preprint arXiv:2611.03698</em>. <a href="https://arxiv.org/abs/2611.03698">https://arxiv.org/abs/2611.03698</a>.
+</div></div><table class="caption-top table">
 <colgroup>
 <col style="width: 50%">
 <col style="width: 50%">
@@ -706,7 +777,7 @@ window.Quarto = {
 </table>
 <p>The training runs use some targets (<span class="math inline">\(D\)</span>). The held-out evaluation uses others (<span class="math inline">\(D'\)</span>). In two targets, BoolQ and MedQA, the training rows and the evaluation rows overlap, so they need a fix or must be dropped.</p>
 </section>
-<section id="what-the-supervisor-sees-and-changes" class="level3">
+<section id="what-the-supervisor-sees-and-changes" class="level3 page-columns page-full">
 <h3 class="anchored" data-anchor-id="what-the-supervisor-sees-and-changes">What the supervisor sees and changes</h3>
 <p>The setup is close to AutoRL’s. The supervisor reads the state of the run and may change three parts of it.</p>
 <table class="caption-top table">
@@ -727,7 +798,7 @@ window.Quarto = {
 </tr>
 <tr class="odd">
 <td><strong>Changes the harness</strong></td>
-<td>the agent harness, <a href="https://github.com/sst/opencode">OpenCode</a>: prompt, tools, turn and time limits</td>
+<td>the agent harness, <a href="https://github.com/sst/opencode">OpenCode</a> <span class="citation" data-cites="opencode">(<a href="#ref-opencode" role="doc-biblioref">SST 2025</a>)</span>: prompt, tools, turn and time limits</td>
 </tr>
 <tr class="even">
 <td><strong>Changes the data</strong></td>
@@ -735,14 +806,16 @@ window.Quarto = {
 </tr>
 </tbody>
 </table>
-<p>It may also do nothing. Doing nothing is an action like the others, and it is scored the same way.</p>
+<div class="no-row-height column-margin column-container"><div id="ref-opencode" class="csl-entry" role="listitem">
+SST. 2025. <span>“<span>OpenCode</span>: The Open Source Coding Agent.”</span> GitHub repository. <a href="https://github.com/sst/opencode">https://github.com/sst/opencode</a>.
+</div></div><p>It may also do nothing. Doing nothing is an action like the others, and it is scored the same way.</p>
 </section>
 <section id="when-it-acts" class="level3">
 <h3 class="anchored" data-anchor-id="when-it-acts">When it acts</h3>
 <p>For a first proof of concept, the supervisor acts only at step boundaries: after the weight sync and before the next rollouts. The run pauses, the supervisor reads and decides, and the run continues. This keeps things simple, because every decision point is a saved checkpoint, and a twin run can start from it. This is the setup in Figure 1: the fork starts at checkpoint <span class="math inline">\(m_t\)</span>.</p>
 <p>Supervising inside a step, for example stopping bad rollouts while they run, would give more decision points and denser feedback. It would also need a way to copy the run in the middle of a step. I leave it for later.</p>
 </section>
-<section id="tests-on-longer-runs" class="level3">
+<section id="tests-on-longer-runs" class="level3 page-columns page-full">
 <h3 class="anchored" data-anchor-id="tests-on-longer-runs">Tests on longer runs</h3>
 <p>These post-training benchmarks are too long to train on. They test whether the trained supervisor helps on runs much longer than the ones it learned from.</p>
 <table class="caption-top table">
@@ -755,23 +828,29 @@ window.Quarto = {
 </thead>
 <tbody>
 <tr class="odd">
-<td>PostTrainBench (<a href="https://github.com/aisa-group/PostTrainBench">repo</a>)</td>
+<td>PostTrainBench (<a href="https://github.com/aisa-group/PostTrainBench">repo</a>) <span class="citation" data-cites="rank2026posttrainbench">(<a href="#ref-rank2026posttrainbench" role="doc-biblioref">Rank et al. 2026</a>)</span></td>
 <td>post-train a base LLM for one of six benchmarks, 10 hours on one H100</td>
 <td>not counted yet</td>
 </tr>
 <tr class="even">
-<td>FrontierRSI (<a href="https://github.com/abundant-ai/frontier-rsi">repo</a>)</td>
+<td>FrontierRSI (<a href="https://github.com/abundant-ai/frontier-rsi">repo</a>) <span class="citation" data-cites="frontierrsi2026">(<a href="#ref-frontierrsi2026" role="doc-biblioref">Abundant AI 2026</a>)</span></td>
 <td>improve a training recipe, RL data, inference speed or a GPU kernel</td>
 <td>8 public</td>
 </tr>
 <tr class="odd">
-<td>RL post-training of Olmo-3-7B (<a href="https://hub.harborframework.com/datasets/ale/rsi-post-training">Harbor Hub</a>)</td>
+<td>RL post-training of Olmo-3-7B (<a href="https://hub.harborframework.com/datasets/ale/rsi-post-training">Harbor Hub</a>) <span class="citation" data-cites="rsiposttraining">(<a href="#ref-rsiposttraining" role="doc-biblioref">Harbor Hub, n.d.</a>)</span></td>
 <td>improve an RL recipe on math under a fixed budget of episodes</td>
 <td>1</td>
 </tr>
 </tbody>
 </table>
-</section>
+<div class="no-row-height column-margin column-container"><div id="ref-rank2026posttrainbench" class="csl-entry" role="listitem">
+Rank, Ben, Hardik Bhatnagar, Ameya Prabhu, Shira Eisenberg, Karina Nguyen, Matthias Bethge, and Maksym Andriushchenko. 2026. <span>“<span>PostTrainBench</span>: Can <span>LLM</span> Agents Automate <span>LLM</span> Post-Training?”</span> <em>arXiv Preprint arXiv:2603.08640</em>. <a href="https://arxiv.org/abs/2603.08640">https://arxiv.org/abs/2603.08640</a>.
+</div><div id="ref-frontierrsi2026" class="csl-entry" role="listitem">
+Abundant AI. 2026. <span>“<span>FrontierRSI</span>: Open-Ended AI Research Tasks.”</span> GitHub repository. <a href="https://github.com/abundant-ai/frontier-rsi">https://github.com/abundant-ai/frontier-rsi</a>.
+</div><div id="ref-rsiposttraining" class="csl-entry" role="listitem">
+Harbor Hub. n.d. <span>“Rsi-Post-Training.”</span> Harbor Hub dataset ale/rsi-post-training. <a href="https://hub.harborframework.com/datasets/ale/rsi-post-training">https://hub.harborframework.com/datasets/ale/rsi-post-training</a>.
+</div></div></section>
 </section>
 <section id="three-tasks-up-close" class="level2">
 <h2 class="anchored" data-anchor-id="three-tasks-up-close">Three tasks up close</h2>
@@ -850,6 +929,10 @@ window.Quarto = {
 <ul>
 <li><a href="https://github.com/SWE-rebench/SWE-rebench-V2">SWE-rebench</a>, <a href="https://github.com/R2E-Gym/R2E-Gym">R2E-Gym</a>, <a href="https://huggingface.co/datasets/camel-ai/SETA-Env">SETA</a>, <a href="https://github.com/hamishivi/tmax">TMax</a>, <a href="https://huggingface.co/datasets/efederici/smol-software-harbor">smol-software-harbor</a>, and about 15 others</li>
 </ul>
+</section>
+<section id="references" class="level2">
+<h2 class="anchored" data-anchor-id="references">References</h2>
+
 
 
 </section>
