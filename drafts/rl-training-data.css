@@ -1,0 +1,5 @@
+/* rl-training-data post only: keep wide content inside the body column on small screens */
+@media (max-width: 767.98px) {
+  main table { display: block; max-width: 100%; overflow-x: auto; }
+}
+#refs a, .csl-entry a { overflow-wrap: anywhere; word-break: break-word; }
